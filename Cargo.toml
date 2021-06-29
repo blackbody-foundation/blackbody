@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "blackbody",
+    "blackhole",
+    "gravity",
+    "wormhole"
+]
