@@ -1,5 +1,5 @@
 /*
-    (Source Code Name)
+    .. + main.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -21,8 +21,23 @@
 // blackhole (file) or (file.cccs)
 // cccs = collapsed and compressed core star
 
-use wormhole;
+use std::error::Error;
 
-fn main() {
-    println!("Hello, world! {} ", wormhole::test(2));
+use wormhole::{tokio, ITQ};
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let tq = ITQ::new();
+    tq.push(Box::new(|| {
+        println!("1");
+    }));
+    tq.push(Box::new(|| {
+        println!("2");
+    }));
+    tq.push(Box::new(|| {
+        println!("3");
+    }));
+    tq.push(Box::new(|| {
+        println!("4");
+    }));
+    Ok(())
 }

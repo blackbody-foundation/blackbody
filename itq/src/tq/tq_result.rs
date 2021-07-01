@@ -1,5 +1,5 @@
 /*
-    .. + main.rs + ..
+    .. + tq_result.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,10 +18,32 @@
 
 */
 
-// blackbody run
+use std::{
+    error::Error,
+    fmt::{self, Debug},
+    result,
+};
 
-use rand;
+pub type TQResult = result::Result<(), Box<TQError>>;
+pub type TQFn = Box<dyn FnOnce() + Send>;
 
-fn main() {
-    println!("Hello, world!");
+// must be a 'Something(TQFn)' enum
+pub enum TQError {
+    Full(TQFn),
+}
+impl TQError {
+    pub fn err(t: Self) -> TQResult {
+        Err(Box::new(t))
+    }
+}
+impl fmt::Display for TQError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TQ Error occurs.")
+    }
+}
+impl Error for TQError {}
+impl Debug for TQError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Error occurs, so returned TQ function.")
+    }
 }

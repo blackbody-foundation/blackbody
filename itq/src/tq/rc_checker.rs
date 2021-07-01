@@ -1,5 +1,5 @@
 /*
-    (Source Code Name)
+    .. + rc_checker.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,6 +18,25 @@
 
 */
 
-pub fn test() {
-    println!("test");
+use std::rc::Rc;
+
+pub struct Checker;
+pub struct RcCheker {
+    pub checker: Rc<Checker>,
 }
+impl RcCheker {
+    pub fn new() -> Self {
+        Self {
+            checker: Rc::new(Checker {}),
+        }
+    }
+    pub fn clone(&self) -> Self {
+        Self {
+            checker: Rc::clone(&self.checker),
+        }
+    }
+    pub fn count(&self) -> usize {
+        Rc::strong_count(&self.checker)
+    }
+}
+unsafe impl Send for RcCheker {}

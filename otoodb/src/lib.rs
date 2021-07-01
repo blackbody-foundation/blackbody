@@ -1,5 +1,5 @@
 /*
-    (Source Code Name)
+    .. + lib.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,6 +18,10 @@
 
 */
 
+// One to One Set Database.
 
-use std::io::{self, Read, Write};
-
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {}
+}

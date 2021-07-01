@@ -1,5 +1,5 @@
 /*
-    (Source Code Name)
+    .. + main.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 

@@ -4,5 +4,7 @@ members = [
     "blackbody",
     "blackhole",
     "gravity",
-    "wormhole"
+    "wormhole",
+    "itq",
+    "otoodb"
 ]

@@ -1,6 +1,6 @@
 ![BlackBody Image](https://i.ibb.co/4J0FkRr/crowdimage.png)
 
-# [BlackBody]() &middot; [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://github.com/just-do-halee/blackbody/blob/main/LICENSE)
+# [BlackBody]() &middot; [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://github.com/blackbody-foundation/blackbody/blob/main/LICENSE)
 
 
 Consensus compression blockchain.
@@ -9,12 +9,12 @@ Consensus compression blockchain.
 
 > ㅤ
 >
-> - **blackbody:**  Blockchain node for consensus compression algorithm.
+> - **blackbody :** &nbsp; Blockchain node for consensus compression algorithm.  ㅤ
+>  
+> - **blackhole :** &nbsp; The BlackBody distributed deterministic data compressor/decompressor.  ㅤ
 >
-> - **blackhole:**  The Blackbody distributed deterministic data compressor/decompressor.
+> - **gravity :** &nbsp; The BlackBody toolchain installer.  ㅤ
 >
-> -   **gravity:**  The Blackbody toolchain installer.
->
-> -  **wormhole:**  A library for reading and writing .cccs file.
-> ㅤ
->
+> - **wormhole :** &nbsp; A library for reading and writing .cccs file.    ㅤ
+>   ㅤ
+>   ㅤ
