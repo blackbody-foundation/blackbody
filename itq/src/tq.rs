@@ -18,6 +18,8 @@
 
 */
 
+use std::{thread, time::Duration};
+
 use tokio::task;
 
 mod rc_checker;
@@ -42,7 +44,6 @@ impl ThreadQueue {
         if self.checker.count() > self.limit {
             return TQError::err(TQError::Full(f));
         }
-        self.print();
         let checker = self.checker.clone(); // Counting
         task::spawn(async move {
             let _ = checker;
@@ -51,12 +52,14 @@ impl ThreadQueue {
         Ok(())
     }
     pub fn await_all(&self) {
-        while self.checker.count() != 1 {}
+        while self.checker.count() > 1 {
+            thread::sleep(Duration::from_millis(1));
+        }
     }
     pub fn await_some(&self) {
         while self.checker.count() >= self.limit {}
     }
-    pub fn print(&self) {
-        println!("RC: {}", self.checker.count());
-    }
+    // pub fn print(&self) {
+    //     println!("RC: {}", self.checker.count());
+    // }
 }

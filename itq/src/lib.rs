@@ -29,11 +29,13 @@ use tq::{TQFn, ThreadQueue};
 
 pub struct ITQ {
     thread_queue: ThreadQueue,
+    droped: bool,
 }
 impl Default for ITQ {
     fn default() -> Self {
         Self {
-            thread_queue: ThreadQueue::new(128 * 1024),
+            thread_queue: ThreadQueue::new(64 * 1024),
+            droped: false,
         }
     }
 }
@@ -54,18 +56,15 @@ impl ITQ {
             self.push(func); // recursive
         }
     }
-    pub fn drop(self) {
+    pub fn drop(mut self) {
+        self.droped = true;
         self.thread_queue.await_all();
     }
 }
 impl Drop for ITQ {
     fn drop(&mut self) {
-        self.thread_queue.await_all();
+        if !self.droped {
+            self.thread_queue.await_all();
+        }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {}
 }

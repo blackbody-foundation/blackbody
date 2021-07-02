@@ -18,25 +18,24 @@
 
 */
 
-use std::rc::Rc;
+use std::sync::{atomic::AtomicUsize, Arc, Mutex};
 
-pub struct Checker;
+pub type Checker = Mutex<AtomicUsize>;
 pub struct RcCheker {
-    pub checker: Rc<Checker>,
+    checker: Arc<Checker>,
 }
 impl RcCheker {
     pub fn new() -> Self {
         Self {
-            checker: Rc::new(Checker {}),
+            checker: Arc::new(Checker::new(AtomicUsize::new(0))),
         }
     }
     pub fn clone(&self) -> Self {
         Self {
-            checker: Rc::clone(&self.checker),
+            checker: Arc::clone(&self.checker),
         }
     }
     pub fn count(&self) -> usize {
-        Rc::strong_count(&self.checker)
+        Arc::strong_count(&self.checker)
     }
 }
-unsafe impl Send for RcCheker {}
