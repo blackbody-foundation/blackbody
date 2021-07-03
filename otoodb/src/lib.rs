@@ -20,28 +20,24 @@
 
 // One to One Set Database.
 
-mod fs;
-use fs::File;
 use std::io;
+use utils::fs::File;
 
 mod head;
 use head::Header;
 
-pub struct ABSetBytes(usize, usize);
+pub struct ABSetBytes(u64, u64);
 
 pub struct DB {
     pub a_b_bytes: ABSetBytes,
     pub file: File,
 }
 impl DB {
-    pub fn open(
-        file_path: &'static str,
-        a_set_bytes: usize,
-        b_set_bytes: usize,
-    ) -> io::Result<Self> {
+    pub fn open(file_path: &'static str, a_set_bytes: u64, b_set_bytes: u64) -> io::Result<Self> {
+        let header = Box::new(Header::new(a_set_bytes, b_set_bytes));
         Ok(Self {
             a_b_bytes: ABSetBytes(a_set_bytes, b_set_bytes),
-            file: File::open(file_path, Box::new(Header::new(a_set_bytes, b_set_bytes)))?,
+            file: File::open(file_path, header)?,
         })
     }
     pub fn close(self) {}
@@ -53,61 +49,7 @@ mod tests {
     #[test]
     fn it_works() {
         let db = DB::open("/Volumes/programs/code/blackchain/test", 4, 32).unwrap();
+        println!("{:#?}", db.file.header);
         db.close();
     }
 }
-
-// #[allow(..)]
-
-// enum EnFoo {
-//     Foo1,
-//     Foo2,
-//     Foo3,
-// }
-// impl Default for EnFoo {
-//     fn default() -> Self {
-//         Self::Foo1
-//     }
-// }
-// struct StFoo {
-//     foo1: usize,
-//     foo2: String,
-//     foo3: u8,
-// }
-// impl Default for StFoo {
-//     fn default() -> Self {
-//         Self {
-//             foo1: 0,
-//             foo2: String::from("0"),
-//             foo3: 0,
-//         }
-//     }
-// }
-
-// fn fooo(a1: EnFoo*, a2: StFoo*) {
-//     // ...
-// }
-// fn fooo_b_mut(a1: &mut EnFoo*, a2: &mut StFoo*) {
-//     // ...
-// }
-// fn main() {
-
-//     // ****
-//     // EnFoo* <--- if EnFoo == empty place then
-//     // Create EnFoo::default()
-//     // ****
-
-//     fooo(); /* <--- ==
-
-//     fn fooo(a1: EnFoo*, a2: StFoo*) {
-//         if EnFoo == empty then ↴
-//         ""let a1 = EnFoo::default();"" <-- Internal Execution
-
-//         if StFoo == empty then ↴
-//         ""let a2 = StFoo::default();"" <-- Internal Execution
-
-//         Now can be access
-//         a1, a2
-//     }
-//     */
-// }
