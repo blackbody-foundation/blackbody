@@ -3,6 +3,7 @@ name = "otoodb"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
 description = "One to One Set Database."
+keywords = ["blockchain", "blackbody", "database"]
 license = "LGPL-3.0-or-later"
 edition = "2018"
 

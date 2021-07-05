@@ -18,12 +18,27 @@
 
 */
 
-use std::{fmt::Debug, io};
+use std::fmt::Debug;
 
-use super::types::{Reader, Writer};
+use super::types::*;
+use crate::result::*;
 
 pub trait Header: Debug {
     fn as_bytes(&self) -> Vec<u8>;
-    fn write(&self, writer: Writer) -> io::Result<Writer>;
-    fn read(&mut self, reader: Reader) -> io::Result<Reader>;
+    fn write(&self, fm: FM) -> Result<FM>;
+    fn read(&mut self, fm: FM) -> Result<FM>;
+
+    /// get first and last bytes for the proof.
+    fn get_flu8(&self, buf: &[u8]) -> Option<(u8, u8)> {
+        let len = buf.len();
+        let f = buf.get(0)?.to_owned();
+        let l = buf.get(len - 1)?.to_owned();
+        Some((f, l))
+    }
+    fn check_flu8(&self, buf: &[u8], first: u8, last: u8) -> Result<()> {
+        match self.get_flu8(buf) {
+            Some((f, l)) if (f == first && l == last) => Ok(()),
+            _ => Error::bang(ErrKind::BrokenHeader),
+        }
+    }
 }

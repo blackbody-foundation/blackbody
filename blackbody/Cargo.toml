@@ -3,6 +3,7 @@ name = "blackbody"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
 description = "Blockchain node for consensus compression algorithm."
+keywords = ["blockchain", "blackbody", "algorithm"]
 license = "LGPL-3.0-or-later"
 edition = "2018"
 

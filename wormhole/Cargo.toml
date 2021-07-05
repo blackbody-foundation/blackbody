@@ -3,6 +3,7 @@ name = "wormhole"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
 description = "Reading and writing .cccs file."
+keywords = ["blockchain", "blackbody", "cccs"]
 license = "LGPL-3.0-or-later"
 edition = "2018"
 

@@ -21,41 +21,35 @@
 pub mod header;
 pub mod types;
 
-use types::{Convert, Header, IOFile, Reader, Writer};
-
-use std::io::{self, ErrorKind};
+use super::result::*;
+use types::*;
 
 pub struct File {
-    pub file_path: &'static str,
+    pub path: &'static str,
     pub header: Header,
-    reader: Reader,
-    writer: Writer,
+    fm: FM,
 }
 
 impl File {
-    pub fn open(file_path: &'static str, mut header: Header) -> io::Result<Self> {
-        let reader: Reader = match IOFile::open(file_path) {
-            Ok(file) => file.into_reader(),
-            Err(e) => {
-                if e.kind() == ErrorKind::NotFound {
-                    // Create File.
-                    let writer = IOFile::create(file_path)?.into_writer();
-                    header.write(writer)?; // writing header
-                    IOFile::open(file_path)?.into_reader()
-                } else {
-                    return Err(e);
-                }
-            }
-        };
-        let reader = header.read(reader)?;
-        let writer = IOFile::create(file_path)?.into_writer();
+    pub fn open(path: &'static str, mut header: Header) -> Result<Self> {
+        let ptr = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(path)?;
 
-        Ok(Self {
-            file_path,
-            header,
-            reader,
-            writer,
-        })
+        let fm = FM::new(ptr)?;
+
+        let fm = Self::write(fm, &header)?;
+        let fm = Self::read(fm, &mut header)?;
+
+        Ok(Self { path, header, fm })
+    }
+    fn read(fm: FM, header: &mut Header) -> Result<FM> {
+        header.read(fm)
+    }
+    fn write(fm: FM, header: &Header) -> Result<FM> {
+        header.write(fm)
     }
     pub fn close(self) {}
 }

@@ -18,29 +18,35 @@
 
 */
 
-use std::io;
+use std::fmt;
+use std::{error, result};
 
-pub type Result<T> = io::Result<T>;
-pub type Error = std::io::Error;
+pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
 
-use std::io::ErrorKind;
-
-fn new_error(e_kind: ErrorKind, error: &str) -> Error {
-    Error::new(e_kind, error)
+#[derive(Debug)]
+pub struct Error(ErrKind);
+impl Error {
+    pub fn bang<T>(kind: ErrKind) -> Result<T> {
+        Result::<T>::Err(Box::new(Self(kind)))
+    }
 }
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+impl error::Error for Error {}
 
+#[derive(Debug, Clone, Copy)]
 pub enum ErrKind {
     BrokenHeader,
     FileNotFound,
 }
-use ErrKind::*;
-
-pub trait Err {
-    fn bang(kind: ErrKind) -> Error {
-        match kind {
-            BrokenHeader => new_error(ErrorKind::InvalidData, "broken header."),
-            FileNotFound => new_error(ErrorKind::NotFound, "file not found."),
+impl ErrKind {
+    pub fn to_string(self) -> &'static str {
+        match self {
+            Self::BrokenHeader => "entity not found",
+            Self::FileNotFound => "file not found.",
         }
     }
 }
-impl Err for Error {}

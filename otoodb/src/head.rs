@@ -18,21 +18,19 @@
 
 */
 
-use std::{
-    convert::TryInto,
-    io::{self, Read},
-};
+use std::{convert::TryInto, io::Read};
 
 use utils::{
-    fs::{
-        header,
-        types::{Reader, Writer},
-    },
+    fs::{header, types::*},
     result::*,
 };
 
-/// Header unit size.
+/// header unit size.
 pub type HUSize = u64;
+
+/// first and last bytes in the header.
+pub const HFB: u8 = 0b10101010u8;
+pub const HLB: u8 = !HFB;
 
 #[derive(Debug)]
 pub struct Content(&'static str, HUSize);
@@ -60,27 +58,32 @@ impl header::Header for Header {
             .flatten()
             .collect::<Vec<u8>>()
     }
-    fn write(&self, writer: Writer) -> io::Result<Writer> {
+    fn write(&self, fm: FM) -> Result<FM> {
         // Ok(())
-        todo!()
+        Ok(fm)
     }
-    fn read(&mut self, mut reader: Reader) -> Result<Reader> {
+    fn read(&mut self, mut fm: FM) -> Result<FM> {
+        let reader = &mut fm.reader;
+
         let mut buf = self.as_bytes();
         reader.read_exact(buf.as_mut_slice())?; // read
 
+        self.check_flu8(&buf, HFB, HLB)?;
+
         let size = std::mem::size_of::<HUSize>();
         let mut cursor;
+
         for (idx, mut elem) in self.context.iter_mut().enumerate() {
             cursor = idx * size;
             // get bytes
             let bytes = match buf[cursor..(cursor + size)].try_into() {
                 Ok(x) => x,
                 Err(_) => {
-                    return Err(Error::bang(ErrKind::BrokenHeader));
+                    return Error::bang(ErrKind::BrokenHeader);
                 }
             };
             elem.1 = HUSize::from_ne_bytes(bytes);
         }
-        Ok(reader)
+        Ok(fm)
     }
 }

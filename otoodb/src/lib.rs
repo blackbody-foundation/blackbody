@@ -20,8 +20,7 @@
 
 // One to One Set Database.
 
-use std::io;
-use utils::fs::File;
+use utils::{fs::File, result::*};
 
 mod head;
 use head::Header;
@@ -33,7 +32,7 @@ pub struct DB {
     pub file: File,
 }
 impl DB {
-    pub fn open(file_path: &'static str, a_set_bytes: u64, b_set_bytes: u64) -> io::Result<Self> {
+    pub fn open(file_path: &'static str, a_set_bytes: u64, b_set_bytes: u64) -> Result<Self> {
         let header = Box::new(Header::new(a_set_bytes, b_set_bytes));
         Ok(Self {
             a_b_bytes: ABSetBytes(a_set_bytes, b_set_bytes),
