@@ -1,5 +1,5 @@
 /*
-    .. + lib.rs + ..
+    .. + types.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,12 +18,5 @@
 
 */
 
-pub use itq::{tokio, ITQ};
-pub use otoodb::DB;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn it_works() {}
-}
+pub mod epool;
+pub mod u256;

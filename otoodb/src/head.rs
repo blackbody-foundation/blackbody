@@ -18,72 +18,68 @@
 
 */
 
-use std::{convert::TryInto, io::Read};
+use std::io::{Read, Write};
 
 use utils::{
-    fs::{header, types::*},
+    fs::{header::*, types::*},
+    macros::*,
     result::*,
 };
 
 /// header unit size.
-pub type HUSize = u64;
+pub type HSize = u64;
+pub type SSize = u32;
 
-/// first and last bytes in the header.
-pub const HFB: u8 = 0b10101010u8;
-pub const HLB: u8 = !HFB;
-
-#[derive(Debug)]
-pub struct Content(&'static str, HUSize);
-type Context = Vec<Content>;
+serialize! {
+    struct Content {
+        height: HSize,
+        a_set_bytes: SSize,
+        b_set_bytes: SSize,
+    }
+}
+impl<'de> TContent<'de> for Content {}
 
 #[derive(Debug)]
 pub struct Header {
-    pub context: Context,
+    content: Content,
 }
 impl Header {
-    pub fn new(a_set_bytes: HUSize, b_set_bytes: HUSize) -> Self {
-        let context = vec![
-            Content("height", 0),
-            Content("a_set_bytes", a_set_bytes),
-            Content("b_set_bytes", b_set_bytes),
-        ];
-        Self { context }
+    pub fn new(a_set_bytes: SSize, b_set_bytes: SSize) -> Box<Self> {
+        Box::new(Self {
+            content: Content {
+                height: 0,
+                a_set_bytes,
+                b_set_bytes,
+            },
+        })
     }
 }
-impl header::Header for Header {
-    fn as_bytes(&self) -> Vec<u8> {
-        self.context
-            .iter()
-            .map(|x| x.1.to_ne_bytes())
-            .flatten()
-            .collect::<Vec<u8>>()
+impl THeader for Header {
+    fn write(&mut self, fm: &mut FM) -> Result<()> {
+        let writer = &mut fm.writer;
+
+        let buf = self.content.encode()?;
+
+        writer.write_all(&buf)?;
+
+        Ok(())
     }
-    fn write(&self, fm: FM) -> Result<FM> {
-        // Ok(())
-        Ok(fm)
-    }
-    fn read(&mut self, mut fm: FM) -> Result<FM> {
+    fn read(&mut self, fm: &mut FM) -> Result<()> {
         let reader = &mut fm.reader;
 
-        let mut buf = self.as_bytes();
-        reader.read_exact(buf.as_mut_slice())?; // read
+        let src = self.content.encode()?;
+        let mut buf = vec![0; src.len()];
 
-        self.check_flu8(&buf, HFB, HLB)?;
+        reader.read_exact(&mut buf[..])?; // read
 
-        let size = std::mem::size_of::<HUSize>();
-        let mut cursor;
+        let eq = src.iter().zip(buf.iter()).all(|(&x, &y)| x == y);
 
-        for (idx, mut elem) in self.context.iter_mut().enumerate() {
-            cursor = idx * size;
-            // get bytes
-            let bytes = match buf[cursor..(cursor + size)].try_into() {
-                Ok(x) => x,
-                Err(_) => {
-                    return Error::bang(ErrKind::BrokenHeader);
-                }
-            };
-            elem.1 = HUSize::from_ne_bytes(bytes);
+        if !eq {
+            return Error::bang(ErrKind::AnotherHeader);
         }
-        Ok(fm)
+
+        self.content = self.content.decode(&buf)?;
+
+        Ok(())
     }
 }

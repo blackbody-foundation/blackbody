@@ -20,4 +20,7 @@
 
 pub mod fs;
 pub mod result;
-pub mod u256;
+pub mod types;
+
+#[macro_use]
+pub mod macros;

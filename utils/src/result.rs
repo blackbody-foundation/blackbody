@@ -18,35 +18,76 @@
 
 */
 
-use std::fmt;
+use crate::macros::errors;
+use crate::types::epool::Pool;
 use std::{error, result};
 
+/// public result
 pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
+pub type ErrPool = Pool<Box<dyn error::Error>>;
 
-#[derive(Debug)]
-pub struct Error(ErrKind);
+errors! {
+    pub enum Error {
+        BrokenHeader,
+        AnotherHeader,
+        FileNotFound,
+    }
+}
+
 impl Error {
-    pub fn bang<T>(kind: ErrKind) -> Result<T> {
-        Result::<T>::Err(Box::new(Self(kind)))
-    }
-}
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0.to_string())
-    }
-}
-impl error::Error for Error {}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ErrKind {
-    BrokenHeader,
-    FileNotFound,
-}
-impl ErrKind {
-    pub fn to_string(self) -> &'static str {
+    pub fn as_string(&self) -> &'static str {
         match self {
-            Self::BrokenHeader => "entity not found",
-            Self::FileNotFound => "file not found.",
+            Self::BrokenHeader(_) => "broken header.",
+            Self::AnotherHeader(_) => "not matched header.",
+            Self::FileNotFound(_) => "file not found.",
         }
     }
 }
+
+// #[derive(Debug)]
+// pub struct Error(ErrKind);
+// impl Error {
+//     /// make new Error.
+//     pub fn bang<T>(kind: ErrKind) -> Result<T> {
+//         Result::<T>::Err(Box::new(Self(kind)))
+//     }
+//     /// discriminate and extract between Ok(T) and Err(ErrPool).
+//     pub fn extract<Ok>(r: Result<Ok>) -> (OptionOk<Ok>, OptionErr<ErrPool>) {
+//         match r {
+//             Ok(t) => (OkOk(t), ErrNone),
+//             Err(e) => {
+//                 if let Some(kind) = e.source() {
+//                     if kind.is::<ErrKind>() {
+//                         (OkNone, ErrErr(ErrPool::My(e)))
+//                     } else {
+//                         (OkNone, ErrErr(ErrPool::Others(e)))
+//                     }
+//                 } else {
+//                     (OkNone, ErrNone)
+//                 }
+//             }
+//         }
+//     }
+// }
+// impl fmt::Display for Error {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "[{}:{}] {}", file!(), line!(), self.0)
+//     }
+// }
+// impl error::Error for Error {
+//     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+//         Some(&self.0)
+//     }
+// }
+
+pub enum OptionOk<T> {
+    OkOk(T),
+    OkNone,
+}
+pub enum OptionErr<T> {
+    ErrErr(T),
+    ErrNone,
+}
+
+pub use OptionErr::{ErrErr, ErrNone};
+pub use OptionOk::{OkNone, OkOk};

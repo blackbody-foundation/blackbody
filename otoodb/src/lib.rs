@@ -19,36 +19,19 @@
 */
 
 // One to One Set Database.
-
 use utils::{fs::File, result::*};
-
 mod head;
-use head::Header;
-
-pub struct ABSetBytes(u64, u64);
+use head::{Header, SSize};
 
 pub struct DB {
-    pub a_b_bytes: ABSetBytes,
     pub file: File,
 }
 impl DB {
-    pub fn open(file_path: &'static str, a_set_bytes: u64, b_set_bytes: u64) -> Result<Self> {
-        let header = Box::new(Header::new(a_set_bytes, b_set_bytes));
+    pub fn open(file_path: &'static str, a_set_bytes: SSize, b_set_bytes: SSize) -> Result<Self> {
+        let header = Header::new(a_set_bytes, b_set_bytes);
         Ok(Self {
-            a_b_bytes: ABSetBytes(a_set_bytes, b_set_bytes),
             file: File::open(file_path, header)?,
         })
     }
     pub fn close(self) {}
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-    #[test]
-    fn it_works() {
-        let db = DB::open("/Volumes/programs/code/blackchain/test", 4, 32).unwrap();
-        println!("{:#?}", db.file.header);
-        db.close();
-    }
 }
