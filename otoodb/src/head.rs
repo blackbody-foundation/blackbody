@@ -18,7 +18,7 @@
 
 */
 
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 
 use utils::{
     fs::{header::*, types::*},
@@ -30,13 +30,14 @@ use utils::{
 pub type HSize = u64;
 pub type SSize = u32;
 
-serialize! {
+fheader! {
     struct Content {
-        height: HSize,
-        a_set_bytes: SSize,
-        b_set_bytes: SSize,
+        height: HSize => 0,
+        a_set_bytes: SSize => 4,
+        b_set_bytes: SSize => 32,
     }
 }
+
 impl<'de> TContent<'de> for Content {}
 
 #[derive(Debug)]
@@ -70,12 +71,18 @@ impl THeader for Header {
         let src = self.content.encode()?;
         let mut buf = vec![0; src.len()];
 
-        reader.read_exact(&mut buf[..])?; // read
+        match reader.read_exact(&mut buf[..]) {
+            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                return self.write(fm);
+            }
+            Err(_) => return errbang!(err::BrokenHeader),
+            _ => {}
+        }
 
         let eq = src.iter().zip(buf.iter()).all(|(&x, &y)| x == y);
 
         if !eq {
-            return Error::bang(ErrKind::AnotherHeader);
+            return errbang!(err::AnotherHeader);
         }
 
         self.content = self.content.decode(&buf)?;

@@ -21,9 +21,7 @@
 pub mod header;
 pub mod types;
 
-use super::macros::errbang;
-use super::result::*;
-use super::types::epool::Pool;
+use crate::result::*;
 use types::*;
 
 pub struct File {
@@ -42,33 +40,9 @@ impl File {
 
         let mut fm = FM::new(ptr)?;
 
-        let eq = Self::cmp_header(&mut fm, &mut header)?;
-
-        if !eq {
-            return errbang!(err::AnotherHeader);
-        }
+        header.read(&mut fm)?;
 
         Ok(Self { path, header, fm })
-    }
-    fn cmp_header(fm: &mut FM, header: &mut Header) -> Result<bool> {
-        match Error::extract(header.read(fm)) {
-            // reading
-            (OkOk(_), ErrNone) => Ok(true),
-            (OkNone, ErrErr(ep)) => {
-                let (name, kind) = ep.discriminate();
-                if name == Pool::My(()) {
-                    if kind. ErrKind::AnotherHeader {
-                        header.write(fm)?;
-                        Ok(true)
-                    } else {
-                        Ok(false)
-                    }
-                } else {
-                    Err(kind)
-                }
-            }
-            _ => {}
-        }
     }
     fn read(&self) -> Result<()> {
         Ok(())

@@ -28,21 +28,21 @@ pub type ErrPool = Pool<Box<dyn error::Error>>;
 
 errors! {
     pub enum Error {
-        BrokenHeader,
-        AnotherHeader,
-        FileNotFound,
+        BrokenHeader => "broken header.",
+        AnotherHeader => "not matched header.",
+        FileNotFound => "file not found.",
     }
 }
 
-impl Error {
-    pub fn as_string(&self) -> &'static str {
-        match self {
-            Self::BrokenHeader(_) => "broken header.",
-            Self::AnotherHeader(_) => "not matched header.",
-            Self::FileNotFound(_) => "file not found.",
-        }
-    }
-}
+// impl Error {
+//     pub fn as_string(&self) -> &'static str {
+//         match self {
+//             Self::BrokenHeader => "broken header.",
+//             Self::AnotherHeader => "not matched header.",
+//             Self::FileNotFound => "file not found.",
+//         }
+//     }
+// }
 
 // #[derive(Debug)]
 // pub struct Error(ErrKind);

@@ -81,7 +81,7 @@
 use utils::result::*;
 use wormhole::DB;
 fn main() -> Result<()> {
-    let db = DB::open("/Volumes/programs/code/blackchain/test", 5, 32)?;
+    let db = DB::open("/Volumes/programs/code/blackchain/test", 4, 32)?;
     println!("{:#?}", db.file.header);
     db.close();
     Ok(())

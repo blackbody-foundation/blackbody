@@ -20,3 +20,14 @@
 
 pub mod epool;
 pub mod u256;
+
+pub struct Value<T>(T);
+
+impl<T> Value<T> {
+    pub fn new(var: T) -> Self {
+        Self(var)
+    }
+    pub fn value(self) -> T {
+        self.0
+    }
+}

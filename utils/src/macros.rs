@@ -18,48 +18,86 @@
 
 */
 
+pub use crate::types::Value;
 pub use serde::{Deserialize, Serialize};
 pub use Box;
 
 #[macro_export]
 macro_rules! derive_alias {
-    ($name:ident => #[derive($($derive:ident),*)]) => {
-        #[macro_export]
-        macro_rules! $name {
-            ($i:item) => {
-                #[derive($($derive),*)]
-                $i
+    ($( $name:ident => #[derive($($derive:ident),*)], )*) => {
+        $(
+            #[macro_export]
+            macro_rules! $name {
+                ($i:item) => {
+                    #[derive($($derive),*)]
+                    $i
+                }
             }
-        }
-    }
+        )*
+    };
 }
 derive_alias! {
-    serialize => #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    serialize => #[derive(Serialize, Deserialize, Debug, PartialEq)],
+    ordering => #[derive(Eq, PartialEq, PartialOrd, Debug)],
+}
+
+#[macro_export]
+macro_rules! gost {
+    (
+        $vis:vis enum $name:ident {
+            $($var:ident : $t:ty => $exp:expr),*
+        }
+    ) => {
+        ordering! {
+            $vis enum $name {
+                $($var),*
+            }
+        }
+        pub mod (concat_idents!(_, $name)) {
+            $(
+                #[derive(Debug)]
+                pub struct $var($t);
+                impl $var {
+                    pub fn new(var: $t) -> Self {
+                        Self(var)
+                    }
+                }
+            )*
+        }
+
+        impl $name {
+            $vis fn value(&self) -> Value<Box<dyn std::any::Any>> {
+                match self {
+                    $($name::$var => Value::new(Box::new($exp as $t)) ),*
+                }
+            }
+        }
+    };
 }
 
 #[macro_export]
 macro_rules! epool {
-    (pub enum $name:ident<T> {
+    ($vis:vis enum $name:ident<T> {
         $($variant:ident(T)),*,
     }) => {
 
         #[derive(PartialEq, Debug)]
-        pub enum $name<T> {
+        $vis enum $name<T> {
             $($variant(T)),*
         }
 
         impl<T> $name<T> {
-            pub fn dump(&self) -> &T {
+            $vis fn dump(&self) -> &T {
                 match self {
                     $($name::$variant(val) => val),*
                 }
             }
-            pub fn flee(&self) -> $name<()> {
+            $vis fn flee(&self) -> $name<()> {
                 match self {
-                    $($name::$variant(T) => $name::$variant(())),*
+                    $($name::$variant(_t) => $name::$variant(())),*
                 }
             }
-            pub fn discriminate(&self) -> ($name<()>, &T) {
+            $vis fn discriminate(&self) -> ($name<()>, &T) {
                 match self {
                     $($name::$variant(val) => ($name::$variant(()), val)),*
                 }
@@ -70,68 +108,84 @@ macro_rules! epool {
 
 #[macro_export]
 macro_rules! errbang {
-    ($kind:expr) => {
-        Result::Err(Box::new($kind))
+    ($kind:ty) => {
+        Result::Err(Box::new(<$kind>::new(format!("[{}:{}]", file!(), line!()))))
     };
 }
 #[macro_export]
 macro_rules! errors {
-    (pub enum $name:ident {
-        $($variant:ident),*,
-    }) => {
+    (
 
-        pub(crate) mod err {
+        pub enum $name:ident
+        {
+            $($variant:ident => $str:expr),*,
+        }
 
-            pub trait ErrKind {
-                fn as_string(&self) -> &'static str;
-            }
+    ) => {
+
+        #[derive(Debug)]
+        pub enum $name {
+            $($variant),*
+        }
+
+        pub mod err {
+
             $(
                 #[derive(Debug)]
-                pub struct $variant;
-                impl $variant {
-                    pub fn new() -> Self { Self }
+                pub struct $variant {
+                    meta: String,
                 }
+
+                impl $variant {
+                    pub fn new(meta: String) -> Self {
+                        Self { meta }
+                    }
+                    pub fn as_string(&self) -> &'static str {
+                        $str
+                    }
+                }
+
                 impl std::error::Error for $variant {
                     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-                        Some(&$variant)
+                        Some(self)
                     }
                 }
                 impl std::fmt::Display for $variant {
                     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(f, "{}", self.as_string())
-                    }
-                }
-                impl ErrKind for $variant {
-                    fn as_string(&self) -> &'static str {
-                        super::$name::$variant($variant).as_string()
+                        write!(f, "{} {}", self.meta, self.as_string())
                     }
                 }
             )*
 
         }
+    };
+}
 
-        #[derive(Debug)]
-        pub enum $name {
-            $($variant(err::$variant)),*
+#[macro_export]
+macro_rules! fheader {
+    ($vis:vis struct $name:ident {
+        $($variant:ident: $t:ty => $val:expr),*,
+    }) => {
+
+        serialize! {
+            $vis struct $name {
+                $($variant: $t),*
+            }
         }
-        impl std::error::Error for $name {
-            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-                match self {
-                    $($name::$variant(val) => Some(val)),*
+        impl $name {
+            $vis fn new() -> Self {
+                Self {
+                    $($variant: $val),*
                 }
             }
         }
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", self.to_string())
-            }
-        }
-
-
-    };
+    }
 }
 
 pub use epool;
 pub use errbang;
 pub use errors;
+pub use fheader;
+pub use gost;
+pub use ordering;
 pub use serialize;
