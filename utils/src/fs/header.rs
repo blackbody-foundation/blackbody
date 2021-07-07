@@ -19,7 +19,7 @@
 */
 
 use super::types::*;
-use crate::result::*;
+use crate::system::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 

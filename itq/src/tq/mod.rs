@@ -59,7 +59,4 @@ impl ThreadQueue {
     pub fn await_some(&self) {
         while self.checker.count() >= self.limit {}
     }
-    // pub fn print(&self) {
-    //     println!("RC: {}", self.checker.count());
-    // }
 }

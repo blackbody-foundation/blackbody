@@ -1,5 +1,5 @@
 /*
-    .. + epool.rs + ..
+    .. + system + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,12 +18,10 @@
 
 */
 
-use crate::macros::epool::epool;
+use std::{error, result};
 
-epool! {
-    pub enum Pool<T> {
-        My(T),
-        Others(T),
-    }
-}
+pub mod errors;
+pub use errors::err;
 
+pub type ErrPool = super::types::Pool<Box<dyn error::Error>>;
+pub type Result<T> = result::Result<T, Box<dyn error::Error>>;

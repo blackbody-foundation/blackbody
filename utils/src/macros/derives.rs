@@ -1,5 +1,5 @@
 /*
-    .. + types.rs + ..
+    .. + derives.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,16 +18,24 @@
 
 */
 
-pub mod epool;
-pub mod u256;
-
-pub struct Value<T>(T);
-
-impl<T> Value<T> {
-    pub fn new(var: T) -> Self {
-        Self(var)
-    }
-    pub fn value(self) -> T {
-        self.0
-    }
+#[macro_export]
+macro_rules! derives {
+    ($( $name:ident => #[derive($($derive:ident),*)], )*) => {
+        $(
+            #[macro_export]
+            macro_rules! $name {
+                ($i:item) => {
+                    #[derive($($derive),*)]
+                    $i
+                }
+            }
+        )*
+    };
 }
+derives! {
+    serialize => #[derive(Serialize, Deserialize, Debug, PartialEq)],
+    ordering => #[derive(Eq, PartialEq, PartialOrd, Debug)],
+}
+
+pub use ordering;
+pub use serialize;

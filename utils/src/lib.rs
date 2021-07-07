@@ -19,7 +19,7 @@
 */
 
 pub mod fs;
-pub mod result;
+pub mod system;
 pub mod types;
 
 #[macro_use]

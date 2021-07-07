@@ -23,7 +23,7 @@ use std::io::{self, Read, Write};
 use utils::{
     fs::{header::*, types::*},
     macros::*,
-    result::*,
+    system::*,
 };
 
 /// header unit size.

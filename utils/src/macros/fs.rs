@@ -1,5 +1,5 @@
 /*
-    .. + epool.rs + ..
+    .. + fs.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,12 +18,25 @@
 
 */
 
-use crate::macros::epool::epool;
+#[macro_export]
+macro_rules! fheader {
+    ($vis:vis struct $name:ident {
+        $($variant:ident: $t:ty => $val:expr),*,
+    }) => {
 
-epool! {
-    pub enum Pool<T> {
-        My(T),
-        Others(T),
+        serialize! {
+            $vis struct $name {
+                $($variant: $t),*
+            }
+        }
+        impl $name {
+            $vis fn new() -> Self {
+                Self {
+                    $($variant: $val),*
+                }
+            }
+        }
     }
 }
 
+pub use fheader;

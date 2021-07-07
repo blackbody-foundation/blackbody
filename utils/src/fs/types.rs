@@ -19,7 +19,7 @@
 */
 
 use super::header::THeader;
-use crate::result::*;
+use crate::system::*;
 use std::{
     fs::File,
     io::{BufReader, BufWriter},

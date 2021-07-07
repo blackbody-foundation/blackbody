@@ -1,5 +1,5 @@
 /*
-    .. + epool.rs + ..
+    .. + fs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,12 +18,37 @@
 
 */
 
-use crate::macros::epool::epool;
+pub mod header;
+pub mod types;
 
-epool! {
-    pub enum Pool<T> {
-        My(T),
-        Others(T),
-    }
+use crate::system::*;
+use types::*;
+
+pub struct File {
+    pub path: &'static str,
+    pub header: Header,
+    fm: FM,
 }
 
+impl File {
+    pub fn open(path: &'static str, mut header: Header) -> Result<Self> {
+        let ptr = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(path)?;
+
+        let mut fm = FM::new(ptr)?;
+
+        header.read(&mut fm)?;
+
+        Ok(Self { path, header, fm })
+    }
+    fn read(&self) -> Result<()> {
+        Ok(())
+    }
+    fn write(&self) -> Result<()> {
+        Ok(())
+    }
+    pub fn close(self) {}
+}

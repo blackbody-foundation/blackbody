@@ -1,5 +1,5 @@
 /*
-    .. + fs.rs + ..
+    .. + macros + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,37 +18,18 @@
 
 */
 
-pub mod header;
-pub mod types;
+pub use crate::types::Value;
+pub use serde::{Deserialize, Serialize};
+pub use Box;
 
-use crate::result::*;
-use types::*;
+pub mod derives;
+pub mod epool;
+pub mod errbang;
+pub mod fs;
+pub mod gost;
 
-pub struct File {
-    pub path: &'static str,
-    pub header: Header,
-    fm: FM,
-}
-
-impl File {
-    pub fn open(path: &'static str, mut header: Header) -> Result<Self> {
-        let ptr = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .read(true)
-            .open(path)?;
-
-        let mut fm = FM::new(ptr)?;
-
-        header.read(&mut fm)?;
-
-        Ok(Self { path, header, fm })
-    }
-    fn read(&self) -> Result<()> {
-        Ok(())
-    }
-    fn write(&self) -> Result<()> {
-        Ok(())
-    }
-    pub fn close(self) {}
-}
+pub use derives::*;
+pub use epool::*;
+pub use errbang::*;
+pub use fs::*;
+pub use gost::*;

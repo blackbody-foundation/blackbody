@@ -20,8 +20,6 @@
 
 // Infinite Thread Queue
 
-// #![allow(unused, dead_code)]
-
 pub use tokio;
 
 mod tq;

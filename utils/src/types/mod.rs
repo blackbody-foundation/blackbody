@@ -1,5 +1,5 @@
 /*
-    .. + epool.rs + ..
+    .. + types + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,12 +18,19 @@
 
 */
 
-use crate::macros::epool::epool;
+pub mod epool;
+pub mod u256;
 
-epool! {
-    pub enum Pool<T> {
-        My(T),
-        Others(T),
+pub use epool::Pool;
+pub use u256::U256;
+
+pub struct Value<T>(T);
+
+impl<T> Value<T> {
+    pub fn new(var: T) -> Self {
+        Self(var)
+    }
+    pub fn value(self) -> T {
+        self.0
     }
 }
-
