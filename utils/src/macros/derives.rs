@@ -20,12 +20,14 @@
 
 #[macro_export]
 macro_rules! derives {
-    ($( $name:ident => #[derive($($derive:ident),*)], )*) => {
+    ($( $name:ident => { $(#[$id:tt($($derive:ident),*)]),* } )*) => {
         $(
             #[macro_export]
             macro_rules! $name {
                 ($i:item) => {
-                    #[derive($($derive),*)]
+                    $(
+                        #[$id($($derive),*)]
+                    )*
                     $i
                 }
             }
@@ -33,9 +35,13 @@ macro_rules! derives {
     };
 }
 derives! {
-    serialize => #[derive(Serialize, Deserialize, Debug, PartialEq)],
-    ordering => #[derive(Eq, PartialEq, PartialOrd)],
+    serialize => { #[derive(Serialize, Deserialize, Debug, PartialEq)] }
+    ordering => { #[derive(Eq, PartialEq, PartialOrd)] }
+    camelCase => { #[allow(non_snake_case)], #[warn(non_camel_case_types)] }
+    snake_case => { #[allow(non_camel_case_types)], #[warn(non_snake_case)] }
 }
 
+pub use camelCase;
 pub use ordering;
 pub use serialize;
+pub use snake_case;

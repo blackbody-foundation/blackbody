@@ -111,156 +111,192 @@
 /// let b = a.kim.job;
 /// let c = a.james;
 /// ```
+
 #[macro_export]
 macro_rules! gost {
-    // create structure
-    (@go fn default $var:ident $def:ident$t:ty)
-    => {
-        impl $var {
-            pub fn default() -> $t {
-                $def
-            }
-        }
-    };
-    (@go fn default $var:ident$t:ty)
-    => {
-        impl $var {
-            pub fn default() -> Self {
-                Self::default()
-            }
-            pub fn new() -> Self {
-                Self::default()
-            }
-        }
-    };
-    // (pub) struct_name { var_name type, ... }
-    (@go $($vis:vis $var:ident => {$($field_vis:vis $val:ident $($def:ident)?$t:ty)+})+)
-    => {
 
-        $(
-            #[allow(non_snake_case, non_camel_case_types)]
-            #[derive(Default)]
-            $vis struct $var {
+    // internal rules
+    (@out_of_bracket ($t:ty) {$($key:tt : $val:tt),*})
+    => {
+       <$t>::from($($val),*)
+    };
+    (@out_of_bracket ($t:ty) $i:expr)
+    => {
+        $i
+    };
+    (@go_make $vis:vis fn default($var:ident ($def:tt) $t:ty))
+    => {
+        impl $var {
+            $vis fn default() -> $t {
+                gost!(@out_of_bracket ($t) $def)
+            }
+        }
+    };
+    (@go_make $vis:vis fn default($var:ident () $t:ty))
+    => {
+        impl $var {
+            $vis fn default() -> $t {
+                <$t>::default()
+            }
+        }
+    };
+    (@go_make $vis:vis fn default($var:ident () Self))
+    => {
+        impl $var {
+            $vis fn default() -> Self {
+                Self::new()
+            }
+        }
+    };
+    (@go_make
+        $vis:vis struct $name:ident
+    )
+    => {
+        snake_case! {
+            #[derive(Debug)]
+            $vis struct $name;
+        }
+            impl $name {
+                $vis fn new() -> Self {
+                    Self
+                }
+                $vis fn from() -> Self {
+                    Self
+                }
+            }
+
+    };
+    (@go_make
+        $vis:vis struct $name:ident {
+            $(
+                $l_vis:vis $val:ident: $t:ty
+            ),*
+        }
+    )
+    => {
+        snake_case! {
+            #[derive(Debug)]
+            $vis struct $name {
                 $(
-                    $field_vis $val: $t
+                    $l_vis $val : $t
                 ),*
             }
-            $(
-                gost!(@go fn default $val $($def)?$t);
-            )+
-        )+
+        }
+            impl $name {
+                $vis fn new() -> Self {
+                    Self { $($val : <$t>::default()),* }
+                }
+                $vis fn from($($val : $t),*) -> Self {
+                    Self { $($val),* }
+                }
+            }
 
     };
+    //
 
     // Super Struct
     (
-        $(#[$meta:meta])*
         $vis:vis struct $name:ident {
-            $($field_vis:vis $var:ident => {$($val_vis:vis $val:ident $t:ty$( => $def:ident)?),+})+
-        }
-    ) => {
-        #[allow(non_snake_case, unused_braces)]
-        $vis mod $name {
-            use super::*;
-
-            gost!(@go $($field_vis $var => {$($val_vis $val $($def)?$t)+})+);
-
-            $([$meta])*
-            #[derive(Default)]
-            pub struct $name {
-                $(
-                    $field_vis $var: $var
-                ),*
-            }
-            impl $name {
-                fn new() -> Self {
-                    Self::default()
+            $(
+                $r_vis:vis $var:ident => {
+                    $(
+                        $l_vis:vis $val:ident $t:ty $(=> $default:tt)?
+                    ),*
                 }
-            }
-            pub fn new() -> $name {
-                $name::new()
+            )*
+        }
+    )
+    => {
+        camelCase! {
+            $vis mod $name {
+                use super::*;
+
+
+                    $(
+                        gost!(@go_make
+                                pub struct $var {
+                                    $(
+                                        $l_vis $val: $t
+                                    ),*
+                                }
+                        );
+                        gost!(
+                            @go_make fn default($var () Self)
+                        );
+                    )+
+
+
+                gost!(@go_make
+                        pub struct $name {
+                            $(
+                                $r_vis $var: $var
+                            ),*
+                        }
+                );
+
+                pub fn new() -> $name {
+                    $name::new()
+                }
+
             }
         }
     };
-
+    //
 
     // Super Enum
-
-    // single type
     (
-        $(#[$meta:meta])*
-        $vis:vis enum $name:ident : $t:ty {
-            $(#[$field_meta:meta])*
-            $($var:ident => $exp:expr)+
+        $vis:vis enum $name:ident : $t:ty $(=> $def:tt)? {   // single type
+            $($var:ident => $val:expr)+
         }
-    ) => {
+    )
+    => {
         ordering! {
-            $([$meta])*
+            #[derive(Debug)]
             $vis enum $name {
-                $([$field_meta])*
-                $($var),*
+                $($var),+
             }
         }
         impl $name {
             $vis fn value(&self) -> $t {
                 match self {
-                    $($name::$var => $exp),*
+                    $($name::$var => $val),+
                 }
             }
         }
-        #[allow(unreachable_code)]
-        impl Default for $name {
-            fn default() -> Self {
-                $(
-                return Self::$var;
-                )+
-            }
-        }
-    };
+        gost!(
+            @go_make pub fn default($name ($($def)?) $t)
+        );
 
-    // multi type
+    };
     (
-        $vis:vis enum $name:ident {
+        $vis:vis enum $name:ident {    // multi type
             $(
-                $(#[$meta:meta])*
                 $var:ident : $t:ty => $input:tt
             )+
         }
-
     ) => {
-        #[allow(non_snake_case, unused_braces)]
-        $vis mod $name {
-            use super::*;
 
-            gost!(@go $($vis $var => {$vis $var $input$t})+);
+        camelCase! {
+            $vis mod $name {
+                use super::*;
 
+                $(
+                    gost!(@go_make
+                            pub struct $var
+                    );
+                    gost!(
+                        @go_make pub fn default($var ($input) $t)
+                    );
+                    impl $var {
+                        pub fn value(&self) -> $t {
+                            $var::default()
+                        }
+                    }
+                )+
+
+            }
         }
-
-        // $vis mod $name {
-        //     use super::*;
-        //     $(
-        //         ordering! {
-        //             $([$meta])*
-        //             #[derive(Default)]
-        //             pub struct $var;
-        //         }
-        //         impl $var {
-        //             pub fn value(&self) -> $t {
-        //                 gost!(@go_enum $var : $t => $input)
-        //             }
-        //             pub fn default(&self) -> $t {
-        //                 gost!(@go_enum $var : $t => $input)
-        //             }
-        //         }
-        //     )*
-        // }
     };
-    // (@go_enum $var:ident : $t:ty => {$($key:tt : $val:tt),+}) => {
-    //     <$t>::from($($val),+)
-    // };
-    // (@go_enum $var:ident : $t:ty => $input:tt) => {
-    //     $input
-    // };
 }
 
 pub use gost;
