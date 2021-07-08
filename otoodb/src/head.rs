@@ -38,6 +38,26 @@ fheader! {
     }
 }
 
+gost! {
+    enum JobKind : &'static str {
+        Student => "studying"
+        Salesman => "working"
+    }
+}
+gost! {
+    pub enum JoobKind {
+        Student : &'static str => "studying"
+        Salesman : u8 => 23
+    }
+}
+// gost! {
+//     struct PersonPool {
+//         person => { name &'static str, age u8 }
+//         pub job => { pub kind JoobKind }
+//         pub kim => { info person, pub job job }
+//         pub james => { info person, job job }
+//     }
+// }
 impl<'de> TContent<'de> for Content {}
 
 #[derive(Debug)]
@@ -46,6 +66,10 @@ pub struct Header {
 }
 impl Header {
     pub fn new(a_set_bytes: SSize, b_set_bytes: SSize) -> Box<Self> {
+        let a = PersonPool::new();
+        let k = a.kim.job.kind.value();
+        JobKind::Salesman.value();
+
         Box::new(Self {
             content: Content {
                 height: 0,

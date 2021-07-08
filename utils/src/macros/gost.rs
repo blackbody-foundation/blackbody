@@ -113,34 +113,58 @@
 /// ```
 #[macro_export]
 macro_rules! gost {
+    // create structure
+    (@go fn default $var:ident $def:ident$t:ty)
+    => {
+        impl $var {
+            pub fn default() -> $t {
+                $def
+            }
+        }
+    };
+    (@go fn default $var:ident$t:ty)
+    => {
+        impl $var {
+            pub fn default() -> Self {
+                Self::default()
+            }
+            pub fn new() -> Self {
+                Self::default()
+            }
+        }
+    };
+    // (pub) struct_name { var_name type, ... }
+    (@go $($vis:vis $var:ident => {$($field_vis:vis $val:ident $($def:ident)?$t:ty)+})+)
+    => {
+
+        $(
+            #[allow(non_snake_case, non_camel_case_types)]
+            #[derive(Default)]
+            $vis struct $var {
+                $(
+                    $field_vis $val: $t
+                ),*
+            }
+            $(
+                gost!(@go fn default $val $($def)?$t);
+            )+
+        )+
+
+    };
+
+    // Super Struct
     (
         $(#[$meta:meta])*
         $vis:vis struct $name:ident {
-            $($field_vis:vis $var:ident => {$($val:tt $t:ty),+})+
+            $($field_vis:vis $var:ident => {$($val_vis:vis $val:ident $t:ty$( => $def:ident)?),+})+
         }
     ) => {
         #[allow(non_snake_case, unused_braces)]
         $vis mod $name {
             use super::*;
 
-            $(
-                #[allow(non_snake_case, non_camel_case_types)]
-                #[derive(Default)]
-                $field_vis struct $var {
-                    $(
-                        $field_vis $val: $t
-                    ),*
-                }
+            gost!(@go $($field_vis $var => {$($val_vis $val $($def)?$t)+})+);
 
-                impl $var {
-                    pub fn from($($val: $t),+) -> Self {
-                        Self { $($val),* }
-                    }
-                    pub fn new() -> Self {
-                        Self::default()
-                    }
-                }
-            )+
             $([$meta])*
             #[derive(Default)]
             pub struct $name {
@@ -158,6 +182,11 @@ macro_rules! gost {
             }
         }
     };
+
+
+    // Super Enum
+
+    // single type
     (
         $(#[$meta:meta])*
         $vis:vis enum $name:ident : $t:ty {
@@ -188,11 +217,12 @@ macro_rules! gost {
             }
         }
     };
+
+    // multi type
     (
         $vis:vis enum $name:ident {
             $(
                 $(#[$meta:meta])*
-                #[derive(Default)]
                 $var:ident : $t:ty => $input:tt
             )+
         }
@@ -201,29 +231,36 @@ macro_rules! gost {
         #[allow(non_snake_case, unused_braces)]
         $vis mod $name {
             use super::*;
-            $(
-                ordering! {
-                    $([$meta])*
-                    #[derive(Default)]
-                    pub struct $var;
-                }
-                impl $var {
-                    pub fn value(&self) -> $t {
-                        gost!(@go_enum $var : $t => $input)
-                    }
-                    pub fn default(&self) -> $t {
-                        gost!(@go_enum $var : $t => $input)
-                    }
-                }
-            )*
+
+            gost!(@go $($vis $var => {$vis $var $input$t})+);
+
         }
+
+        // $vis mod $name {
+        //     use super::*;
+        //     $(
+        //         ordering! {
+        //             $([$meta])*
+        //             #[derive(Default)]
+        //             pub struct $var;
+        //         }
+        //         impl $var {
+        //             pub fn value(&self) -> $t {
+        //                 gost!(@go_enum $var : $t => $input)
+        //             }
+        //             pub fn default(&self) -> $t {
+        //                 gost!(@go_enum $var : $t => $input)
+        //             }
+        //         }
+        //     )*
+        // }
     };
-    (@go_enum $var:ident : $t:ty => {$($key:tt : $val:tt),+}) => {
-        <$t>::from($($val),+)
-    };
-    (@go_enum $var:ident : $t:ty => $input:tt) => {
-        $input
-    };
+    // (@go_enum $var:ident : $t:ty => {$($key:tt : $val:tt),+}) => {
+    //     <$t>::from($($val),+)
+    // };
+    // (@go_enum $var:ident : $t:ty => $input:tt) => {
+    //     $input
+    // };
 }
 
 pub use gost;

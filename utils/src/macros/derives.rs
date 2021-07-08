@@ -34,7 +34,7 @@ macro_rules! derives {
 }
 derives! {
     serialize => #[derive(Serialize, Deserialize, Debug, PartialEq)],
-    ordering => #[derive(Eq, PartialEq, PartialOrd, Debug)],
+    ordering => #[derive(Eq, PartialEq, PartialOrd)],
 }
 
 pub use ordering;
