@@ -21,6 +21,15 @@
 pub use crate::fs::types::*;
 pub use std::io::{self, Read, Write};
 
+///```
+/// fheader! {
+///     pub struct Name {
+///         pub h: u64 => 0, // "pub" is free mark
+///         a: u32 => 4,
+///         b: u32 => 32,
+///     }
+/// }
+///```
 #[macro_export]
 macro_rules! fheader {
 
@@ -28,7 +37,7 @@ macro_rules! fheader {
 
         $vis:vis struct $name:ident {
 
-            $($var:ident: $t:ty => $val:expr),*,
+            $($free_mark:vis $var:ident: $t:ty => $val:expr),*,
 
         }
 
@@ -51,6 +60,11 @@ macro_rules! fheader {
                     $($var: $val),*
                 })
             }
+            $vis fn from($($var: $t),*) -> Box<Self> {
+                Box::new(Self {
+                    $($var),*
+                })
+            }
 
         }
 
@@ -63,18 +77,25 @@ macro_rules! fheader {
                 let mut buf = vec![0; src.len()];
 
                 match reader.read_exact(&mut buf[..]) {
+
                     Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                        return self.write(fm);
+                        return self.write(fm); // create
                     }
                     Err(_) => return errbang!(err::BrokenHeader),
                     _ => {}
+
                 }
 
-                let eq = src.iter().zip(buf.iter()).all(|(&x, &y)| x == y);
-
-                if !eq {
-                    return errbang!(err::AnotherHeader);
-                }
+                let mut cursor = 0;
+                $(
+                    let width = std::mem::size_of::<$t>() - 1;
+                    if stringify!(($free_mark)) != "(pub )" {
+                        if &src[cursor..cursor+width] != &buf[cursor..cursor+width] {
+                            return errbang!(err::AnotherHeader);
+                        }
+                    }
+                    cursor += width;
+                )*
 
                 *self = bincode::deserialize(&buf)?;
 

@@ -1,5 +1,5 @@
 /*
-    .. + head.rs + ..
+    .. + db.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,15 +18,33 @@
 
 */
 
-use utils::macros::*;
+// One to One Set Database.
+pub use crate::head::*;
+use utils::{fs::File, system::*};
 
-pub type HHSize = u64;
-pub type HUSize = u32;
+pub struct DB {
+    pub file: File,
+}
 
-fheader! {
-    pub struct OtooHeader {
-        pub current_height: HHSize => 0, // free marked
-        a_set_bytes: HUSize => 4,
-        b_set_bytes: HUSize => 32,
+impl DB {
+    pub fn open(file_path: &'static str, a_set_bytes: HUSize, b_set_bytes: HUSize) -> Result<Self> {
+        let header = OtooHeader::from(0, a_set_bytes, b_set_bytes);
+        Ok(Self {
+            file: File::open(file_path, header)?,
+        })
+    }
+    pub fn define(&self, bytes_a: &[u8], bytes_b: &[u8]) {}
+    pub fn close(self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn start() -> Result<()> {
+        let db = DB::open("test", 4, 32)?;
+        println!("{:#?}", db.file.header);
+        db.close();
+        Ok(())
     }
 }

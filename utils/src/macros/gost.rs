@@ -214,14 +214,14 @@ macro_rules! gost {
 
                     $(
                         gost!(@go_make
-                                pub struct $var {
+                                $r_vis struct $var {
                                     $(
                                         $l_vis $val: $t
                                     ),*
                                 }
                         );
                         gost!(
-                            @go_make fn default($var ($($default)?) Self)
+                            @go_make pub fn default($var ($($default)?) Self)
                         );
                     )+
 
@@ -257,7 +257,7 @@ macro_rules! gost {
             }
         }
         impl $name {
-            $vis fn value(&self) -> $t {
+            $vis fn value(self) -> $t {
                 match self {
                     $($name::$var => $val),+
                 }
@@ -288,7 +288,7 @@ macro_rules! gost {
                         @go_make pub fn default($var ($input) $t)
                     );
                     impl $var {
-                        pub fn value(&self) -> $t {
+                        pub fn value(self) -> $t {
                             $var::default()
                         }
                     }
