@@ -221,7 +221,7 @@ macro_rules! gost {
                                 }
                         );
                         gost!(
-                            @go_make fn default($var () Self)
+                            @go_make fn default($var ($($default)?) Self)
                         );
                     )+
 
@@ -245,7 +245,7 @@ macro_rules! gost {
 
     // Super Enum
     (
-        $vis:vis enum $name:ident : $t:ty $(=> $def:tt)? {   // single type
+        $vis:vis enum $name:ident : $t:ty $(=> $default:tt)? {   // single type
             $($var:ident => $val:expr)+
         }
     )
@@ -264,7 +264,7 @@ macro_rules! gost {
             }
         }
         gost!(
-            @go_make pub fn default($name ($($def)?) $t)
+            @go_make pub fn default($name ($($default)?) $t)
         );
 
     };

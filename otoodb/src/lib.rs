@@ -21,16 +21,21 @@
 // One to One Set Database.
 use utils::{fs::File, system::*};
 mod head;
-use head::{Header, SSize};
+use head::*;
 
 pub struct DB {
     pub file: File,
 }
+
 impl DB {
-    pub fn open(file_path: &'static str, a_set_bytes: SSize, b_set_bytes: SSize) -> Result<Self> {
-        let header = Header::new(a_set_bytes, b_set_bytes);
+    pub fn open(file_path: &'static str, a_set_bytes: HUSize, b_set_bytes: HUSize) -> Result<Self> {
+        let mut h = Head::new();
+
+        h.a_set_bytes = a_set_bytes;
+        h.b_set_bytes = b_set_bytes;
+
         Ok(Self {
-            file: File::open(file_path, header)?,
+            file: File::open(file_path, h)?,
         })
     }
     pub fn close(self) {}

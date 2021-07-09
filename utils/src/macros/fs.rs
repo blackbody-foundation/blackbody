@@ -18,25 +18,84 @@
 
 */
 
+pub use crate::fs::types::*;
+pub use std::io::{self, Read, Write};
+
 #[macro_export]
 macro_rules! fheader {
-    ($vis:vis struct $name:ident {
-        $($variant:ident: $t:ty => $val:expr),*,
-    }) => {
+
+    (
+
+        $vis:vis struct $name:ident {
+
+            $($var:ident: $t:ty => $val:expr),*,
+
+        }
+
+    ) => {
 
         serialize! {
+
             $vis struct $name {
-                $($variant: $t),*
+
+                $($vis $var: $t),*
+
             }
+
         }
+
         impl $name {
-            $vis fn new() -> Self {
-                Self {
-                    $($variant: $val),*
+
+            $vis fn new() -> Box<Self> {
+                Box::new(Self {
+                    $($var: $val),*
+                })
+            }
+
+        }
+
+        impl HeaderTrait for $name {
+            fn read(&mut self, fm: &mut FM) -> Result<()> {
+
+                let reader = &mut fm.reader;
+
+                let src = bincode::serialize(&self)?;
+                let mut buf = vec![0; src.len()];
+
+                match reader.read_exact(&mut buf[..]) {
+                    Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                        return self.write(fm);
+                    }
+                    Err(_) => return errbang!(err::BrokenHeader),
+                    _ => {}
                 }
+
+                let eq = src.iter().zip(buf.iter()).all(|(&x, &y)| x == y);
+
+                if !eq {
+                    return errbang!(err::AnotherHeader);
+                }
+
+                *self = bincode::deserialize(&buf)?;
+
+                Ok(())
+
+            }
+            fn write(&mut self, fm: &mut FM) -> Result<()> {
+
+                let writer = &mut fm.writer;
+
+                let buf = bincode::serialize(&self)?;
+
+                writer.write_all(&buf)?;
+
+                Ok(())
+
             }
         }
+
     }
+
 }
 
 pub use fheader;

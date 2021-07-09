@@ -18,75 +18,15 @@
 
 */
 
-use std::io::{self, Read, Write};
+use utils::macros::*;
 
-use utils::{
-    fs::{header::*, types::*},
-    macros::*,
-    system::*,
-};
-
-/// header unit size.
-pub type HSize = u64;
-pub type SSize = u32;
+pub type HHSize = u64;
+pub type HUSize = u32;
 
 fheader! {
-    struct Content {
-        height: HSize => 0,
-        a_set_bytes: SSize => 4,
-        b_set_bytes: SSize => 32,
-    }
-}
-
-impl<'de> TContent<'de> for Content {}
-
-#[derive(Debug)]
-pub struct Header {
-    content: Content,
-}
-impl Header {
-    pub fn new(a_set_bytes: SSize, b_set_bytes: SSize) -> Box<Self> {
-        Box::new(Self {
-            content: Content {
-                height: 0,
-                a_set_bytes,
-                b_set_bytes,
-            },
-        })
-    }
-}
-impl THeader for Header {
-    fn write(&mut self, fm: &mut FM) -> Result<()> {
-        let writer = &mut fm.writer;
-
-        let buf = self.content.encode()?;
-
-        writer.write_all(&buf)?;
-
-        Ok(())
-    }
-    fn read(&mut self, fm: &mut FM) -> Result<()> {
-        let reader = &mut fm.reader;
-
-        let src = self.content.encode()?;
-        let mut buf = vec![0; src.len()];
-
-        match reader.read_exact(&mut buf[..]) {
-            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                return self.write(fm);
-            }
-            Err(_) => return errbang!(err::BrokenHeader),
-            _ => {}
-        }
-
-        let eq = src.iter().zip(buf.iter()).all(|(&x, &y)| x == y);
-
-        if !eq {
-            return errbang!(err::AnotherHeader);
-        }
-
-        self.content = self.content.decode(&buf)?;
-
-        Ok(())
+    pub struct Head {
+        height: HHSize => 0,
+        a_set_bytes: HUSize => 4,
+        b_set_bytes: HUSize => 32,
     }
 }
