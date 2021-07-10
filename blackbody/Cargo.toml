@@ -2,8 +2,16 @@
 name = "blackbody"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
+homepage = "https://github.com/blackbody-foundation/blackbody"
+repository = "https://github.com/blackbody-foundation/blackbody"
+
 description = "Blockchain node for consensus compression algorithm."
+
+readme = "README.md"
+
 keywords = ["blockchain", "blackbody", "algorithm"]
+categories = ["cryptography", "compression"]
+
 license = "LGPL-3.0-or-later"
 edition = "2018"
 
@@ -11,4 +19,5 @@ edition = "2018"
 
 [dependencies]
 utils = { path = "../utils" }
-rand = "0.8.3"
+rand = "0.8.4"
+rand_chacha = "0.3.1"

@@ -18,10 +18,13 @@
 
 */
 
+//! Header Configures for One to One Database
 use utils::macros::*;
 
 pub type HHSize = u64;
 pub type HUSize = u32;
+
+use utils::fs::types::HeaderTrait;
 
 fheader! {
     pub struct OtooHeader {

@@ -23,14 +23,14 @@ pub mod types;
 use crate::system::*;
 use types::*;
 
-pub struct File {
-    pub path: &'static str,
-    pub header: Header,
+pub struct File<'a> {
+    pub path: &'a str,
+    pub header: &'a Header<'a>,
     fm: FM,
 }
 
-impl File {
-    pub fn open(path: &'static str, mut header: Header) -> Result<Self> {
+impl<'a> File<'a> {
+    pub fn open(path: &'a str, header: &'a mut Header) -> Result<Self> {
         let ptr = std::fs::OpenOptions::new()
             .create(true)
             .write(true)

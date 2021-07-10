@@ -19,7 +19,23 @@
 */
 
 // blackbody run
+// use rand::Rng;
+// use rand_chacha::{self, rand_core::SeedableRng};
+// const U32MAX: i64 = u32::MAX as i64;
+// const U16MAX: i64 = u16::MAX as i64;
 
 fn main() {
-    println!("Hello, world!");
+    // // q = 1 => -1.7320508075688772, q = u32::MAX => 1.7320772365667954
+    // for _ in 0..200 {
+    //     let q = rand_chacha::ChaCha20Rng::from_entropy().gen::<u32>() as i64;
+    //     let x = 2 * q;
+    //     let a = U32MAX - x;
+    //     let b = (a / U16MAX) as f64;
+    //     let c = b * 3f64.sqrt();
+    //     let c2 = (U16MAX + 1) as f64;
+    //     // let c2 = ((U32MAX - 2) as f64).sqrt();
+    //     let d = c / c2;
+    //     let f = -d;
+    //     println!("[{}] => ( {} )", q, f);
+    // }
 }

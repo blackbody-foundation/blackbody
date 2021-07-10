@@ -2,8 +2,16 @@
 name = "gravity"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
+homepage = "https://github.com/blackbody-foundation/blackbody"
+repository = "https://github.com/blackbody-foundation/blackbody"
+
 description = "The Blackbody toolchain installer."
+
+readme = "README.md"
+
 keywords = ["blockchain", "blackbody", "installer"]
+categories = ["cryptography", "compression"]
+
 license = "LGPL-3.0-or-later"
 edition = "2018"
 

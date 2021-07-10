@@ -23,5 +23,5 @@ use std::{error, result};
 pub mod errors;
 pub use errors::err;
 
-pub type ErrPool = super::types::Pool<Box<dyn error::Error>>;
+pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
 pub type Result<T> = result::Result<T, Box<dyn error::Error>>;

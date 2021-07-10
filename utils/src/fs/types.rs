@@ -25,7 +25,8 @@ use std::io::{BufReader, BufWriter};
 pub type Reader = Box<BufReader<File>>;
 pub type Writer = Box<BufWriter<File>>;
 
-pub type Header = Box<dyn HeaderTrait>;
+pub type Header<'a> = Box<(dyn HeaderTrait + 'a)>;
+
 pub trait HeaderTrait: std::fmt::Debug {
     fn read(&mut self, fm: &mut FM) -> Result<()>;
     fn write(&mut self, fm: &mut FM) -> Result<()>;

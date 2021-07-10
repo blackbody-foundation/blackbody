@@ -18,21 +18,25 @@
 
 */
 
-// One to One Set Database.
-pub use crate::head::*;
-use utils::{fs::File, system::*};
+//! One to One Set Database.
 
-pub struct DB {
-    pub file: File,
+pub use crate::head::*;
+use utils::{fs::File, system::*, types::bytes};
+
+pub struct DB<'a> {
+    pub head: Box<OtooHeader>,
+    pub file: File<'a>,
 }
 
-impl DB {
-    pub fn open(file_path: &'static str, a_set_bytes: HUSize, b_set_bytes: HUSize) -> Result<Self> {
-        let header = OtooHeader::from(0, a_set_bytes, b_set_bytes);
+impl<'a> DB<'a> {
+    pub fn open(file_path: &'a str, a_set_bytes: HUSize, b_set_bytes: HUSize) -> Result<Self> {
+        let mut header = OtooHeader::from(0, a_set_bytes, b_set_bytes);
         Ok(Self {
-            file: File::open(file_path, header)?,
+            head: header,
+            file: File::open(file_path, &mut header)?,
         })
     }
+    pub fn a_set_bytes(&self) {}
     pub fn define(&self, bytes_a: &[u8], bytes_b: &[u8]) {}
     pub fn close(self) {}
 }

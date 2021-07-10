@@ -2,8 +2,16 @@
 name = "wormhole"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
+homepage = "https://github.com/blackbody-foundation/blackbody"
+repository = "https://github.com/blackbody-foundation/blackbody"
+
 description = "Reading and writing .cccs file."
+
+readme = "README.md"
+
 keywords = ["blockchain", "blackbody", "cccs"]
+categories = ["cryptography", "compression"]
+
 license = "LGPL-3.0-or-later"
 edition = "2018"
 

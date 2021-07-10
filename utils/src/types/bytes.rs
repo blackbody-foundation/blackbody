@@ -1,5 +1,5 @@
 /*
-    .. + u256.rs + ..
+    .. + bytes.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,25 +18,14 @@
 
 */
 
-pub struct U256 {
-    buffer: [u8; 32],
-}
-impl U256 {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn as_u8(&self) -> &[u8; 32] {
-        &self.buffer
-    }
-    pub fn as_mut_u8(&mut self) -> &mut [u8; 32] {
-        &mut self.buffer
-    }
-    pub fn as_u8_slice(&self, len: usize) -> &[u8] {
-        &self.buffer[..len]
-    }
-}
-impl Default for U256 {
-    fn default() -> Self {
-        Self { buffer: [0; 32] }
+pub use primitive_types::U512;
+
+pub fn max_bytes<'a>(b1: &'a [u8], b2: &'a [u8]) -> &'a [u8] {
+    let a = U512::from_little_endian(b1);
+    let b = U512::from_little_endian(b2);
+    if a > b {
+        b1
+    } else {
+        b2
     }
 }
