@@ -18,6 +18,7 @@
 
 */
 
+pub use super::*;
 pub use crate::fs::types::*;
 pub use std::io::{self, Read, Write};
 
@@ -53,17 +54,18 @@ macro_rules! fheader {
 
         }
 
-        impl $name {
+        impl $name
+        where Self: HeaderTrait {
 
-            $vis fn new() -> Box<Self> {
-                Box::new(Self {
+            $vis fn new() -> $name {
+                Self {
                     $($var: $val),*
-                })
+                }
             }
-            $vis fn from($($var: $t),*) -> Box<Self> {
-                Box::new(Self {
+            $vis fn from($($var: $t),*) -> $name {
+                Self {
                     $($var),*
-                })
+                }
             }
 
         }

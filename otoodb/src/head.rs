@@ -19,11 +19,12 @@
 */
 
 //! Header Configures for One to One Database
-use utils::macros::*;
+use utils::macros::fs::*;
 
+/// *** warning: both must be less than 'usize' ***
 pub type HHSize = u64;
 pub type HUSize = u32;
-
+/// ***********************************************
 use utils::fs::types::HeaderTrait;
 
 fheader! {

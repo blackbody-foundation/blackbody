@@ -21,23 +21,38 @@
 //! One to One Set Database.
 
 pub use crate::head::*;
-use utils::{fs::File, system::*, types::bytes};
+use utils::{fs::File, system::*, types::bytes::*};
 
-pub struct DB<'a> {
-    pub head: Box<OtooHeader>,
-    pub file: File<'a>,
+pub struct DB {
+    pub file: File<OtooHeader>,
+    pub sets_len: Box<(usize, usize)>, // bytes len for each set
 }
 
-impl<'a> DB<'a> {
-    pub fn open(file_path: &'a str, a_set_bytes: HUSize, b_set_bytes: HUSize) -> Result<Self> {
-        let mut header = OtooHeader::from(0, a_set_bytes, b_set_bytes);
+impl DB {
+    pub fn open(file_path: &'static str, a_set_bytes: usize, b_set_bytes: usize) -> Result<Self> {
+        let sets_len = Box::new((a_set_bytes, b_set_bytes));
         Ok(Self {
-            head: header,
-            file: File::open(file_path, &mut header)?,
+            file: File::open(
+                file_path,
+                OtooHeader::from(0, a_set_bytes as HUSize, b_set_bytes as HUSize),
+                sets_len.0.max(sets_len.1),
+            )?,
+            sets_len,
         })
     }
-    pub fn a_set_bytes(&self) {}
-    pub fn define(&self, bytes_a: &[u8], bytes_b: &[u8]) {}
+    fn binary_search(&self, bytes: &[u8]) -> Result<()> {
+        let len = is_bytes_len![bytes, self.sets_len.0, self.sets_len.1]?; // + check valid length
+        let height = self.file.header.current_height;
+        // self.file.set_cursor()
+        Ok(())
+    }
+    pub fn get(&self, bytes_a_or_b: &[u8]) -> Result<&[u8]> {
+        Ok(&[1, 2, 3])
+    }
+    pub fn define(&self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
+        let a = max_bytes![bytes_a, bytes_b]?;
+        Ok(())
+    }
     pub fn close(self) {}
 }
 

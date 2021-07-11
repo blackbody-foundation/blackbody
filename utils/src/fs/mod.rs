@@ -20,33 +20,42 @@
 
 pub mod types;
 
+use std::io::{Read, Seek, SeekFrom, Write};
+
 use crate::system::*;
 use types::*;
 
-pub struct File<'a> {
-    pub path: &'a str,
-    pub header: &'a Header<'a>,
+pub struct File<T> {
+    pub path: &'static str,
+    pub header: T,
     fm: FM,
 }
 
-impl<'a> File<'a> {
-    pub fn open(path: &'a str, header: &'a mut Header) -> Result<Self> {
+impl<T: HeaderTrait> File<T> {
+    pub fn open(path: &'static str, mut header: T, buf_len: usize) -> Result<Self> {
         let ptr = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .read(true)
             .open(path)?;
 
-        let mut fm = FM::new(ptr)?;
+        let mut fm = FM::new(ptr, buf_len)?;
 
         header.read(&mut fm)?;
 
         Ok(Self { path, header, fm })
     }
-    fn read(&self) -> Result<()> {
+    pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
+        self.fm.reader.seek(SeekFrom::Start(pos))?;
+        self.fm.writer.seek(SeekFrom::Start(pos))?;
         Ok(())
     }
-    fn write(&self) -> Result<()> {
+    pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
+        self.fm.reader.read_exact(buf)?;
+        Ok(())
+    }
+    pub fn write(&mut self, buf: &mut [u8]) -> Result<()> {
+        self.fm.writer.write_all(buf)?;
         Ok(())
     }
     pub fn close(self) {}

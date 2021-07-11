@@ -22,5 +22,6 @@
 // cccs = collapsed and compressed core star
 
 use utils::system::*;
-use wormhole::DB;
-fn main() -> Result<()> {}
+fn main() -> Result<()> {
+    Ok(())
+}

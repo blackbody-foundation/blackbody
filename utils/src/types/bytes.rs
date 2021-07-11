@@ -18,14 +18,5 @@
 
 */
 
+pub use crate::macros::bytes::*;
 pub use primitive_types::U512;
-
-pub fn max_bytes<'a>(b1: &'a [u8], b2: &'a [u8]) -> &'a [u8] {
-    let a = U512::from_little_endian(b1);
-    let b = U512::from_little_endian(b2);
-    if a > b {
-        b1
-    } else {
-        b2
-    }
-}

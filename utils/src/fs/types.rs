@@ -20,12 +20,12 @@
 
 use crate::system::*;
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Read, Write};
 
 pub type Reader = Box<BufReader<File>>;
 pub type Writer = Box<BufWriter<File>>;
 
-pub type Header<'a> = Box<(dyn HeaderTrait + 'a)>;
+pub type Header = Box<dyn HeaderTrait>;
 
 pub trait HeaderTrait: std::fmt::Debug {
     fn read(&mut self, fm: &mut FM) -> Result<()>;
@@ -37,22 +37,25 @@ pub struct FM {
     pub writer: Writer,
 }
 impl FM {
-    pub fn new(ptr: File) -> Result<Self> {
-        let reader = ptr.try_clone()?.into_reader();
-        let writer = ptr.into_writer();
+    pub fn new(file: File, buffer_size: usize) -> Result<Self> {
+        let reader = file.try_clone()?.into_reader(buffer_size);
+        let writer = file.into_writer(buffer_size);
         Ok(Self { reader, writer })
     }
 }
 
-pub trait Convert {
-    fn into_writer(self) -> Writer;
-    fn into_reader(self) -> Reader;
+pub trait Convert
+where
+    Self: Read + Write,
+{
+    fn into_writer(self, capacity: usize) -> Writer;
+    fn into_reader(self, capacity: usize) -> Reader;
 }
 impl Convert for File {
-    fn into_reader(self) -> Reader {
-        Box::new(BufReader::new(self))
+    fn into_writer(self, capacity: usize) -> Writer {
+        Box::new(BufWriter::with_capacity(capacity, self))
     }
-    fn into_writer(self) -> Writer {
-        Box::new(BufWriter::new(self))
+    fn into_reader(self, capacity: usize) -> Reader {
+        Box::new(BufReader::with_capacity(capacity, self))
     }
 }

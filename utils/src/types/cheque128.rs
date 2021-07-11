@@ -1,3 +1,23 @@
+/*
+    .. + cheque128.rs + ..
+
+    Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
+
+    BlackBody is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    BlackBody is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with BlackBody. If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
 #[derive(PartialEq, Debug)]
 pub struct Cheque128 {
     cheque: Vec<u128>,
@@ -35,7 +55,7 @@ impl Cheque128 {
     }
     pub fn fulfill_and_fill(&mut self, number: u128) {
         self.fulfill();
-        *self.decimal_point() = number;
+        self.add(number);
     }
     pub fn add(&mut self, decimal: u128) {
         let left_space = u128::MAX - *self.decimal_point();

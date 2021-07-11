@@ -116,7 +116,7 @@
 macro_rules! gost {
 
     // internal rules
-    (@out_of_bracket ($t:ty) {$($key:tt : $val:tt),*})
+    (@out_of_bracket ($t:ty) {$($key:ident : $val:expr),*})
     => {
        <$t>::from($($val),*)
     };
