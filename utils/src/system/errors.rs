@@ -18,6 +18,7 @@
 
 */
 
+
 use crate::macros::errbang::*;
 
 errors! {
@@ -26,4 +27,6 @@ errors! {
     FileNotFound => "file not found.",
     InvalidLenSize => "invalid target len"
     EmptyArgument => "empty argument"
+    UnexpectedEof => "unexpected EOF"
 }
+

@@ -24,6 +24,17 @@ macro_rules! errbang {
         Result::Err(Box::new(<$kind>::new(format!("[{}:{}]", file!(), line!()))))
     };
 }
+
+#[macro_export]
+macro_rules! errmatch {
+    ($err:expr, $kind:ty) => {
+        match $err.downcast_ref::<$kind>() {
+            Some(e) => true,
+            None => false,
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! errors {
     (
@@ -36,14 +47,15 @@ macro_rules! errors {
                 #[derive(Debug)]
                 pub struct $kind {
                     meta: String,
+                    message: &'static str,
                 }
 
                 impl $kind {
                     pub fn new(meta: String) -> Self {
-                        Self { meta }
+                        Self { meta, message: $message }
                     }
-                    pub fn as_string(&self) -> &'static str {
-                        $message
+                    pub fn as_combination(&self) -> String {
+                        format!("{} {}", self.meta, self.message)
                     }
                 }
 
@@ -54,7 +66,7 @@ macro_rules! errors {
                 }
                 impl std::fmt::Display for $kind {
                     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(f, "{} {}", self.meta, self.as_string())
+                        write!(f, "{}", self.as_combination())
                     }
                 }
 
@@ -65,4 +77,5 @@ macro_rules! errors {
 }
 
 pub use errbang;
+pub use errmatch;
 pub use errors;

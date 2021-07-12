@@ -20,8 +20,6 @@
 
 pub mod types;
 
-use std::io::{Read, Seek, SeekFrom, Write};
-
 use crate::system::*;
 use types::*;
 
@@ -46,17 +44,13 @@ impl<T: HeaderTrait> File<T> {
         Ok(Self { path, header, fm })
     }
     pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
-        self.fm.reader.seek(SeekFrom::Start(pos))?;
-        self.fm.writer.seek(SeekFrom::Start(pos))?;
-        Ok(())
+        self.fm.set_cursor(pos)
     }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.fm.reader.read_exact(buf)?;
-        Ok(())
+        self.fm.read(buf)
     }
     pub fn write(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.fm.writer.write_all(buf)?;
-        Ok(())
+        self.fm.write(buf)
     }
     pub fn close(self) {}
 }

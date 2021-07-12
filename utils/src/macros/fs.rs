@@ -20,8 +20,8 @@
 
 pub use super::*;
 pub use crate::fs::types::*;
+pub use crate::system::*;
 pub use std::io::{self, Read, Write};
-
 ///```
 /// fheader! {
 ///     pub struct Name {
@@ -70,51 +70,79 @@ macro_rules! fheader {
 
         }
 
-
         impl HeaderTrait for $name {
             fn read(&mut self, fm: &mut FM) -> Result<()> {
 
-                let reader = &mut fm.reader;
-
                 let src = bincode::serialize(&self)?;
-                let mut buf = vec![0; src.len()];
 
-                match reader.read_exact(&mut buf[..]) {
+                let dst = Self::read_header_bytes(fm, &src)?;
 
-                    Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                        return self.write(fm); // create
-                    }
-                    Err(_) => return errbang!(err::BrokenHeader),
-                    _ => {}
+                Self::check_header_protocol(&src, &dst)?;
 
-                }
-
-                let mut cursor = 0;
-                $(
-                    let width = std::mem::size_of::<$t>() - 1;
-                    if stringify!(($free_mark)) != "(pub )" {
-                        if &src[cursor..cursor+width] != &buf[cursor..cursor+width] {
-                            return errbang!(err::AnotherHeader);
-                        }
-                    }
-                    cursor += width;
-                )*
-
-                *self = bincode::deserialize(&buf)?;
+                *self = bincode::deserialize(&dst)?;
 
                 Ok(())
 
             }
             fn write(&mut self, fm: &mut FM) -> Result<()> {
 
-                let writer = &mut fm.writer;
+                let mut src = bincode::serialize(&self)?;
 
-                let buf = bincode::serialize(&self)?;
+                let dst = Self::read_header_bytes(fm, &src)?;
 
-                writer.write_all(&buf)?;
+                Self::check_header_protocol(&src, &dst)?;
+
+                fm.set_cursor(0)?;
+                fm.write(&dst)?;
 
                 Ok(())
 
+            }
+        }
+
+        impl $name {
+            fn read_header_bytes(fm: &mut FM, src: &[u8]) -> Result<Vec<u8>> {
+
+                let mut buf = vec![0; src.len()];
+
+                fm.set_cursor(0)?;
+                match fm.reader.read_exact(&mut buf[..]) {
+
+                    Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                        match fm.reader.read_exact(&mut [0; 1]) {
+
+                            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                                fm.set_cursor(0)?;
+                                fm.write(&src)?; // create
+                                Ok(src.clone().to_vec())
+                            }
+
+                            _ => errbang!(err::BrokenHeader)
+                        }
+                    }
+                    Err(_) => errbang!(err::BrokenHeader),
+                    _ => Ok(buf)
+
+                }
+
+            }
+            fn check_header_protocol(a_just_head_bytes: &[u8], b_just_head_bytes: &[u8]) -> Result<()> {
+
+                if a_just_head_bytes.len() != b_just_head_bytes.len() { return errbang!(err::AnotherHeader); }
+
+                let mut cursor = 0;
+
+                $(
+                    let width = std::mem::size_of::<$t>() - 1;
+                    if stringify!(($free_mark)) != "(pub )" {
+                        if &a_just_head_bytes[cursor..cursor+width] != &b_just_head_bytes[cursor..cursor+width] {
+                            return errbang!(err::AnotherHeader);
+                        }
+                    }
+                    cursor += width;
+                )*
+
+                Ok(())
             }
         }
 

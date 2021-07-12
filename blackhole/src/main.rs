@@ -22,6 +22,7 @@
 // cccs = collapsed and compressed core star
 
 use utils::system::*;
+
 fn main() -> Result<()> {
     Ok(())
 }

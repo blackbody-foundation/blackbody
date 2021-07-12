@@ -21,3 +21,7 @@
 pub mod bytes;
 pub mod cheque128;
 pub mod epool;
+
+pub fn type_of<T>(_: T) -> &'static str {
+    std::any::type_name::<T>()
+}

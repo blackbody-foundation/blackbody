@@ -20,7 +20,7 @@
 
 use crate::system::*;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 
 pub type Reader = Box<BufReader<File>>;
 pub type Writer = Box<BufWriter<File>>;
@@ -41,6 +41,19 @@ impl FM {
         let reader = file.try_clone()?.into_reader(buffer_size);
         let writer = file.into_writer(buffer_size);
         Ok(Self { reader, writer })
+    }
+    pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
+        self.reader.seek(SeekFrom::Start(pos))?;
+        self.writer.seek(SeekFrom::Start(pos))?;
+        Ok(())
+    }
+    pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
+        self.reader.read_exact(buf)?;
+        Ok(())
+    }
+    pub fn write(&mut self, buf: &[u8]) -> Result<()> {
+        self.writer.write_all(buf)?;
+        Ok(())
     }
 }
 
