@@ -59,7 +59,7 @@ macro_rules! is_bytes_len {
 #[macro_export]
 macro_rules! max_bytes {
     (
-        $bytes0:ident$(, $bytes:ident)*
+        $bytes0:expr$(, $bytes:expr)*
     ) => {
         match vec![
             ($bytes0, U512::from_little_endian($bytes0)),

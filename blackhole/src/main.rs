@@ -22,7 +22,10 @@
 // cccs = collapsed and compressed core star
 
 use utils::system::*;
-
+use wormhole::DB;
 fn main() -> Result<()> {
+    let db = DB::open("test", 4, 32)?;
+    println!("{:#?}", db.file.header);
+    db.close();
     Ok(())
 }

@@ -20,16 +20,16 @@
 
 use crate::system::*;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 
-pub type Reader = Box<BufReader<File>>;
-pub type Writer = Box<BufWriter<File>>;
+pub type Reader = Box<File>;
+pub type Writer = Box<File>;
 
 pub type Header = Box<dyn HeaderTrait>;
 
 pub trait HeaderTrait: std::fmt::Debug {
-    fn read(&mut self, fm: &mut FM) -> Result<()>;
-    fn write(&mut self, fm: &mut FM) -> Result<()>;
+    fn read(&mut self, fm: &mut FM) -> Result<usize>;
+    fn write(&mut self, fm: &mut FM) -> Result<usize>;
 }
 
 pub struct FM {
@@ -37,10 +37,23 @@ pub struct FM {
     pub writer: Writer,
 }
 impl FM {
-    pub fn new(file: File, buffer_size: usize) -> Result<Self> {
-        let reader = file.try_clone()?.into_reader(buffer_size);
-        let writer = file.into_writer(buffer_size);
+    pub fn new(file: File) -> Result<Self> {
+        let reader = file.try_clone()?.into_reader();
+        let writer = file.into_writer();
         Ok(Self { reader, writer })
+    }
+    pub fn is_eof(&mut self) -> Result<bool> {
+        if 0 == self.reader.read(&mut [0u8; 1])? {
+            Ok(true)
+        } else {
+            self.set_cursor_relative(-1)?;
+            Ok(false)
+        }
+    }
+    pub fn set_cursor_relative(&mut self, pos: i64) -> Result<()> {
+        self.reader.seek(SeekFrom::Current(pos))?;
+        self.writer.seek(SeekFrom::Current(pos))?;
+        Ok(())
     }
     pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
         self.reader.seek(SeekFrom::Start(pos))?;
@@ -61,14 +74,16 @@ pub trait Convert
 where
     Self: Read + Write,
 {
-    fn into_writer(self, capacity: usize) -> Writer;
-    fn into_reader(self, capacity: usize) -> Reader;
+    fn into_writer(self) -> Writer;
+    fn into_reader(self) -> Reader;
 }
 impl Convert for File {
-    fn into_writer(self, capacity: usize) -> Writer {
-        Box::new(BufWriter::with_capacity(capacity, self))
+    fn into_writer(self) -> Writer {
+        // Box::new(BufWriter::with_capacity(capacity, self))
+        Box::new(self)
     }
-    fn into_reader(self, capacity: usize) -> Reader {
-        Box::new(BufReader::with_capacity(capacity, self))
+    fn into_reader(self) -> Reader {
+        Box::new(self)
+        // Box::new(BufReader::with_capacity(capacity, self))
     }
 }

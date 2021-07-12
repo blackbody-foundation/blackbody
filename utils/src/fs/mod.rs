@@ -27,23 +27,38 @@ pub struct File<T> {
     pub path: &'static str,
     pub header: T,
     fm: FM,
+    header_size: u64,
 }
 
 impl<T: HeaderTrait> File<T> {
-    pub fn open(path: &'static str, mut header: T, buf_len: usize) -> Result<Self> {
+    pub fn open(path: &'static str, mut header: T) -> Result<Self> {
         let ptr = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .read(true)
             .open(path)?;
 
-        let mut fm = FM::new(ptr, buf_len)?;
+        let mut fm = FM::new(ptr)?;
 
-        header.read(&mut fm)?;
+        let header_size = header.read(&mut fm)? as u64;
 
-        Ok(Self { path, header, fm })
+        Ok(Self {
+            path,
+            header,
+            fm,
+            header_size,
+        })
+    }
+    pub fn is_eof(&mut self) -> Result<bool> {
+        self.fm.is_eof()
     }
     pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
+        self.fm.set_cursor(pos + self.header_size)
+    }
+    pub fn set_cursor_relative(&mut self, pos: i64) -> Result<()> {
+        self.fm.set_cursor_relative(pos)
+    }
+    pub fn set_cursor_general(&mut self, pos: u64) -> Result<()> {
         self.fm.set_cursor(pos)
     }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {

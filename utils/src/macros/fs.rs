@@ -33,7 +33,9 @@ pub use std::io::{self, Read, Write};
 ///```
 #[macro_export]
 macro_rules! fheader {
-
+    (@apply $e:expr) => {
+        $e
+    };
     (
 
         $vis:vis struct $name:ident {
@@ -43,6 +45,7 @@ macro_rules! fheader {
         }
 
     ) => {
+
 
         serialize! {
 
@@ -71,7 +74,7 @@ macro_rules! fheader {
         }
 
         impl HeaderTrait for $name {
-            fn read(&mut self, fm: &mut FM) -> Result<()> {
+            fn read(&mut self, fm: &mut FM) -> Result<usize> {
 
                 let src = bincode::serialize(&self)?;
 
@@ -81,10 +84,10 @@ macro_rules! fheader {
 
                 *self = bincode::deserialize(&dst)?;
 
-                Ok(())
+                Ok(dst.len())
 
             }
-            fn write(&mut self, fm: &mut FM) -> Result<()> {
+            fn write(&mut self, fm: &mut FM) -> Result<usize> {
 
                 let mut src = bincode::serialize(&self)?;
 
@@ -95,7 +98,7 @@ macro_rules! fheader {
                 fm.set_cursor(0)?;
                 fm.write(&dst)?;
 
-                Ok(())
+                Ok(dst.len())
 
             }
         }
@@ -109,15 +112,12 @@ macro_rules! fheader {
                 match fm.reader.read_exact(&mut buf[..]) {
 
                     Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                        match fm.reader.read_exact(&mut [0; 1]) {
-
-                            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                                fm.set_cursor(0)?;
-                                fm.write(&src)?; // create
-                                Ok(src.clone().to_vec())
-                            }
-
-                            _ => errbang!(err::BrokenHeader)
+                        if fm.is_eof()? {
+                            fm.set_cursor(0)?;
+                            fm.write(&src)?; // create
+                            Ok(src.clone().to_vec())
+                        } else {
+                            errbang!(err::BrokenHeader)
                         }
                     }
                     Err(_) => errbang!(err::BrokenHeader),
