@@ -73,7 +73,15 @@ impl<T: HeaderTrait> FM<T> {
         self.ptr.seek(SeekFrom::Start(pos + self.header_size))?;
         Ok(())
     }
+    pub fn read_general(&mut self, buf: &mut [u8]) -> Result<usize> {
+        Ok(self.ptr.read(buf)?)
+    }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
+        self.ptr.read_exact(buf)?;
+        Ok(())
+    }
+    pub fn read_cursoring(&mut self, buf: &mut [u8], pos: u64) -> Result<()> {
+        self.ptr.seek(SeekFrom::Start(pos + self.header_size))?;
         self.ptr.read_exact(buf)?;
         Ok(())
     }

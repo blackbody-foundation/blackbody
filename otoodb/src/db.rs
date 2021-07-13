@@ -20,8 +20,11 @@
 
 //! One to One Set Database.
 
-pub use crate::head::*;
-use utils::{fs::File, system::*, types::bytes::*};
+use crate::std::*;
+
+use crate::head::*;
+
+use utils::fs::{types::FM, File};
 
 pub struct DB {
     pub file: File<OtooHeader>,
@@ -38,39 +41,62 @@ impl DB {
         Self::validate(db)
     }
     pub fn validate(mut db: DB) -> Result<DB> {
-        db.file.fm.set_cursor(0)?;
-        if db.file.fm.is_eof()? {
+        let (fm, height, a_bl, b_bl) = db.get_info_and_fm();
+
+        fm.set_cursor(0)?;
+        if fm.is_eof()? {
             return Ok(db);
         }
 
-        let (height, a_bl, b_bl) = db.get_info();
-
-        fn valid_loop(mut db: DB, height: usize, a_bytes: usize, b_bytes: usize) -> Result<DB> {
+        fn valid_loop(
+            fm: &mut FM<OtooHeader>,
+            height: usize,
+            a_bytes: usize,
+            b_bytes: usize,
+        ) -> Result<()> {
             let mut buf = vec![0_u8; a_bytes];
             let mut prev_buf = vec![0_u8; a_bytes];
-            db.file.fm.read(&mut prev_buf)?;
+            fm.read(&mut prev_buf)?;
 
             for _ in 1..height {
-                db.file.fm.read(&mut buf)?;
+                fm.read(&mut buf)?;
 
-                if prev_buf != max_bytes![buf.as_slice(), prev_buf.as_slice()]? {
+                if buf != max_bytes![buf.as_slice(), prev_buf.as_slice()]? {
                     return errbang!(err::ValidationFailed);
                 }
-                db.file.fm.set_cursor_relative(b_bytes as i64)?;
-            }
+                fm.set_cursor_relative(b_bytes as i64)?;
 
-            Ok(db)
+                prev_buf = buf.clone();
+            }
+            Ok(())
         }
 
-        db = valid_loop(db, height, a_bl, b_bl)?;
-        db = valid_loop(db, height, b_bl, a_bl)?;
+        valid_loop(fm, height, a_bl, b_bl)?;
+        valid_loop(fm, height, b_bl, a_bl)?;
 
         Ok(db)
     }
-    fn binary_search(&self, bytes: &[u8]) -> Result<()> {
-        let (height, a_bl, b_bl) = self.get_info();
+    pub fn binary_search(&mut self, bytes: &[u8]) -> Result<usize> {
+        let (fm, height, a_bl, b_bl) = self.get_info_and_fm();
+        if height == 0 {
+            return Ok(0);
+        }
+
         let len = is_bytes_len![bytes, a_bl, b_bl]?; // + check valid length
-        Ok(())
+        let start = if len == a_bl { 0 } else { height };
+        let mut distance = height;
+        let (mut left, mut mid, mut right): (usize, usize, usize);
+
+        let mut buf_mid = vec![0u8; a_bl];
+
+        loop {
+            distance /= 2;
+            mid = start + distance;
+
+            fm.read_cursoring(buf_mid.as_mut_slice(), mid as u64)?;
+
+            todo!("binary search")
+        }
     }
     pub fn get(&self, bytes_a_or_b: &[u8]) -> Result<&[u8]> {
         Ok(&[1, 2, 3])
@@ -81,12 +107,16 @@ impl DB {
         Ok(())
     }
     pub fn close(self) {}
-    pub fn get_info(&self) -> (usize, usize, usize) {
-        (
+    pub fn get_info(&self) -> Box<(usize, usize, usize)> {
+        Box::new((
             self.file.fm.header.current_height as usize,
             self.file.fm.header.a_set_bytes as usize,
             self.file.fm.header.b_set_bytes as usize,
-        )
+        ))
+    }
+    fn get_info_and_fm(&mut self) -> (&mut FM<OtooHeader>, usize, usize, usize) {
+        let (h, a, b) = *self.get_info();
+        (self.file.fm.borrow_mut(), h, a, b)
     }
 }
 
@@ -95,9 +125,6 @@ mod tests {
     use super::*;
     #[test]
     fn start() -> Result<()> {
-        let db = DB::open("test", 4, 32)?;
-        println!("{:#?}", db.file.fm.header);
-        db.close();
         Ok(())
     }
 }

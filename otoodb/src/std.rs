@@ -1,5 +1,5 @@
 /*
-    .. + system + ..
+    .. + std.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,13 +18,6 @@
 
 */
 
-use std::{error, result};
+pub use utils::{system::*, types::bytes::*};
 
-pub mod errors;
-pub mod timer;
-
-pub use errors::err;
-pub use timer::Timer;
-
-pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
-pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
+pub use std::borrow::BorrowMut;
