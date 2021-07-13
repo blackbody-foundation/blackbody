@@ -61,32 +61,29 @@ impl<T: HeaderTrait> FM<T> {
             Ok(false)
         }
     }
-    pub fn set_cursor_relative(&mut self, pos: i64) -> Result<()> {
-        self.ptr.seek(SeekFrom::Current(pos))?;
-        Ok(())
+    pub fn set_cursor_relative(&mut self, pos: i64) -> Result<u64> {
+        Self::err_tunnel(self.ptr.seek(SeekFrom::Current(pos)))
     }
-    pub fn set_cursor_general(&mut self, pos: u64) -> Result<()> {
-        self.ptr.seek(SeekFrom::Start(pos))?;
-        Ok(())
+    pub fn set_cursor_general(&mut self, pos: u64) -> Result<u64> {
+        Self::err_tunnel(self.ptr.seek(SeekFrom::Start(pos)))
     }
-    pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
-        self.ptr.seek(SeekFrom::Start(pos + self.header_size))?;
-        Ok(())
+    pub fn set_cursor(&mut self, pos: u64) -> Result<u64> {
+        Self::err_tunnel(self.ptr.seek(SeekFrom::Start(pos + self.header_size)))
     }
     pub fn read_general(&mut self, buf: &mut [u8]) -> Result<usize> {
-        Ok(self.ptr.read(buf)?)
+        Self::err_tunnel(self.ptr.read(buf))
     }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.ptr.read_exact(buf)?;
-        Ok(())
+        Self::err_tunnel(self.ptr.read_exact(buf))
     }
     pub fn read_cursoring(&mut self, buf: &mut [u8], pos: u64) -> Result<()> {
-        self.ptr.seek(SeekFrom::Start(pos + self.header_size))?;
-        self.ptr.read_exact(buf)?;
-        Ok(())
+        self.set_cursor(pos)?;
+        Self::err_tunnel(self.ptr.read_exact(buf))
     }
     pub fn write(&mut self, buf: &[u8]) -> Result<()> {
-        self.ptr.write_all(buf)?;
-        Ok(())
+        Self::err_tunnel(self.ptr.write_all(buf))
+    }
+    fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
+        errors::handle_io_error(io_e)
     }
 }
