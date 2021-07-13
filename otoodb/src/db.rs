@@ -76,30 +76,59 @@ impl DB {
 
         Ok(db)
     }
-    pub fn binary_search(&mut self, bytes: &[u8]) -> Result<usize> {
-        let (fm, height, a_bl, b_bl) = self.get_info_and_fm();
+    pub fn binary_search(&mut self, bytes: &[u8]) -> Result<(bool, usize, u64, usize)> {
+        // found, index, pos, len
+        let (fm, height, a_l, b_l) = self.get_info_and_fm();
+
+        let (main_len, total_len, mut start) = if a_l == is_bytes_len![bytes, a_l, b_l]? {
+            (a_l, a_l + b_l, 0)
+        } else {
+            (b_l, b_l + a_l, height)
+        };
+
         if height == 0 {
-            return Ok(0);
+            return Ok((false, 0, 0, main_len));
         }
 
-        let len = is_bytes_len![bytes, a_bl, b_bl]?; // + check valid length
-        let start = if len == a_bl { 0 } else { height };
         let mut distance = height;
-        let (mut left, mut mid, mut right): (usize, usize, usize);
+        let mut mid;
 
-        let mut buf_mid = vec![0u8; a_bl];
+        let mut buf_mid = vec![0u8; main_len];
+        let mut top_gear = false;
 
         loop {
             distance /= 2;
-            mid = start + distance;
+            if top_gear {
+                mid = start - distance;
+            } else {
+                mid = start + distance;
+            }
 
-            fm.read_cursoring(buf_mid.as_mut_slice(), mid as u64)?;
+            fm.read_cursoring(buf_mid.as_mut_slice(), (total_len * mid) as u64)?;
+            if buf_mid == bytes {
+                return Ok((true, mid, (mid * total_len) as u64, main_len)); // found
+            }
 
-            todo!("binary search")
+            start = mid;
+
+            top_gear = max_bytes![bytes, buf_mid.as_slice()]? != bytes;
+
+            if distance == 0 {
+                let index = if top_gear { mid - 1 } else { mid + 1 };
+                return Ok((false, index, (index * total_len) as u64, main_len));
+                // couldn't find
+            }
         }
     }
-    pub fn get(&self, bytes_a_or_b: &[u8]) -> Result<&[u8]> {
-        Ok(&[1, 2, 3])
+    pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
+        let (found, _, pos, len) = self.binary_search(bytes_a_or_b)?;
+        if !found {
+            Ok(None)
+        } else {
+            let mut buf = vec![0_u8; len];
+            self.file.fm.read_cursoring(&mut buf, pos)?;
+            Ok(Some(buf))
+        }
     }
     pub fn define(&self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let max = max_bytes![bytes_a, bytes_b]?;
