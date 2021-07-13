@@ -21,7 +21,7 @@
 pub use super::*;
 pub use crate::fs::types::*;
 pub use crate::system::*;
-pub use std::io::{self, Read, Write};
+pub use std::io::{self, Read, Seek, SeekFrom, Write};
 ///```
 /// fheader! {
 ///     pub struct Name {
@@ -60,25 +60,25 @@ macro_rules! fheader {
         impl $name
         where Self: HeaderTrait {
 
-            $vis fn new() -> $name {
-                Self {
+            $vis fn new() -> Box<$name> {
+                Box::new(Self {
                     $($var: $val),*
-                }
+                })
             }
-            $vis fn from($($var: $t),*) -> $name {
-                Self {
+            $vis fn from($($var: $t),*) -> Box<$name> {
+                Box::new(Self {
                     $($var),*
-                }
+                })
             }
 
         }
 
         impl HeaderTrait for $name {
-            fn read(&mut self, fm: &mut FM) -> Result<usize> {
+            fn read(&mut self, ptr: &mut Ptr) -> Result<usize> {
 
                 let src = bincode::serialize(&self)?;
 
-                let dst = Self::read_header_bytes(fm, &src)?;
+                let dst = Self::read_header_bytes(ptr, &src)?;
 
                 Self::check_header_protocol(&src, &dst)?;
 
@@ -87,16 +87,16 @@ macro_rules! fheader {
                 Ok(dst.len())
 
             }
-            fn write(&mut self, fm: &mut FM) -> Result<usize> {
+            fn write(&mut self, ptr: &mut Ptr) -> Result<usize> {
 
                 let mut src = bincode::serialize(&self)?;
 
-                let dst = Self::read_header_bytes(fm, &src)?;
+                let dst = Self::read_header_bytes(ptr, &src)?;
 
                 Self::check_header_protocol(&src, &dst)?;
 
-                fm.set_cursor(0)?;
-                fm.write(&dst)?;
+                ptr.seek(SeekFrom::Start(0))?;
+                ptr.write_all(&dst)?;
 
                 Ok(dst.len())
 
@@ -104,17 +104,25 @@ macro_rules! fheader {
         }
 
         impl $name {
-            fn read_header_bytes(fm: &mut FM, src: &[u8]) -> Result<Vec<u8>> {
+            fn is_eof(ptr: &mut Ptr) -> Result<bool> {
+                if 0 == ptr.read(&mut [0u8; 1])? {
+                    Ok(true)
+                } else {
+                    ptr.seek(SeekFrom::Current(-1))?;
+                    Ok(false)
+                }
+            }
+            fn read_header_bytes(ptr: &mut Ptr, src: &[u8]) -> Result<Vec<u8>> {
 
                 let mut buf = vec![0; src.len()];
 
-                fm.set_cursor(0)?;
-                match fm.reader.read_exact(&mut buf[..]) {
+                ptr.seek(SeekFrom::Start(0))?;
+                match ptr.read_exact(&mut buf[..]) {
 
                     Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
-                        if fm.is_eof()? {
-                            fm.set_cursor(0)?;
-                            fm.write(&src)?; // create
+                        if Self::is_eof(ptr)? {
+                            ptr.seek(SeekFrom::Start(0))?;
+                            ptr.write_all(&src)?; // create
                             Ok(src.clone().to_vec())
                         } else {
                             errbang!(err::BrokenHeader)

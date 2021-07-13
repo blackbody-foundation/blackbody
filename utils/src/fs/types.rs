@@ -22,28 +22,39 @@ use crate::system::*;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
 
-pub type Reader = Box<File>;
-pub type Writer = Box<File>;
-
+pub type Ptr = Box<File>;
 pub type Header = Box<dyn HeaderTrait>;
 
 pub trait HeaderTrait: std::fmt::Debug {
-    fn read(&mut self, fm: &mut FM) -> Result<usize>;
-    fn write(&mut self, fm: &mut FM) -> Result<usize>;
+    fn read(&mut self, ptr: &mut Ptr) -> Result<usize>;
+    fn write(&mut self, ptr: &mut Ptr) -> Result<usize>;
 }
 
-pub struct FM {
-    pub reader: Reader,
-    pub writer: Writer,
+pub struct FM<T> {
+    ptr: Ptr,
+    pub header: Box<T>,
+    pub header_size: u64,
 }
-impl FM {
-    pub fn new(file: File) -> Result<Self> {
-        let reader = file.try_clone()?.into_reader();
-        let writer = file.into_writer();
-        Ok(Self { reader, writer })
+impl<T: HeaderTrait> FM<T> {
+    pub fn new(path: &'static str, mut header: Box<T>) -> Result<Self> {
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(path)?;
+
+        let mut ptr = Box::new(file);
+
+        let header_size = header.read(&mut ptr)? as u64;
+
+        Ok(Self {
+            ptr,
+            header,
+            header_size,
+        })
     }
     pub fn is_eof(&mut self) -> Result<bool> {
-        if 0 == self.reader.read(&mut [0u8; 1])? {
+        if 0 == self.ptr.read(&mut [0u8; 1])? {
             Ok(true)
         } else {
             self.set_cursor_relative(-1)?;
@@ -51,39 +62,23 @@ impl FM {
         }
     }
     pub fn set_cursor_relative(&mut self, pos: i64) -> Result<()> {
-        self.reader.seek(SeekFrom::Current(pos))?;
-        self.writer.seek(SeekFrom::Current(pos))?;
+        self.ptr.seek(SeekFrom::Current(pos))?;
+        Ok(())
+    }
+    pub fn set_cursor_general(&mut self, pos: u64) -> Result<()> {
+        self.ptr.seek(SeekFrom::Start(pos))?;
         Ok(())
     }
     pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
-        self.reader.seek(SeekFrom::Start(pos))?;
-        self.writer.seek(SeekFrom::Start(pos))?;
+        self.ptr.seek(SeekFrom::Start(pos + self.header_size))?;
         Ok(())
     }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.reader.read_exact(buf)?;
+        self.ptr.read_exact(buf)?;
         Ok(())
     }
     pub fn write(&mut self, buf: &[u8]) -> Result<()> {
-        self.writer.write_all(buf)?;
+        self.ptr.write_all(buf)?;
         Ok(())
-    }
-}
-
-pub trait Convert
-where
-    Self: Read + Write,
-{
-    fn into_writer(self) -> Writer;
-    fn into_reader(self) -> Reader;
-}
-impl Convert for File {
-    fn into_writer(self) -> Writer {
-        // Box::new(BufWriter::with_capacity(capacity, self))
-        Box::new(self)
-    }
-    fn into_reader(self) -> Reader {
-        Box::new(self)
-        // Box::new(BufReader::with_capacity(capacity, self))
     }
 }

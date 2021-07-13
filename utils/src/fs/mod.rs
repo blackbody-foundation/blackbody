@@ -25,47 +25,14 @@ use types::*;
 
 pub struct File<T> {
     pub path: &'static str,
-    pub header: T,
-    fm: FM,
-    header_size: u64,
+    pub fm: FM<T>,
 }
 
 impl<T: HeaderTrait> File<T> {
-    pub fn open(path: &'static str, mut header: T) -> Result<Self> {
-        let ptr = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .read(true)
-            .open(path)?;
+    pub fn open(path: &'static str, header: Box<T>) -> Result<Self> {
+        let fm = FM::new(path, header)?;
 
-        let mut fm = FM::new(ptr)?;
-
-        let header_size = header.read(&mut fm)? as u64;
-
-        Ok(Self {
-            path,
-            header,
-            fm,
-            header_size,
-        })
-    }
-    pub fn is_eof(&mut self) -> Result<bool> {
-        self.fm.is_eof()
-    }
-    pub fn set_cursor(&mut self, pos: u64) -> Result<()> {
-        self.fm.set_cursor(pos + self.header_size)
-    }
-    pub fn set_cursor_relative(&mut self, pos: i64) -> Result<()> {
-        self.fm.set_cursor_relative(pos)
-    }
-    pub fn set_cursor_general(&mut self, pos: u64) -> Result<()> {
-        self.fm.set_cursor(pos)
-    }
-    pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.fm.read(buf)
-    }
-    pub fn write(&mut self, buf: &mut [u8]) -> Result<()> {
-        self.fm.write(buf)
+        Ok(Self { path, fm })
     }
     pub fn close(self) {}
 }
