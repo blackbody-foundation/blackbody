@@ -22,15 +22,16 @@ use super::Result;
 use crate::macros::errbang::*;
 
 errors! {
-    ValidationFailed => "invalid ordering sus"
+    ValidationFailed => "invalid ordering sus."
     BrokenHeader => "broken header."
     AnotherHeader => "not matched header."
     FileNotFound => "file not found."
-    InvalidLenSize => "invalid target len"
-    EmptyArgument => "empty argument"
-    MysteriousError => "mysterious error occurs"
-    UnexpectedEof => "unexpected eof"
-    Interrupted => "interrupted"
+    InvalidLenSize => "invalid target len."
+    EmptyArgument => "empty argument."
+    MysteriousError => "mysterious error occurs."
+    UnexpectedEof => "unexpected eof."
+    Interrupted => "interrupted."
+    ThreadSending => "thread sending error."
 }
 
 pub fn handle_io_error<T>(io_error: std::io::Result<T>) -> Result<T> {

@@ -23,6 +23,7 @@ pub mod types;
 use crate::system::*;
 use types::*;
 
+#[derive(Debug)]
 pub struct File<T> {
     pub path: &'static str,
     pub fm: FM<T>,

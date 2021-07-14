@@ -33,3 +33,12 @@ pub mod gost;
 
 pub use derives::*;
 pub use errbang::*;
+
+#[macro_export]
+macro_rules! downcast {
+    ($i:expr, $t:ty) => {
+        ($i as &dyn Any).downcast_ref::<$t>()
+    };
+}
+
+pub use downcast;

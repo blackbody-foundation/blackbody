@@ -20,42 +20,44 @@
 
 //! One to One Set Database.
 
-use crate::std::*;
-
-use crate::head::*;
+use crate::{head::*, item::*, std::*};
 
 use utils::fs::{types::FM, File};
 
+#[derive(Debug)]
 pub struct DB {
-    pub file: File<OtooHeader>,
+    file: File<OtooHeader>,
+    console: Option<Console>,
 }
 
 impl DB {
     pub fn open(file_path: &'static str, a_set_bytes: usize, b_set_bytes: usize) -> Result<Self> {
-        let db = Self {
+        let mut db = Self {
             file: File::open(
                 file_path,
                 OtooHeader::from(0, a_set_bytes as HUSize, b_set_bytes as HUSize),
             )?,
+            console: None,
         };
+        db.log("file successfully opened.\n".to_string());
         Self::validate(db)
     }
     pub fn validate(mut db: DB) -> Result<DB> {
-        let (height, a_bytes, b_bytes) = db.get_info();
+        let (height, a_bytes, b_bytes) = db.info();
+        db.log(format!(
+            "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}\n",
+            height, a_bytes, b_bytes
+        ));
+
         let fm = db.file_manager();
 
         fm.set_cursor(0)?;
         if fm.is_eof()? {
+            db.log("complete.\n".to_string());
             return Ok(db);
         }
 
-        for i in 0..1 {
-            let (a_bl, b_bl) = if i == 0 {
-                (a_bytes, b_bytes)
-            } else {
-                (b_bytes, a_bytes)
-            };
-
+        for (a_bl, b_bl) in [(a_bytes, b_bytes), (b_bytes, a_bytes)] {
             let mut buf = vec![0_u8; a_bl];
             let mut prev_buf = vec![0_u8; a_bl];
 
@@ -73,19 +75,19 @@ impl DB {
             }
         }
 
+        db.log(format!("{:#?}\ncomplete.\n", db));
         Ok(db)
     }
 
-    /// target bytes -> Result<(found, index, pos, len)>
-    pub fn binary_search(&mut self, target: &[u8]) -> Result<(bool, usize, u64, usize)> {
-        let (height, a_bl, b_bl) = self.get_info();
+    pub fn binary_search(&mut self, target: &[u8]) -> Result<(bool, ItemPointer)> {
+        let (height, a_bl, b_bl) = self.info();
         let fm = self.file_manager();
 
         let bytes_len = is_bytes_len![target, a_bl, b_bl]?;
         let total_len = a_bl + b_bl;
 
         if height == 0 {
-            return Ok((false, 0, 0, bytes_len));
+            return Ok((false, ItemPointer::new(0, 0, bytes_len)));
         }
 
         let mut start = if bytes_len == a_bl { 0 } else { height };
@@ -109,7 +111,7 @@ impl DB {
 
             if mid_buf == target {
                 let pos = (mid * total_len) as u64;
-                return Ok((true, mid, pos, bytes_len)); // found
+                return Ok((true, ItemPointer::new(mid, pos, bytes_len))); // found
             }
 
             start = mid;
@@ -120,27 +122,39 @@ impl DB {
                 // couldn't find
                 let index = if upwards { mid - 1 } else { mid + 1 };
                 let pos = (index * total_len) as u64;
-                return Ok((false, index, pos, bytes_len));
+                return Ok((false, ItemPointer::new(index, pos, bytes_len)));
             }
         }
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
-        let (found, _, pos, len) = self.binary_search(bytes_a_or_b)?;
+        let (found, item) = self.binary_search(bytes_a_or_b)?;
         if !found {
             Ok(None)
         } else {
-            let mut buf = vec![0_u8; len];
-            self.file.fm.read_cursoring(&mut buf, pos)?;
+            let mut buf = vec![0_u8; item.len];
+            self.file.fm.read_cursoring(&mut buf, item.pos)?;
             Ok(Some(buf))
         }
     }
-    pub fn define(&self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let max = max_bytes![bytes_a, bytes_b]?;
+    pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
+        let mut item_bag = Vec::new();
+        for bytes in [bytes_a, bytes_b] {
+            let (found, ptr) = self.binary_search(bytes)?;
+            if found {
+                return errbang!(err::Interrupted, "item already exists");
+            }
+            item_bag.push((ptr, bytes));
+        }
+        let fm = self.file_manager();
+        for (ptr, bytes) in item_bag {
+            fm.write_cursoring(bytes, ptr.pos)?;
+        }
 
-        Ok(())
+        fm.header.current_height += 1;
+        fm.flush_header()
     }
     pub fn close(self) {}
-    pub fn get_info(&self) -> (usize, usize, usize) {
+    pub fn info(&self) -> (usize, usize, usize) {
         (
             self.file.fm.header.current_height as usize,
             self.file.fm.header.a_set_bytes as usize,
@@ -149,6 +163,20 @@ impl DB {
     }
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {
         self.file.fm.borrow_mut()
+    }
+    fn log(&mut self, context: String) {
+        if let Some(c) = &self.console {
+            c.log(context);
+        } else {
+            eprint!("{}", context);
+        }
+    }
+}
+
+impl Concentric<Console> for DB {
+    fn concentric(&mut self, _plugin: Console) -> &mut Self {
+        self.console = Some(_plugin);
+        self
     }
 }
 

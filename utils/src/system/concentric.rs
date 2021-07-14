@@ -1,5 +1,5 @@
 /*
-    .. + main.rs + ..
+    .. + concentric.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,16 +18,8 @@
 
 */
 
-// blackhole (file) or (file.cccs)
-// cccs = collapsed and compressed core star
-
-use utils::system::*;
-use wormhole::DB;
-fn main() -> Result<()> {
-    let console = Console::new();
-    let mut db = DB::open("test", 4, 32)?;
-    db.concentric(console);
-    db.define(&[1, 2, 3, 4], &[1; 32])?;
-    db.close();
-    Ok(())
+pub trait Concentric<T> {
+    fn concentric(&mut self, _plugin: T) -> &mut Self {
+        self
+    }
 }

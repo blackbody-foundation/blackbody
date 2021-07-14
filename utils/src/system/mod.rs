@@ -28,3 +28,11 @@ pub use timer::Timer;
 
 pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
 pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
+
+pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
+
+pub mod console;
+pub use console::Console;
+
+pub mod concentric;
+pub use concentric::Concentric;

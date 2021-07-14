@@ -26,10 +26,13 @@ pub type Ptr = Box<File>;
 pub type Header = Box<dyn HeaderTrait>;
 
 pub trait HeaderTrait: std::fmt::Debug {
+    /// return value is bytes length of successfully filled buffer.
     fn read(&mut self, ptr: &mut Ptr) -> Result<usize>;
+    /// return value is bytes length of successfully filled buffer.
     fn write(&mut self, ptr: &mut Ptr) -> Result<usize>;
 }
 
+#[derive(Debug)]
 pub struct FM<T> {
     ptr: Ptr,
     pub header: Box<T>,
@@ -52,6 +55,12 @@ impl<T: HeaderTrait> FM<T> {
             header,
             header_size,
         })
+    }
+    pub fn flush_header(&mut self) -> Result<()> {
+        let ptr = &mut self.ptr;
+        let header_size = self.header.write(ptr)?;
+        self.header_size = header_size as u64;
+        Ok(())
     }
     pub fn is_eof(&mut self) -> Result<bool> {
         if 0 == self.ptr.read(&mut [0u8; 1])? {
@@ -81,6 +90,10 @@ impl<T: HeaderTrait> FM<T> {
         Self::err_tunnel(self.ptr.read_exact(buf))
     }
     pub fn write(&mut self, buf: &[u8]) -> Result<()> {
+        Self::err_tunnel(self.ptr.write_all(buf))
+    }
+    pub fn write_cursoring(&mut self, buf: &[u8], pos: u64) -> Result<()> {
+        self.set_cursor(pos)?;
         Self::err_tunnel(self.ptr.write_all(buf))
     }
     fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
