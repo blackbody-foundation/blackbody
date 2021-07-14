@@ -41,21 +41,24 @@ impl DB {
         Self::validate(db)
     }
     pub fn validate(mut db: DB) -> Result<DB> {
-        let (fm, height, a_bl, b_bl) = db.get_info_and_fm();
+        let (height, a_bytes, b_bytes) = db.get_info();
+        let fm = db.file_manager();
 
         fm.set_cursor(0)?;
         if fm.is_eof()? {
             return Ok(db);
         }
 
-        fn valid_loop(
-            fm: &mut FM<OtooHeader>,
-            height: usize,
-            a_bytes: usize,
-            b_bytes: usize,
-        ) -> Result<()> {
-            let mut buf = vec![0_u8; a_bytes];
-            let mut prev_buf = vec![0_u8; a_bytes];
+        for i in 0..1 {
+            let (a_bl, b_bl) = if i == 0 {
+                (a_bytes, b_bytes)
+            } else {
+                (b_bytes, a_bytes)
+            };
+
+            let mut buf = vec![0_u8; a_bl];
+            let mut prev_buf = vec![0_u8; a_bl];
+
             fm.read(&mut prev_buf)?;
 
             for _ in 1..height {
@@ -64,59 +67,60 @@ impl DB {
                 if buf != max_bytes![buf.as_slice(), prev_buf.as_slice()]? {
                     return errbang!(err::ValidationFailed);
                 }
-                fm.set_cursor_relative(b_bytes as i64)?;
+                fm.set_cursor_relative(b_bl as i64)?;
 
-                prev_buf = buf.clone();
+                std::mem::swap(&mut buf, &mut prev_buf);
             }
-            Ok(())
         }
-
-        valid_loop(fm, height, a_bl, b_bl)?;
-        valid_loop(fm, height, b_bl, a_bl)?;
 
         Ok(db)
     }
-    pub fn binary_search(&mut self, bytes: &[u8]) -> Result<(bool, usize, u64, usize)> {
-        // found, index, pos, len
-        let (fm, height, a_l, b_l) = self.get_info_and_fm();
 
-        let (main_len, total_len, mut start) = if a_l == is_bytes_len![bytes, a_l, b_l]? {
-            (a_l, a_l + b_l, 0)
-        } else {
-            (b_l, b_l + a_l, height)
-        };
+    /// target bytes -> Result<(found, index, pos, len)>
+    pub fn binary_search(&mut self, target: &[u8]) -> Result<(bool, usize, u64, usize)> {
+        let (height, a_bl, b_bl) = self.get_info();
+        let fm = self.file_manager();
+
+        let bytes_len = is_bytes_len![target, a_bl, b_bl]?;
+        let total_len = a_bl + b_bl;
 
         if height == 0 {
-            return Ok((false, 0, 0, main_len));
+            return Ok((false, 0, 0, bytes_len));
         }
+
+        let mut start = if bytes_len == a_bl { 0 } else { height };
 
         let mut distance = height;
         let mut mid;
 
-        let mut buf_mid = vec![0u8; main_len];
-        let mut top_gear = false;
+        let mut mid_buf = vec![0u8; bytes_len];
+        let mut upwards = false;
 
         loop {
             distance /= 2;
-            if top_gear {
+            if upwards {
                 mid = start - distance;
             } else {
                 mid = start + distance;
             }
 
-            fm.read_cursoring(buf_mid.as_mut_slice(), (total_len * mid) as u64)?;
-            if buf_mid == bytes {
-                return Ok((true, mid, (mid * total_len) as u64, main_len)); // found
+            fm.set_cursor((mid * total_len) as u64)?;
+            fm.read(mid_buf.as_mut_slice())?;
+
+            if mid_buf == target {
+                let pos = (mid * total_len) as u64;
+                return Ok((true, mid, pos, bytes_len)); // found
             }
 
             start = mid;
 
-            top_gear = max_bytes![bytes, buf_mid.as_slice()]? != bytes;
+            upwards = target != max_bytes![target, mid_buf.as_slice()]?;
 
             if distance == 0 {
-                let index = if top_gear { mid - 1 } else { mid + 1 };
-                return Ok((false, index, (index * total_len) as u64, main_len));
                 // couldn't find
+                let index = if upwards { mid - 1 } else { mid + 1 };
+                let pos = (index * total_len) as u64;
+                return Ok((false, index, pos, bytes_len));
             }
         }
     }
@@ -136,16 +140,15 @@ impl DB {
         Ok(())
     }
     pub fn close(self) {}
-    pub fn get_info(&self) -> Box<(usize, usize, usize)> {
-        Box::new((
+    pub fn get_info(&self) -> (usize, usize, usize) {
+        (
             self.file.fm.header.current_height as usize,
             self.file.fm.header.a_set_bytes as usize,
             self.file.fm.header.b_set_bytes as usize,
-        ))
+        )
     }
-    fn get_info_and_fm(&mut self) -> (&mut FM<OtooHeader>, usize, usize, usize) {
-        let (h, a, b) = *self.get_info();
-        (self.file.fm.borrow_mut(), h, a, b)
+    fn file_manager(&mut self) -> &mut FM<OtooHeader> {
+        self.file.fm.borrow_mut()
     }
 }
 
