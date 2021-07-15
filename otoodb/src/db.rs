@@ -27,33 +27,33 @@ use utils::fs::{types::FM, File};
 #[derive(Debug)]
 pub struct DB {
     file: File<OtooHeader>,
-    console: Option<Console>,
+    console: Option<Plugin<Console>>,
 }
 
 impl DB {
     pub fn open(file_path: &'static str, a_set_bytes: usize, b_set_bytes: usize) -> Result<Self> {
-        let mut db = Self {
+        let db = Self {
             file: File::open(
                 file_path,
-                OtooHeader::from(0, a_set_bytes as HUSize, b_set_bytes as HUSize),
+                OtooHeader::new(0, a_set_bytes as HUSize, b_set_bytes as HUSize),
             )?,
             console: None,
         };
-        db.log("file successfully opened.\n".to_string());
+        eprintln!("file successfully opened.");
         Self::validate(db)
     }
     pub fn validate(mut db: DB) -> Result<DB> {
         let (height, a_bytes, b_bytes) = db.info();
-        db.log(format!(
-            "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}\n",
+        eprintln!(
+            "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
             height, a_bytes, b_bytes
-        ));
+        );
 
         let fm = db.file_manager();
 
         fm.set_cursor(0)?;
         if fm.is_eof()? {
-            db.log("complete.\n".to_string());
+            eprintln!("complete.");
             return Ok(db);
         }
 
@@ -75,7 +75,7 @@ impl DB {
             }
         }
 
-        db.log(format!("{:#?}\ncomplete.\n", db));
+        eprintln!("{:#?}\ncomplete.", db);
         Ok(db)
     }
 
@@ -151,7 +151,7 @@ impl DB {
         }
 
         fm.header.current_height += 1;
-        fm.flush_header()
+        fm.flush_header() // <---- todo: check the header bytes
     }
     pub fn close(self) {}
     pub fn info(&self) -> (usize, usize, usize) {
@@ -164,18 +164,15 @@ impl DB {
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {
         self.file.fm.borrow_mut()
     }
-    fn log(&mut self, context: String) {
-        if let Some(c) = &self.console {
-            c.log(context);
-        } else {
-            eprint!("{}", context);
-        }
+    fn cli(&mut self, context: String) -> Result<()> {
+        employ!(self.console)?.cli(context);
+        Ok(())
     }
 }
 
 impl Concentric<Console> for DB {
-    fn concentric(&mut self, _plugin: Console) -> &mut Self {
-        self.console = Some(_plugin);
+    fn concentric(&mut self, _some_plugin: Option<Plugin<Console>>) -> &mut Self {
+        self.console = _some_plugin;
         self
     }
 }

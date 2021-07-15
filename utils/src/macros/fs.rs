@@ -33,14 +33,11 @@ pub use std::io::{self, Read, Seek, SeekFrom, Write};
 ///```
 #[macro_export]
 macro_rules! fheader {
-    (@apply $e:expr) => {
-        $e
-    };
     (
 
         $vis:vis struct $name:ident {
 
-            $($free_mark:vis $var:ident: $t:ty => $val:expr),*,
+            $($free_mark:vis $var:ident: $t:ty),*,
 
         }
 
@@ -60,12 +57,7 @@ macro_rules! fheader {
         impl $name
         where Self: HeaderTrait {
 
-            $vis fn new() -> Box<$name> {
-                Box::new(Self {
-                    $($var: $val),*
-                })
-            }
-            $vis fn from($($var: $t),*) -> Box<$name> {
+            $vis fn new($($var: $t),*) -> Box<$name> {
                 Box::new(Self {
                     $($var),*
                 })

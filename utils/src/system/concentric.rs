@@ -18,8 +18,39 @@
 
 */
 
-pub trait Concentric<T> {
-    fn concentric(&mut self, _plugin: T) -> &mut Self {
-        self
+use std::sync::{Arc, Mutex, MutexGuard};
+pub use crate::system::*;
+
+#[derive(Debug)]
+pub struct Plugin<T>(Arc<Mutex<T>>);
+
+impl<T> Plugin<T> {
+    pub fn new(p: T) -> Self {
+        Self(Arc::new(Mutex::new(p)))
+    }
+    pub fn unwrap(&self) -> MutexGuard<T> {
+        self.0.lock().unwrap()
     }
 }
+impl<T> Clone for Plugin<T> {
+    fn clone(&self) -> Self {
+        Plugin(self.0.clone())
+    }
+}
+
+pub trait Concentric<T> {
+    fn concentric(&mut self, _some_plugin: Option<Plugin<T>>) -> &mut Self;
+}
+
+#[macro_export]
+macro_rules! employ {
+    ($var:expr) => {
+        if let Some(p) = &$var {
+            Ok(p.unwrap())
+        } else {
+            errbang!(err::UnwrapingError)
+        }
+    };
+}
+
+pub use employ;

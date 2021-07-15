@@ -21,6 +21,8 @@
 use crossbeam::channel::{self, Receiver, Sender};
 use std::thread::{self, JoinHandle};
 
+use super::Plugin;
+
 #[derive(Debug)]
 pub struct Console {
     pub handle: JoinHandle<()>,
@@ -28,13 +30,24 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new() -> Plugin<Self> {
+        let (sender, receiver) = channel::unbounded();
+        let handle = thread::spawn(move || Self::looping(receiver));
+        eprint!("* console connected\n\n");
+        Plugin::new(Self { handle, sender })
     }
     fn looping(receiver: Receiver<String>) {
         loop {
             match receiver.recv() {
-                Ok(r) => eprint!("{}", r),
+                Ok(r) => {
+                    if let Some((command, argument)) = r.split_once(' ') {
+                        match command {
+                            "--save" => {}
+                            _ => eprint!("{}", argument),
+                        }
+                    }
+                }
+
                 Err(_) => {
                     eprint!("\n\n* console terminated\n");
                     break;
@@ -42,18 +55,9 @@ impl Console {
             }
         }
     }
-    pub fn log(&self, context: String) {
+    pub fn cli(&self, context: String) {
         if let Err(e) = self.sender.send(context) {
             eprintln!("* console sending error: {:?}", e);
         }
-    }
-}
-
-impl Default for Console {
-    fn default() -> Self {
-        let (sender, receiver) = channel::unbounded();
-        let handle = thread::spawn(move || Self::looping(receiver));
-        eprint!("* console connected\n\n");
-        Self { handle, sender }
     }
 }

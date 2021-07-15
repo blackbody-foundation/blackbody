@@ -31,6 +31,7 @@ errors! {
     MysteriousError => "mysterious error occurs."
     UnexpectedEof => "unexpected eof."
     Interrupted => "interrupted."
+    UnwrapingError => "unwrap failed."
     ThreadSending => "thread sending error."
 }
 

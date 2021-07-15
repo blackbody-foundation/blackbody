@@ -29,8 +29,8 @@ use utils::fs::types::HeaderTrait;
 
 fheader! {
     pub struct OtooHeader {
-        pub current_height: HHSize => 0, // free marked
-        a_set_bytes: HUSize => 4,
-        b_set_bytes: HUSize => 32,
+        pub current_height: HHSize, // free marked
+        a_set_bytes: HUSize,
+        b_set_bytes: HUSize,
     }
 }

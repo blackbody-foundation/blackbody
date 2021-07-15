@@ -21,9 +21,9 @@
 use std::{error, result};
 
 pub mod errors;
-pub mod timer;
-
 pub use errors::err;
+
+pub mod timer;
 pub use timer::Timer;
 
 pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
@@ -34,5 +34,6 @@ pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
 pub mod console;
 pub use console::Console;
 
+#[macro_use]
 pub mod concentric;
-pub use concentric::Concentric;
+pub use concentric::*;

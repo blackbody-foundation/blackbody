@@ -26,7 +26,7 @@ use wormhole::DB;
 fn main() -> Result<()> {
     let console = Console::new();
     let mut db = DB::open("test", 4, 32)?;
-    db.concentric(console);
+    db.concentric(Some(console));
     db.define(&[1, 2, 3, 4], &[1; 32])?;
     db.close();
     Ok(())
