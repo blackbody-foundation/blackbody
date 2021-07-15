@@ -89,9 +89,9 @@ macro_rules! fheader {
                 Self::check_header_protocol(&src, &dst)?;
 
                 ptr.seek(SeekFrom::Start(0))?;
-                ptr.write_all(&dst)?;
+                ptr.write_all(&src)?;
 
-                Ok(dst.len())
+                Ok(src.len())
 
             }
         }

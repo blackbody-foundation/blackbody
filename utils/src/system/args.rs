@@ -1,5 +1,5 @@
 /*
-    .. + item.rs + ..
+    .. + args.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,20 +18,32 @@
 
 */
 
-#[derive(Debug)]
-pub struct ItemPointer {
-    pub index: usize,
-    pub pos: u64,
-    pub len: usize,
-    pub total_len: usize,
-}
-impl ItemPointer {
-    pub fn new(index: usize, pos: u64, len: usize, total_len: usize) -> Self {
-        Self {
-            index,
-            pos,
-            len,
-            total_len,
-        }
-    }
-}
+// use crate::system::*;
+// use std::collections::HashMap;
+
+// struct Flag<'a> {
+//     version: &'a str,
+//     name: &'a str,
+// }
+// impl<'a> Flag<'a> {
+//     fn entry<F>(&self, hashmap: &mut MatchMap<'a, F>)
+//     where
+//         F: FnMut() -> Result<()>,
+//     {
+//     }
+// }
+
+// pub struct Args<'a, F> {
+//     map: HashMap<&'a str, F>,
+// }
+
+// impl<'a, F> Args<'a, F>
+// where
+//     F: FnMut() -> Result<()>,
+// {
+//     pub fn parse(s: String) {
+//         let a = HashMap::new();
+
+//         let _it = s.split_whitespace();
+//     }
+// }

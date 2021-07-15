@@ -22,7 +22,10 @@
 
 use crate::{head::*, item::*, std::*};
 
-use utils::fs::{types::FM, File};
+use utils::{
+    fs::{types::FM, File},
+    macros::bytes,
+};
 
 #[derive(Debug)]
 pub struct DB {
@@ -48,14 +51,13 @@ impl DB {
             "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
             height, a_bytes, b_bytes
         );
-
-        let fm = db.file_manager();
-
-        fm.set_cursor(0)?;
-        if fm.is_eof()? {
-            eprintln!("complete.");
+        if height <= 1 {
+            eprintln!("{:#?}\ncomplete.", db);
             return Ok(db);
         }
+
+        let fm = db.file_manager();
+        fm.set_cursor(0)?;
 
         for (a_bl, b_bl) in [(a_bytes, b_bytes), (b_bytes, a_bytes)] {
             let mut buf = vec![0_u8; a_bl];
@@ -87,7 +89,15 @@ impl DB {
         let total_len = a_bl + b_bl;
 
         if height == 0 {
-            return Ok((false, ItemPointer::new(0, 0, bytes_len)));
+            return Ok((
+                false,
+                ItemPointer::new(
+                    0,
+                    if bytes_len == a_bl { 0 } else { a_bl as u64 },
+                    bytes_len,
+                    total_len,
+                ),
+            ));
         }
 
         let mut start = if bytes_len == a_bl { 0 } else { height };
@@ -111,7 +121,8 @@ impl DB {
 
             if mid_buf == target {
                 let pos = (mid * total_len) as u64;
-                return Ok((true, ItemPointer::new(mid, pos, bytes_len))); // found
+                return Ok((true, ItemPointer::new(mid, pos, bytes_len, total_len)));
+                // found
             }
 
             start = mid;
@@ -121,9 +132,9 @@ impl DB {
             if distance == 0 {
                 // couldn't find
                 let index = if upwards { mid - 1 } else { mid + 1 };
-                let pos = (index * total_len) as u64;
-                return Ok((false, ItemPointer::new(index, pos, bytes_len)));
-            }
+                let pos = ((height + index) * total_len) as u64;
+                return Ok((false, ItemPointer::new(index, pos, bytes_len, total_len)));
+            };
         }
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
@@ -131,23 +142,28 @@ impl DB {
         if !found {
             Ok(None)
         } else {
-            let mut buf = vec![0_u8; item.len];
+            let mut buf = vec![0_u8; item.total_len];
             self.file.fm.read_cursoring(&mut buf, item.pos)?;
             Ok(Some(buf))
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
+        let bytes_ab = [bytes_a, bytes_b].concat();
+        let bytes_ba = [bytes_b, bytes_a].concat();
+
         let mut item_bag = Vec::new();
-        for bytes in [bytes_a, bytes_b] {
-            let (found, ptr) = self.binary_search(bytes)?;
+
+        for bytes in [(bytes_a, &bytes_ab[..]), (bytes_b, &bytes_ba[..])] {
+            let (found, ptr) = self.binary_search(bytes.0)?;
             if found {
                 return errbang!(err::Interrupted, "item already exists");
             }
-            item_bag.push((ptr, bytes));
+            item_bag.push((ptr, bytes.1));
         }
         let fm = self.file_manager();
         for (ptr, bytes) in item_bag {
-            fm.write_cursoring(bytes, ptr.pos)?;
+            dbg!(&bytes, &ptr);
+            fm.write_cursoring(bytes, ptr.pos)?; // check well done
         }
 
         fm.header.current_height += 1;

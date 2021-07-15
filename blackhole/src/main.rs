@@ -28,6 +28,9 @@ fn main() -> Result<()> {
     let mut db = DB::open("test", 4, 32)?;
     db.concentric(Some(console));
     db.define(&[1, 2, 3, 4], &[1; 32])?;
+    let c = db.get(&[1; 32])?;
+    let a = db.get(&[1, 2, 3, 4])?;
+    dbg!(a, c);
     db.close();
     Ok(())
 }
