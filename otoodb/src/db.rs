@@ -43,7 +43,20 @@ impl DB {
             console: None,
         };
         eprintln!("file successfully opened.");
-        Self::validate(db)
+        // Self::validate(db)
+        Ok(db)
+    }
+    pub fn debug(&mut self) -> Result<()> {
+        let mut buf = [0u8; 200];
+        let mut num_read;
+        loop {
+            num_read = self.file.fm.read_general(&mut buf[..])?;
+            if num_read < 1 {
+                break;
+            }
+            eprintln!("{:?}", &buf);
+        }
+        Ok(())
     }
     pub fn validate(mut db: DB) -> Result<DB> {
         let (height, a_bytes, b_bytes) = db.info();
@@ -52,7 +65,7 @@ impl DB {
             height, a_bytes, b_bytes
         );
         if height <= 1 {
-            eprintln!("{:#?}\ncomplete.", db);
+            eprintln!("complete.");
             return Ok(db);
         }
 
@@ -64,6 +77,7 @@ impl DB {
             let mut prev_buf = vec![0_u8; a_bl];
 
             fm.read(&mut prev_buf)?;
+            fm.set_cursor_relative(b_bl as i64)?;
 
             for _ in 1..height {
                 fm.read(&mut buf)?;
@@ -77,64 +91,75 @@ impl DB {
             }
         }
 
-        eprintln!("{:#?}\ncomplete.", db);
+        eprintln!("complete.");
         Ok(db)
     }
 
     pub fn binary_search(&mut self, target: &[u8]) -> Result<(bool, ItemPointer)> {
         let (height, a_bl, b_bl) = self.info();
-        let fm = self.file_manager();
 
-        let bytes_len = is_bytes_len![target, a_bl, b_bl]?;
-        let total_len = a_bl + b_bl;
+        let a_len = is_bytes_len![target, a_bl, b_bl]?;
+
+        let (b_len, start) = if a_len == a_bl {
+            (b_bl, 0)
+        } else {
+            (a_bl, height)
+        };
+
+        let total_len = a_len + b_len;
 
         if height == 0 {
             return Ok((
                 false,
                 ItemPointer::new(
                     0,
-                    if bytes_len == a_bl { 0 } else { a_bl as u64 },
-                    bytes_len,
-                    total_len,
+                    true,
+                    if a_len == a_bl { 0 } else { total_len as u64 },
+                    a_len,
+                    b_len,
                 ),
             ));
         }
 
-        let mut start = if bytes_len == a_bl { 0 } else { height };
+        let fm = self.file_manager();
 
         let mut distance = height;
-        let mut mid;
+        let mut mid = 0;
 
-        let mut mid_buf = vec![0u8; bytes_len];
+        let mut mid_buf = vec![0u8; a_len];
         let mut upwards = false;
+
+        let mut pos;
 
         loop {
             distance /= 2;
             if upwards {
-                mid = start - distance;
+                // if distance > mid {
+                //     mid = 0;
+                // } else {
+                //     mid -= distance;
+                // }
+                mid -= distance;
             } else {
-                mid = start + distance;
+                mid += distance;
             }
 
-            fm.set_cursor((mid * total_len) as u64)?;
-            fm.read(mid_buf.as_mut_slice())?;
+            pos = ((start + mid) * total_len) as u64;
+
+            fm.read_cursoring(mid_buf.as_mut_slice(), pos)?;
 
             if mid_buf == target {
-                let pos = (mid * total_len) as u64;
-                return Ok((true, ItemPointer::new(mid, pos, bytes_len, total_len)));
                 // found
+                return Ok((true, ItemPointer::new(mid, upwards, pos, a_len, b_len)));
             }
-
-            start = mid;
 
             upwards = target != max_bytes![target, mid_buf.as_slice()]?;
 
             if distance == 0 {
                 // couldn't find
-                let index = if upwards { mid - 1 } else { mid + 1 };
-                let pos = ((height + index) * total_len) as u64;
-                return Ok((false, ItemPointer::new(index, pos, bytes_len, total_len)));
-            };
+                pos = if upwards { pos } else { pos + total_len as u64 };
+                return Ok((false, ItemPointer::new(mid, upwards, pos, a_len, b_len)));
+            }
         }
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
@@ -142,32 +167,47 @@ impl DB {
         if !found {
             Ok(None)
         } else {
-            let mut buf = vec![0_u8; item.total_len];
-            self.file.fm.read_cursoring(&mut buf, item.pos)?;
+            let mut buf = vec![0_u8; item.b_len];
+            self.file
+                .fm
+                .read_cursoring(&mut buf, item.pos + item.a_len as u64)?;
             Ok(Some(buf))
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let bytes_ab = [bytes_a, bytes_b].concat();
-        let bytes_ba = [bytes_b, bytes_a].concat();
-
         let mut item_bag = Vec::new();
 
-        for bytes in [(bytes_a, &bytes_ab[..]), (bytes_b, &bytes_ba[..])] {
+        for bytes in [(bytes_a, bytes_b), (bytes_b, bytes_a)] {
             let (found, ptr) = self.binary_search(bytes.0)?;
             if found {
                 return errbang!(err::Interrupted, "item already exists");
             }
-            item_bag.push((ptr, bytes.1));
-        }
-        let fm = self.file_manager();
-        for (ptr, bytes) in item_bag {
-            dbg!(&bytes, &ptr);
-            fm.write_cursoring(bytes, ptr.pos)?; // check well done
+
+            item_bag.push((ptr, [bytes.0, bytes.1].concat()));
         }
 
-        fm.header.current_height += 1;
-        fm.flush_header() // <---- todo: check the header bytes
+        item_bag.sort_by_key(|k| k.0.pos); // sort by position in the file
+
+        dbg!(&item_bag);
+
+        let fm = self.file_manager();
+
+        let (ptr0, buf0) = &item_bag[0];
+        let (ptr1, buf1) = &item_bag[1];
+
+        let total_len = ptr0.a_len + ptr0.b_len;
+
+        let reading_start = ptr0.pos; // + (!ptr0.upwards as usize * total_len) as u64;
+        let reading_end = ptr1.pos; // + (!ptr1.upwards as usize * total_len) as u64;
+
+        dbg!(reading_start, reading_end);
+
+        fm.insert_special(&buf0, reading_start, reading_end)?;
+        fm.insert_special(&buf1, reading_end, 0)?;
+
+        dbg!(fm.header.current_height += 1);
+
+        fm.flush_header()
     }
     pub fn close(self) {}
     pub fn info(&self) -> (usize, usize, usize) {

@@ -20,18 +20,20 @@
 
 #[derive(Debug)]
 pub struct ItemPointer {
-    pub index: usize,
+    pub mid: usize,
+    pub upwards: bool,
     pub pos: u64,
-    pub len: usize,
-    pub total_len: usize,
+    pub a_len: usize,
+    pub b_len: usize,
 }
 impl ItemPointer {
-    pub fn new(index: usize, pos: u64, len: usize, total_len: usize) -> Self {
+    pub fn new(mid: usize, upwards: bool, pos: u64, a_len: usize, b_len: usize) -> Self {
         Self {
-            index,
+            mid,
+            upwards,
             pos,
-            len,
-            total_len,
+            a_len,
+            b_len,
         }
     }
 }
