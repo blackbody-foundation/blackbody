@@ -18,27 +18,47 @@
 
 */
 
-use crate::system::*;
+use crate::{errmatch, system::*};
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 
-pub type Ptr = Box<File>;
-pub type Header = Box<dyn HeaderTrait>;
+/// *** warning ***
+#[allow(non_camel_case_types)]
+pub type uPS = u64; // pos size
+#[allow(non_camel_case_types)]
+pub type iPS = i64;
+pub type LS = usize; // len size
+/// **************************
 
-pub trait HeaderTrait: std::fmt::Debug {
-    /// return value is bytes length of successfully filled buffer.
-    fn read(&mut self, ptr: &mut Ptr) -> Result<usize>;
-    /// return value is bytes length of successfully filled buffer.
-    fn write(&mut self, ptr: &mut Ptr) -> Result<usize>;
+pub const CHUNK_SIZE: LS = 8 * 1024;
+
+#[derive(Debug)]
+pub struct BytesPtr {
+    pos: uPS,
+    len: LS,
+}
+impl BytesPtr {
+    pub fn new(pos: uPS, len: LS) -> Self {
+        Self { pos, len }
+    }
 }
 
-pub const CHUNK_SIZE: usize = 8 * 1024;
+pub type Header = Box<dyn HeaderTrait>;
+pub trait HeaderTrait: std::fmt::Debug {
+    /// return value is bytes length of successfully filled buffer.
+    fn read(&mut self, ptr: &mut Ptr) -> Result<LS>;
+    /// return value is bytes length of successfully filled buffer.
+    fn write(&mut self, ptr: &mut Ptr) -> Result<LS>;
+}
+
+pub type Ptr = Box<File>;
 
 #[derive(Debug)]
 pub struct FM<T> {
     ptr: Ptr,
     pub header: Box<T>,
-    pub header_size: u64,
+    pub header_size: uPS,
 }
 impl<T: HeaderTrait> FM<T> {
     pub fn new(path: &'static str, mut header: Box<T>) -> Result<Self> {
@@ -50,7 +70,7 @@ impl<T: HeaderTrait> FM<T> {
 
         let mut ptr = Box::new(file);
 
-        let header_size = header.read(&mut ptr)? as u64;
+        let header_size = header.read(&mut ptr)? as uPS;
 
         Ok(Self {
             ptr,
@@ -61,7 +81,7 @@ impl<T: HeaderTrait> FM<T> {
     pub fn flush_header(&mut self) -> Result<()> {
         let ptr = &mut self.ptr;
         let header_size = self.header.write(ptr)?;
-        self.header_size = header_size as u64;
+        self.header_size = header_size as uPS;
         Ok(())
     }
     pub fn is_eof(&mut self) -> Result<bool> {
@@ -72,36 +92,41 @@ impl<T: HeaderTrait> FM<T> {
             Ok(false)
         }
     }
-    pub fn set_cursor_relative(&mut self, pos: i64) -> Result<u64> {
-        Self::err_tunnel(
-            self.ptr
-                .seek(SeekFrom::Current(pos + self.header_size as i64)),
-        )
-    }
-    pub fn set_cursor_general(&mut self, pos: u64) -> Result<u64> {
+    pub fn set_cursor_general(&mut self, pos: uPS) -> Result<uPS> {
         Self::err_tunnel(self.ptr.seek(SeekFrom::Start(pos)))
     }
-    pub fn set_cursor(&mut self, pos: u64) -> Result<u64> {
-        Self::err_tunnel(self.ptr.seek(SeekFrom::Start(pos + self.header_size)))
+    /// whole proccess exclusives header size
+    pub fn set_cursor_relative(&mut self, pos: iPS) -> Result<uPS> {
+        Ok(Self::err_tunnel(
+            self.ptr
+                .seek(SeekFrom::Current(pos + self.header_size as iPS)),
+        )? - self.header_size as uPS)
     }
-    pub fn read_general(&mut self, buf: &mut [u8]) -> Result<usize> {
+    /// whole proccess exclusives header size
+    pub fn set_cursor(&mut self, pos: uPS) -> Result<uPS> {
+        Ok(
+            Self::err_tunnel(self.ptr.seek(SeekFrom::Start(pos + self.header_size)))?
+                - self.header_size as uPS,
+        )
+    }
+    pub fn read_general(&mut self, buf: &mut [u8]) -> Result<LS> {
         Self::err_tunnel(self.ptr.read(buf))
     }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
         Self::err_tunnel(self.ptr.read_exact(buf))
     }
-    pub fn read_cursoring(&mut self, buf: &mut [u8], pos: u64) -> Result<()> {
+    pub fn read_cursoring(&mut self, buf: &mut [u8], pos: uPS) -> Result<()> {
         self.set_cursor(pos)?;
         Self::err_tunnel(self.ptr.read_exact(buf))
     }
     pub fn write(&mut self, buf: &[u8]) -> Result<()> {
         Self::err_tunnel(self.ptr.write_all(buf))
     }
-    pub fn write_cursoring(&mut self, buf: &[u8], pos: u64) -> Result<()> {
+    pub fn write_cursoring(&mut self, buf: &[u8], pos: uPS) -> Result<()> {
         self.set_cursor(pos)?;
         Self::err_tunnel(self.ptr.write_all(buf))
     }
-    pub fn insert_special(&mut self, buf: &[u8], pos: u64, stop_pos: u64) -> Result<()> {
+    pub fn insert_special(&mut self, buf: &[u8], pos: uPS, stop_pos: uPS) -> Result<()> {
         let mut reader = BufReader::new(self.ptr.try_clone()?);
         let mut writer = BufWriter::new(self.ptr.try_clone()?);
         let mut buffer_1 = [0_u8; CHUNK_SIZE];
@@ -112,58 +137,54 @@ impl<T: HeaderTrait> FM<T> {
         let mut num_read_1 = 1;
         let mut num_read_2 = 1;
 
+        num_read_1 = buf.len();
+
         self.set_cursor(checked_pos_1)?;
 
-        num_read_1 = Self::err_tunnel(reader.read(&mut buffer_1))?;
+        match Self::err_tunnel(reader.read_exact(&mut buffer_1[..num_read_1])) {
+            Err(e) if errmatch!(e, err::UnexpectedEof) => {
+                return Self::err_tunnel(writer.write_all(&buf));
+            }
+            Err(e) => return Err(e),
+            Ok(_) => {}
+        }
 
-        checked_pos_1 += num_read_1 as u64;
+        checked_pos_1 += num_read_1 as uPS;
 
         self.set_cursor(checked_pos_2)?;
 
         Self::err_tunnel(writer.write_all(&buf))?;
 
-        checked_pos_2 += buf.len() as u64;
+        checked_pos_2 += num_read_1 as uPS;
 
         let mut rot = true;
+        let mut looping = true;
 
-        while (num_read_1 > 0 && num_read_2 > 0) && (checked_pos_1 <= stop_pos || stop_pos != 0) {
-            self.set_cursor(checked_pos_1)?;
+        while looping {
+            self.set_cursor(checked_pos_2)?;
             num_read_2 = Self::err_tunnel(reader.read(&mut if rot { buffer_2 } else { buffer_1 }))?;
 
-            if num_read_2 == 0 {
-                Self::err_tunnel(writer.write_all(if rot {
-                    &buffer_1[..num_read_1]
-                } else {
-                    &buffer_2[..num_read_2]
-                }))?;
+            checked_pos_2 += num_read_2 as uPS;
+
+            self.set_cursor(checked_pos_1)?;
+
+            let diff = checked_pos_2 - stop_pos;
+            if diff > 0 {
+                num_read_2.overflowing_sub(diff as LS);
+                looping = false;
+            }
+            if diff == 0 {
                 break;
             }
 
-            checked_pos_2 += num_read_2 as u64;
-
-            self.set_cursor(checked_pos_1)?;
-
-            let diff = |num_read: usize| (checked_pos_1 + num_read as u64) - stop_pos;
-
             Self::err_tunnel(writer.write_all(if rot {
-                let dif = diff(num_read_1);
-                if dif > 0 {
-                    num_read_1.overflowing_sub(dif as usize);
-                    checked_pos_1 = stop_pos;
-                }
                 &buffer_1[..num_read_1]
             } else {
                 num_read_1 = num_read_2;
-
-                let dif = diff(num_read_1);
-                if dif > 0 {
-                    num_read_1.overflowing_sub(dif as usize);
-                    checked_pos_1 = stop_pos;
-                }
-                &buffer_2[..num_read_1]
+                &buffer_2[..num_read_2]
             }))?;
 
-            checked_pos_1 += num_read_1 as u64;
+            checked_pos_1 += num_read_1 as uPS;
             rot = !rot;
         }
         Ok(())

@@ -1,5 +1,5 @@
 /*
-    .. + head.rs + ..
+    .. + mod.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,19 +18,5 @@
 
 */
 
-//! Header Configures for One to One Database
-use utils::macros::fs::*;
-
-/// *** warning: both must be less than 'usize(=LS)' ***
-pub type HHSize = u64;
-pub type HUSize = u32;
-/// ***********************************************
-use utils::fs::types::HeaderTrait;
-
-fheader! {
-    pub struct OtooHeader {
-        pub current_height: HHSize, // free marked
-        a_set_bytes: HUSize,
-        b_set_bytes: HUSize,
-    }
-}
+pub mod bst;
+pub mod insert;

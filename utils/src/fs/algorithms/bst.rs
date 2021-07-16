@@ -1,5 +1,5 @@
 /*
-    .. + head.rs + ..
+    .. + bst.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,19 +18,33 @@
 
 */
 
-//! Header Configures for One to One Database
-use utils::macros::fs::*;
+use crate::{
+    fs::types::*,
+    system::*,
+    types::{Lim, VLim},
+};
 
-/// *** warning: both must be less than 'usize(=LS)' ***
-pub type HHSize = u64;
-pub type HUSize = u32;
-/// ***********************************************
-use utils::fs::types::HeaderTrait;
+pub trait OrderedFile {}
 
-fheader! {
-    pub struct OtooHeader {
-        pub current_height: HHSize, // free marked
-        a_set_bytes: HUSize,
-        b_set_bytes: HUSize,
+pub struct BST<'a, T> {
+    fm: &'a mut FM<T>,
+    file_lim: Lim<uPS>,
+    buf: Vec<u8>,
+    elem_lim: VLim,
+}
+
+impl<'a, T> BST<'a, T>
+where
+    T: OrderedFile,
+{
+    pub fn new(fm: &'a mut FM<T>, file_lim: Lim<uPS>, elem_lim: VLim) -> Self {
+        let buf = elem_lim.create::<u8>();
+        Self {
+            fm,
+            file_lim,
+            buf,
+            elem_lim,
+        }
     }
+    pub fn search(&self, target: &[u8]) -> Option<uPS> {}
 }

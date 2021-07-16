@@ -29,7 +29,7 @@ macro_rules! errbang {
 macro_rules! errmatch {
     ($err:expr, $kind:ty) => {
         match $err.downcast_ref::<$kind>() {
-            Some(e) => true,
+            Some(_) => true,
             None => false,
         }
     };

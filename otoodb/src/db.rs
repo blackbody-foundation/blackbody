@@ -22,10 +22,7 @@
 
 use crate::{head::*, item::*, std::*};
 
-use utils::{
-    fs::{types::FM, File},
-    macros::bytes,
-};
+use utils::fs::{types::*, File};
 
 #[derive(Debug)]
 pub struct DB {
@@ -34,7 +31,7 @@ pub struct DB {
 }
 
 impl DB {
-    pub fn open(file_path: &'static str, a_set_bytes: usize, b_set_bytes: usize) -> Result<Self> {
+    pub fn open(file_path: &'static str, a_set_bytes: LS, b_set_bytes: LS) -> Result<Self> {
         let db = Self {
             file: File::open(
                 file_path,
@@ -47,14 +44,14 @@ impl DB {
         Ok(db)
     }
     pub fn debug(&mut self) -> Result<()> {
-        let mut buf = [0u8; 200];
+        let mut buf = [0u8; 1024];
         let mut num_read;
         loop {
             num_read = self.file.fm.read_general(&mut buf[..])?;
             if num_read < 1 {
                 break;
             }
-            eprintln!("{:?}", &buf);
+            eprintln!("{:?}", &buf[..num_read]);
         }
         Ok(())
     }
@@ -77,7 +74,7 @@ impl DB {
             let mut prev_buf = vec![0_u8; a_bl];
 
             fm.read(&mut prev_buf)?;
-            fm.set_cursor_relative(b_bl as i64)?;
+            fm.set_cursor_relative(b_bl as iPS)?;
 
             for _ in 1..height {
                 fm.read(&mut buf)?;
@@ -85,7 +82,7 @@ impl DB {
                 if buf != max_bytes![buf.as_slice(), prev_buf.as_slice()]? {
                     return errbang!(err::ValidationFailed);
                 }
-                fm.set_cursor_relative(b_bl as i64)?;
+                fm.set_cursor_relative(b_bl as iPS)?;
 
                 std::mem::swap(&mut buf, &mut prev_buf);
             }
@@ -113,8 +110,8 @@ impl DB {
                 false,
                 ItemPointer::new(
                     0,
-                    true,
-                    if a_len == a_bl { 0 } else { total_len as u64 },
+                    false,
+                    if a_len == a_bl { 0 } else { total_len as uPS },
                     a_len,
                     b_len,
                 ),
@@ -133,18 +130,14 @@ impl DB {
 
         loop {
             distance /= 2;
+
             if upwards {
-                // if distance > mid {
-                //     mid = 0;
-                // } else {
-                //     mid -= distance;
-                // }
                 mid -= distance;
             } else {
                 mid += distance;
             }
 
-            pos = ((start + mid) * total_len) as u64;
+            pos = ((start + mid) * total_len) as uPS;
 
             fm.read_cursoring(mid_buf.as_mut_slice(), pos)?;
 
@@ -157,7 +150,7 @@ impl DB {
 
             if distance == 0 {
                 // couldn't find
-                pos = if upwards { pos } else { pos + total_len as u64 };
+                pos = if upwards { pos } else { pos + total_len as uPS };
                 return Ok((false, ItemPointer::new(mid, upwards, pos, a_len, b_len)));
             }
         }
@@ -170,20 +163,20 @@ impl DB {
             let mut buf = vec![0_u8; item.b_len];
             self.file
                 .fm
-                .read_cursoring(&mut buf, item.pos + item.a_len as u64)?;
+                .read_cursoring(&mut buf, item.pos + item.a_len as uPS)?;
             Ok(Some(buf))
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let mut item_bag = Vec::new();
 
-        for bytes in [(bytes_a, bytes_b), (bytes_b, bytes_a)] {
-            let (found, ptr) = self.binary_search(bytes.0)?;
+        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
+            let (found, ptr) = self.binary_search(bytes[0])?;
             if found {
                 return errbang!(err::Interrupted, "item already exists");
             }
 
-            item_bag.push((ptr, [bytes.0, bytes.1].concat()));
+            item_bag.push((ptr, bytes.concat()));
         }
 
         item_bag.sort_by_key(|k| k.0.pos); // sort by position in the file
@@ -195,26 +188,18 @@ impl DB {
         let (ptr0, buf0) = &item_bag[0];
         let (ptr1, buf1) = &item_bag[1];
 
-        let total_len = ptr0.a_len + ptr0.b_len;
+        fm.insert_special(&buf0, ptr0.pos, ptr1.pos)?;
+        fm.insert_special(&buf1, ptr1.pos, 0)?;
 
-        let reading_start = ptr0.pos; // + (!ptr0.upwards as usize * total_len) as u64;
-        let reading_end = ptr1.pos; // + (!ptr1.upwards as usize * total_len) as u64;
-
-        dbg!(reading_start, reading_end);
-
-        fm.insert_special(&buf0, reading_start, reading_end)?;
-        fm.insert_special(&buf1, reading_end, 0)?;
-
-        dbg!(fm.header.current_height += 1);
-
+        fm.header.current_height += 1;
         fm.flush_header()
     }
     pub fn close(self) {}
-    pub fn info(&self) -> (usize, usize, usize) {
+    pub fn info(&self) -> (LS, LS, LS) {
         (
-            self.file.fm.header.current_height as usize,
-            self.file.fm.header.a_set_bytes as usize,
-            self.file.fm.header.b_set_bytes as usize,
+            self.file.fm.header.current_height as LS,
+            self.file.fm.header.a_set_bytes as LS,
+            self.file.fm.header.b_set_bytes as LS,
         )
     }
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {

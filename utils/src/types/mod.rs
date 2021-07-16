@@ -22,6 +22,9 @@ pub mod bytes;
 pub mod cheque128;
 pub mod epool;
 
+mod lim;
+pub use lim::{Lim, VLim};
+
 pub fn type_of<T>(_: T) -> &'static str {
     std::any::type_name::<T>()
 }

@@ -32,6 +32,7 @@ errors! {
     UnexpectedEof => "unexpected eof."
     Interrupted => "interrupted."
     UnwrapingError => "unwrap failed."
+    OutOfBounds => "index out of bounds."
     ThreadSending => "thread sending error."
 }
 

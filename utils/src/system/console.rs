@@ -43,7 +43,7 @@ impl Console {
                     if let Some((command, argument)) = r.split_once(' ') {
                         match command {
                             "--save" => {}
-                            _ => eprint!("{}", argument),
+                            _ => eprint!("echo {}", argument),
                         }
                     }
                 }

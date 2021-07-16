@@ -67,7 +67,7 @@ macro_rules! fheader {
 
         impl HeaderTrait for $name {
 
-            fn read(&mut self, ptr: &mut Ptr) -> Result<usize> {
+            fn read(&mut self, ptr: &mut Ptr) -> Result<LS> {
 
                 let src = bincode::serialize(&self)?;
 
@@ -80,7 +80,7 @@ macro_rules! fheader {
                 Ok(dst.len())
 
             }
-            fn write(&mut self, ptr: &mut Ptr) -> Result<usize> {
+            fn write(&mut self, ptr: &mut Ptr) -> Result<LS> {
 
                 let mut src = bincode::serialize(&self)?;
 

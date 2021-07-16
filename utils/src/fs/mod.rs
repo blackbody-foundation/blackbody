@@ -23,6 +23,8 @@ pub mod types;
 use crate::system::*;
 use types::*;
 
+pub mod algorithms;
+
 #[derive(Debug)]
 pub struct File<T> {
     pub path: &'static str,

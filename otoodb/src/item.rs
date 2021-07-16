@@ -18,16 +18,18 @@
 
 */
 
+use utils::fs::types::*;
+
 #[derive(Debug)]
 pub struct ItemPointer {
-    pub mid: usize,
+    pub mid: LS,
     pub upwards: bool,
-    pub pos: u64,
-    pub a_len: usize,
-    pub b_len: usize,
+    pub pos: uPS,
+    pub a_len: LS,
+    pub b_len: LS,
 }
 impl ItemPointer {
-    pub fn new(mid: usize, upwards: bool, pos: u64, a_len: usize, b_len: usize) -> Self {
+    pub fn new(mid: LS, upwards: bool, pos: uPS, a_len: LS, b_len: LS) -> Self {
         Self {
             mid,
             upwards,
