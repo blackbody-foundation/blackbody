@@ -18,6 +18,7 @@
 
 */
 
+use crate::types::Lim;
 use crate::{errmatch, system::*};
 
 use std::fs::File;
@@ -59,7 +60,10 @@ pub struct FM<T> {
     ptr: Ptr,
     pub header: Box<T>,
     pub header_size: uPS,
+    pub file_size: uPS,
+    pub content_lim: Lim<uPS>,
 }
+
 impl<T: HeaderTrait> FM<T> {
     pub fn new(path: &'static str, mut header: Box<T>) -> Result<Self> {
         let file = std::fs::OpenOptions::new()
@@ -71,11 +75,14 @@ impl<T: HeaderTrait> FM<T> {
         let mut ptr = Box::new(file);
 
         let header_size = header.read(&mut ptr)? as uPS;
+        let file_size = ptr.seek(SeekFrom::End(0))?;
 
         Ok(Self {
             ptr,
             header,
             header_size,
+            file_size,
+            content_lim: Lim::new(header_size, file_size),
         })
     }
     pub fn flush_header(&mut self) -> Result<()> {

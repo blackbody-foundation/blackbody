@@ -20,28 +20,39 @@
 
 //! One to One Set Database.
 
-use crate::{head::*, item::*, std::*};
+use crate::{head::*, std::*};
 
-use utils::fs::{types::*, File};
+use utils::{
+    fs::{algorithms::bst::BST, types::*, File},
+    types::{Lim, VLim},
+};
 
 #[derive(Debug)]
 pub struct DB {
     file: File<OtooHeader>,
+    bst: BST,
     console: Option<Plugin<Console>>,
 }
 
 impl DB {
     pub fn open(file_path: &'static str, a_set_bytes: LS, b_set_bytes: LS) -> Result<Self> {
+        let (mid, end) = (a_set_bytes, b_set_bytes);
+
+        let header = OtooHeader::new(0, mid as HUSize, end as HUSize);
+        let file = File::open(file_path, header)?;
+
+        let file_lim = file.fm.content_lim.clone();
+        let elem_lim = VLim::new(0, mid, end);
+
+        let bst = BST::new(file_lim, elem_lim)?;
+
         let db = Self {
-            file: File::open(
-                file_path,
-                OtooHeader::new(0, a_set_bytes as HUSize, b_set_bytes as HUSize),
-            )?,
+            file,
+            bst,
             console: None,
         };
         eprintln!("file successfully opened.");
-        // Self::validate(db)
-        Ok(db)
+        Self::validate(db)
     }
     pub fn debug(&mut self) -> Result<()> {
         let mut buf = [0u8; 1024];
@@ -92,107 +103,59 @@ impl DB {
         Ok(db)
     }
 
-    pub fn binary_search(&mut self, target: &[u8]) -> Result<(bool, ItemPointer)> {
-        let (height, a_bl, b_bl) = self.info();
+    pub fn binary_search(&mut self, target: &[u8]) -> Result<Option<(Vec<u8>, uPS)>> {
+        let fm = &mut self.file.fm;
+        let elem = self.bst.elem_lim();
 
-        let a_len = is_bytes_len![target, a_bl, b_bl]?;
-
-        let (b_len, start) = if a_len == a_bl {
-            (b_bl, 0)
-        } else {
-            (a_bl, height)
+        let start_pos = match elem.is_right_side(target)? {
+            false => 0,
+            true => fm.header.current_height * elem.end as u64,
         };
+        let end_pos = self.bst.file_lim().end;
 
-        let total_len = a_len + b_len;
+        self.bst.change_file_lim(Lim::new(start_pos, end_pos))?;
 
-        if height == 0 {
-            return Ok((
-                false,
-                ItemPointer::new(
-                    0,
-                    false,
-                    if a_len == a_bl { 0 } else { total_len as uPS },
-                    a_len,
-                    b_len,
-                ),
-            ));
-        }
+        let (found, pos) = self.bst.search(fm, target)?;
 
-        let fm = self.file_manager();
-
-        let mut distance = height;
-        let mut mid = 0;
-
-        let mut mid_buf = vec![0u8; a_len];
-        let mut upwards = false;
-
-        let mut pos;
-
-        loop {
-            distance /= 2;
-
-            if upwards {
-                mid -= distance;
-            } else {
-                mid += distance;
-            }
-
-            pos = ((start + mid) * total_len) as uPS;
-
-            fm.read_cursoring(mid_buf.as_mut_slice(), pos)?;
-
-            if mid_buf == target {
-                // found
-                return Ok((true, ItemPointer::new(mid, upwards, pos, a_len, b_len)));
-            }
-
-            upwards = target != max_bytes![target, mid_buf.as_slice()]?;
-
-            if distance == 0 {
-                // couldn't find
-                pos = if upwards { pos } else { pos + total_len as uPS };
-                return Ok((false, ItemPointer::new(mid, upwards, pos, a_len, b_len)));
-            }
+        if found {
+            fm.read_cursoring(self.bst.buf_mut(), pos)?;
+            let buf = self.bst.buf_right_limed();
+            Ok(Some((buf.to_vec(), pos)))
+        } else {
+            Ok(None)
         }
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
-        let (found, item) = self.binary_search(bytes_a_or_b)?;
-        if !found {
-            Ok(None)
-        } else {
-            let mut buf = vec![0_u8; item.b_len];
-            self.file
-                .fm
-                .read_cursoring(&mut buf, item.pos + item.a_len as uPS)?;
-            Ok(Some(buf))
+        match self.binary_search(bytes_a_or_b)? {
+            Some((value, _)) => Ok(Some(value)),
+            None => Ok(None),
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let mut item_bag = Vec::new();
 
-        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
-            let (found, ptr) = self.binary_search(bytes[0])?;
-            if found {
+        for bytes in [bytes_a, bytes_b] {
+            if let Some(value) = self.binary_search(bytes)? {
+                item_bag.push(value);
+            } else {
                 return errbang!(err::Interrupted, "item already exists");
             }
-
-            item_bag.push((ptr, bytes.concat()));
         }
 
-        item_bag.sort_by_key(|k| k.0.pos); // sort by position in the file
+        item_bag.sort_by_key(|k| k.1); // sort by position in the file
 
         dbg!(&item_bag);
-
-        let fm = self.file_manager();
 
         let (ptr0, buf0) = &item_bag[0];
         let (ptr1, buf1) = &item_bag[1];
 
-        fm.insert_special(&buf0, ptr0.pos, ptr1.pos)?;
-        fm.insert_special(&buf1, ptr1.pos, 0)?;
+        let fm = self.file_manager();
+        // fm.insert_special(&buf0, ptr0.pos, ptr1.pos)?;
+        // fm.insert_special(&buf1, ptr1.pos, 0)?;
+        todo!("insert")
 
-        fm.header.current_height += 1;
-        fm.flush_header()
+        // fm.header.current_height += 1;
+        // fm.flush_header()
     }
     pub fn close(self) {}
     pub fn info(&self) -> (LS, LS, LS) {

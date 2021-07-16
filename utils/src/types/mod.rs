@@ -26,9 +26,8 @@ pub mod rmbox;
 mod lim;
 
 pub use lim::{Lim, VLim};
-pub use rmbox::RMBox;
+pub use rmbox::{MBox, RMBox};
 
 pub fn type_of<T>(_: T) -> &'static str {
     std::any::type_name::<T>()
 }
-

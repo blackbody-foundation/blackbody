@@ -21,6 +21,7 @@
 use crate::fs::types::LS;
 use crate::{errbang, system::*};
 
+#[derive(Debug, Clone)]
 pub struct Lim<T> {
     pub start: T,
     pub end: T,
@@ -34,6 +35,7 @@ impl<T> Lim<T> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct VLim {
     pub start: LS,
     pub mid: LS,

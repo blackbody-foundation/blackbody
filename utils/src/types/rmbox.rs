@@ -39,8 +39,7 @@ where
 }
 impl<'a, T: Copy> Drop for RMBox<'a, T> {
     fn drop(&mut self) {
-        let m_var = self.m_var;
-        *self.var = m_var;
+        *self.var = self.m_var;
     }
 }
 
@@ -60,5 +59,23 @@ where
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.var
+    }
+}
+
+pub struct MBox<T> {
+    var: T,
+}
+
+impl<T> MBox<T>
+where
+    T: Clone,
+{
+    pub fn new(var: &T) -> Self {
+        Self {
+            var: var.to_owned(),
+        }
+    }
+    pub fn to(self, dst: &mut T) {
+        *dst = self.var;
     }
 }

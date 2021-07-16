@@ -22,7 +22,6 @@
 
 mod db;
 mod head;
-mod item;
 mod std;
 
 pub use db::DB;

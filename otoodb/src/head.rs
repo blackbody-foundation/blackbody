@@ -19,6 +19,7 @@
 */
 
 //! Header Configures for One to One Database
+use utils::fs::algorithms::bst::OrderedFile;
 use utils::macros::fs::*;
 
 /// *** warning: both must be less than 'usize(=LS)' ***
@@ -34,3 +35,5 @@ fheader! {
         b_set_bytes: HUSize,
     }
 }
+
+impl OrderedFile for OtooHeader {} // for bst
