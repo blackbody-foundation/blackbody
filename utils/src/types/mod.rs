@@ -21,10 +21,14 @@
 pub mod bytes;
 pub mod cheque128;
 pub mod epool;
+pub mod rmbox;
 
 mod lim;
+
 pub use lim::{Lim, VLim};
+pub use rmbox::RMBox;
 
 pub fn type_of<T>(_: T) -> &'static str {
     std::any::type_name::<T>()
 }
+

@@ -29,9 +29,7 @@ impl<T> Lim<T> {
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
     }
-}
-impl<T> Into<(T, T)> for Lim<T> {
-    fn into(self) -> (T, T) {
+    pub fn into_(self) -> (T, T) {
         (self.start, self.end)
     }
 }
@@ -40,31 +38,53 @@ pub struct VLim {
     pub start: LS,
     pub mid: LS,
     pub end: LS,
+    /// *** warning ***
+    pub right: bool,
 }
 impl VLim {
     pub fn new(start: LS, mid: LS, end: LS) -> Self {
-        Self { start, mid, end }
-    }
-    pub fn lim<'a, T>(&self, v: &'a [T]) -> Result<(&'a [T], &'a [T])> {
-        if v.len() < self.end {
-            errbang!(err::OutOfBounds)
-        } else {
-            Ok(v.split_at(self.mid))
+        Self {
+            start,
+            mid,
+            end,
+            right: false,
         }
     }
-    pub fn mut_lim<'a, T>(&self, v: &'a mut [T]) -> Result<(&'a mut [T], &'a mut [T])> {
+    /// return value is the right (boolean)
+    pub fn is_right_side<T>(&self, v: &[T]) -> Result<bool> {
+        let v_len = v.len();
+        if self.mid == v_len {
+            Ok(false)
+        } else if (self.end - self.mid) == v_len {
+            Ok(true)
+        } else {
+            errbang!(err::InvalidLenSize)
+        }
+    }
+    pub fn lim<'a, T>(&self, v: &'a [T]) -> Result<&'a [T]> {
         if v.len() < self.end {
             errbang!(err::OutOfBounds)
         } else {
-            Ok(v.split_at_mut(self.mid))
+            match v.split_at(self.mid) {
+                s if self.right => Ok(s.1),
+                s => Ok(s.0),
+            }
+        }
+    }
+    pub fn mut_lim<'a, T>(&self, v: &'a mut [T]) -> Result<&'a mut [T]> {
+        if v.len() < self.end {
+            errbang!(err::OutOfBounds)
+        } else {
+            match v.split_at_mut(self.mid) {
+                s if self.right => Ok(s.1),
+                s => Ok(s.0),
+            }
         }
     }
     pub fn create<T: Default + Clone>(&self) -> Vec<T> {
         vec![T::default(); self.end]
     }
-}
-impl Into<(LS, LS, LS)> for VLim {
-    fn into(self) -> (LS, LS, LS) {
+    pub fn into_(self) -> (LS, LS, LS) {
         (self.start, self.mid, self.end)
     }
 }

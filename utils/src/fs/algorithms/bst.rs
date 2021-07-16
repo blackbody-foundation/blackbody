@@ -19,9 +19,10 @@
 */
 
 use crate::{
+    errbang,
     fs::types::*,
     system::*,
-    types::{Lim, VLim},
+    types::{Lim, RMBox, VLim},
 };
 
 pub trait OrderedFile {}
@@ -29,22 +30,41 @@ pub trait OrderedFile {}
 pub struct BST<'a, T> {
     fm: &'a mut FM<T>,
     file_lim: Lim<uPS>,
-    buf: Vec<u8>,
     elem_lim: VLim,
+    buf: Vec<u8>,
+    width: uPS,
 }
 
 impl<'a, T> BST<'a, T>
 where
     T: OrderedFile,
 {
-    pub fn new(fm: &'a mut FM<T>, file_lim: Lim<uPS>, elem_lim: VLim) -> Self {
-        let buf = elem_lim.create::<u8>();
-        Self {
-            fm,
-            file_lim,
-            buf,
-            elem_lim,
+    pub fn new(fm: &'a mut FM<T>, file_lim: Lim<uPS>, elem_lim: VLim) -> Result<Self> {
+        let (file_len, elem_len) = (file_lim.end, elem_lim.end as uPS);
+
+        if file_len % elem_len == 0 {
+            let buf = elem_lim.create::<u8>();
+            Ok(Self {
+                fm,
+                file_lim,
+                elem_lim,
+                buf,
+                width: file_len / elem_len,
+            })
+        } else {
+            errbang!(
+                err::InvalidLenSize,
+                "invalid matched : (file_lim.end % elem_lim.end) != 0"
+            )
         }
     }
-    pub fn search(&self, target: &[u8]) -> Option<uPS> {}
+    pub fn search(&mut self, target: &[u8]) -> Result<Option<uPS>> {
+        let right = self.elem_lim.is_right_side(target)?;
+        let mut rmb = RMBox::new(&mut self.elem_lim.right);
+        *rmb = right;
+
+        
+
+        Ok(None)
+    }
 }
