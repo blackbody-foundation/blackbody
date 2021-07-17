@@ -1,5 +1,5 @@
 /*
-    .. + algorithms + ..
+    .. + header.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,5 +18,12 @@
 
 */
 
-pub mod bst;
-pub mod insert;
+use super::*;
+
+pub type Header = Box<dyn HeaderTrait>;
+pub trait HeaderTrait: std::fmt::Debug {
+    /// return value is bytes length of successfully filled buffer.
+    fn read(&mut self, ptr: &mut Ptr) -> Result<LS>;
+    /// return value is bytes length of successfully filled buffer.
+    fn write(&mut self, ptr: &mut Ptr) -> Result<LS>;
+}

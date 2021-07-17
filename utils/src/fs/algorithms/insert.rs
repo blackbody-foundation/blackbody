@@ -17,3 +17,19 @@
     along with BlackBody. If not, see <http://www.gnu.org/licenses/>.
 
 */
+
+use crate::fs::types::{HeaderTrait, Packet, FM};
+use crate::system::*;
+
+use super::bst::BST;
+
+pub fn insert<T: HeaderTrait>(fm: &mut FM<T>, mut packet: Packet) -> Result<()> {
+    packet.sort_by_key(|k| k.1); // sort by position in the file
+
+    let reader = fm.try_to_create_reader()?;
+    let writer = fm.try_to_create_writer()?;
+
+    let bst = BST::default();
+
+    Ok(())
+}

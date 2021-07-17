@@ -20,7 +20,7 @@
 
 //! One to One Set Database.
 
-use crate::{head::*, std::*};
+use crate::{head::*, cmn::*};
 
 use utils::{
     fs::{algorithms::bst::BST, types::*, File},
@@ -103,7 +103,7 @@ impl DB {
         Ok(db)
     }
 
-    pub fn binary_search(&mut self, target: &[u8]) -> Result<Option<(Vec<u8>, uPS)>> {
+    pub fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
         let fm = &mut self.file.fm;
         let elem = self.bst.elem_lim();
 
@@ -120,34 +120,35 @@ impl DB {
         if found {
             fm.read_cursoring(self.bst.buf_mut(), pos)?;
             let buf = self.bst.buf_right_limed();
-            Ok(Some((buf.to_vec(), pos)))
+            Ok((Some(buf.to_vec()), pos))
         } else {
-            Ok(None)
+            Ok((None, pos))
         }
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
-        match self.binary_search(bytes_a_or_b)? {
-            Some((value, _)) => Ok(Some(value)),
+        match self.binary_search(bytes_a_or_b)?.0 {
+            Some(value) => Ok(Some(value)),
             None => Ok(None),
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let mut item_bag = Vec::new();
+        let mut packet = Packet::new();
 
-        for bytes in [bytes_a, bytes_b] {
-            if let Some(value) = self.binary_search(bytes)? {
-                item_bag.push(value);
-            } else {
-                return errbang!(err::Interrupted, "item already exists");
+        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
+            match self.binary_search(bytes[0])? {
+                (None, pos) => packet.push((bytes.concat(), pos)),
+                (Some(_), _) => {
+                    return errbang!(err::Interrupted, "item already exists");
+                }
             }
         }
 
-        item_bag.sort_by_key(|k| k.1); // sort by position in the file
+        packet.sort_by_key(|k| k.1); // sort by position in the file
 
-        dbg!(&item_bag);
+        dbg!(&packet);
 
-        let (ptr0, buf0) = &item_bag[0];
-        let (ptr1, buf1) = &item_bag[1];
+        let (ptr0, buf0) = &packet[0];
+        let (ptr1, buf1) = &packet[1];
 
         let fm = self.file_manager();
         // fm.insert_special(&buf0, ptr0.pos, ptr1.pos)?;

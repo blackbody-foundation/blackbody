@@ -18,8 +18,8 @@
 
 */
 
+use crate::system::*;
 use std::sync::{Arc, Mutex, MutexGuard};
-pub use crate::system::*;
 
 #[derive(Debug)]
 pub struct Plugin<T>(Arc<Mutex<T>>);

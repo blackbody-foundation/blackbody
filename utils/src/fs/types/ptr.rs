@@ -1,5 +1,5 @@
 /*
-    .. + fs + ..
+    .. + ptr.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,23 +18,40 @@
 
 */
 
-pub mod algorithms;
-pub mod types;
+use std::ops::{Deref, DerefMut};
 
-use crate::system::*;
-use types::*;
+use super::*;
 
 #[derive(Debug)]
-pub struct File<T> {
-    pub path: &'static str,
-    pub fm: FM<T>,
+pub struct Ptr {
+    file: Box<File>,
 }
 
-impl<T: HeaderTrait> File<T> {
-    pub fn open(path: &'static str, header: Box<T>) -> Result<Self> {
-        let fm = FM::new(path, header)?;
-
-        Ok(Self { path, fm })
+impl Ptr {
+    pub fn new(file: File) -> Self {
+        Self {
+            file: Box::new(file),
+        }
     }
-    pub fn close(self) {}
+    /// copying
+    pub fn to_reader(&self) -> Result<Box<BufReader<File>>> {
+        Ok(Box::new(BufReader::new(self.try_clone()?)))
+    }
+    /// copying
+    pub fn to_writer(&self) -> Result<Box<BufWriter<File>>> {
+        Ok(Box::new(BufWriter::new(self.try_clone()?)))
+    }
+}
+
+impl Deref for Ptr {
+    type Target = Box<File>;
+    fn deref(&self) -> &Self::Target {
+        &self.file
+    }
+}
+
+impl DerefMut for Ptr {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.file
+    }
 }

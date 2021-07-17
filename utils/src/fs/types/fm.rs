@@ -1,5 +1,5 @@
 /*
-    .. + types.rs + ..
+    .. + fm.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,42 +18,7 @@
 
 */
 
-use crate::types::Lim;
-use crate::{errmatch, system::*};
-
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
-
-/// *** warning ***
-#[allow(non_camel_case_types)]
-pub type uPS = u64; // pos size
-#[allow(non_camel_case_types)]
-pub type iPS = i64;
-pub type LS = usize; // len size
-/// **************************
-
-pub const CHUNK_SIZE: LS = 8 * 1024;
-
-#[derive(Debug)]
-pub struct BytesPtr {
-    pos: uPS,
-    len: LS,
-}
-impl BytesPtr {
-    pub fn new(pos: uPS, len: LS) -> Self {
-        Self { pos, len }
-    }
-}
-
-pub type Header = Box<dyn HeaderTrait>;
-pub trait HeaderTrait: std::fmt::Debug {
-    /// return value is bytes length of successfully filled buffer.
-    fn read(&mut self, ptr: &mut Ptr) -> Result<LS>;
-    /// return value is bytes length of successfully filled buffer.
-    fn write(&mut self, ptr: &mut Ptr) -> Result<LS>;
-}
-
-pub type Ptr = Box<File>;
+use super::*;
 
 #[derive(Debug)]
 pub struct FM<T> {
@@ -72,7 +37,7 @@ impl<T: HeaderTrait> FM<T> {
             .read(true)
             .open(path)?;
 
-        let mut ptr = Box::new(file);
+        let mut ptr = Ptr::new(file);
 
         let header_size = header.read(&mut ptr)? as uPS;
         let file_size = ptr.seek(SeekFrom::End(0))?;
@@ -84,6 +49,12 @@ impl<T: HeaderTrait> FM<T> {
             file_size,
             content_lim: Lim::new(header_size, file_size),
         })
+    }
+    pub fn try_to_create_reader(&self) -> Result<Reader> {
+        self.ptr.to_reader()
+    }
+    pub fn try_to_create_writer(&self) -> Result<Writer> {
+        self.ptr.to_writer()
     }
     pub fn flush_header(&mut self) -> Result<()> {
         let ptr = &mut self.ptr;

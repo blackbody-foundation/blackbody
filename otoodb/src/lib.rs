@@ -22,6 +22,6 @@
 
 mod db;
 mod head;
-mod std;
+mod cmn;
 
 pub use db::DB;
