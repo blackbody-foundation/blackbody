@@ -36,7 +36,4 @@ pub type LS = usize; // len size
 
 pub type Packet = Vec<(Vec<u8>, uPS)>;
 
-pub type Reader = Box<BufReader<File>>;
-pub type Writer = Box<BufWriter<File>>;
-
 pub trait OrderedFile {}

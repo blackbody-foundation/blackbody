@@ -50,11 +50,11 @@ impl<T: HeaderTrait> FM<T> {
             content_lim: Lim::new(header_size, file_size),
         })
     }
-    pub fn try_to_create_reader(&self) -> Result<Reader> {
-        self.ptr.to_reader()
+    pub fn try_to_create_reader(&self) -> Result<Reader<T>> {
+        Reader::new(&self, &self.ptr)
     }
-    pub fn try_to_create_writer(&self) -> Result<Writer> {
-        self.ptr.to_writer()
+    pub fn try_to_create_writer(&self) -> Result<Writer<T>> {
+        Writer::new(&self, &self.ptr)
     }
     pub fn flush_header(&mut self) -> Result<()> {
         let ptr = &mut self.ptr;

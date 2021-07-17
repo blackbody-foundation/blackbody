@@ -22,7 +22,7 @@
 use super::CHUNK_SIZE;
 
 pub struct MBuf {
-    buf: [u8; CHUNK_SIZE],
+    pub buf: [u8; CHUNK_SIZE],
     pos: u64,
     len: usize,
 }
@@ -34,7 +34,7 @@ impl MBuf {
             len: 0,
         }
     }
-    pub fn set_num_read(&mut self, num_read: usize) {
+    pub fn add_num_process(&mut self, num_read: usize) {
         self.len = num_read;
         self.pos += num_read as u64;
     }
@@ -47,6 +47,12 @@ impl MBuf {
     }
     pub fn len(&self) -> usize {
         self.len
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+    pub fn set_len(&mut self, len: usize) {
+        self.len = len;
     }
     pub fn get_slice(&self) -> &[u8] {
         &self.buf[..self.len]
