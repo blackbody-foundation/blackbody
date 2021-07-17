@@ -20,10 +20,14 @@
 
 //! One to One Set Database.
 
-use crate::{head::*, cmn::*};
+use crate::{cmn::*, head::*};
 
 use utils::{
-    fs::{algorithms::bst::BST, types::*, File},
+    fs::{
+        algorithms::{bst::BST, insert},
+        types::*,
+        File,
+    },
     types::{Lim, VLim},
 };
 
@@ -54,15 +58,51 @@ impl DB {
         eprintln!("file successfully opened.");
         Self::validate(db)
     }
+
+    pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
+        match self.binary_search(bytes_a_or_b)?.0 {
+            Some(value) => Ok(Some(value)),
+            None => Ok(None),
+        }
+    }
+    pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
+        let mut packet = Packet::new();
+
+        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
+            match self.binary_search(bytes[0])? {
+                (None, pos) => packet.push((bytes.concat(), pos)),
+                (Some(_), _) => {
+                    return errbang!(err::Interrupted, "item already exists");
+                }
+            }
+        }
+
+        dbg!(&packet);
+
+        let fm = self.file_manager();
+
+        insert::cross_insert::insert(fm, packet)?;
+
+        fm.header.current_height += 1;
+        fm.flush_header()
+    }
+    pub fn close(self) {}
+    pub fn info(&self) -> (LS, LS, LS) {
+        (
+            self.file.fm.header.current_height as LS,
+            self.file.fm.header.a_set_bytes as LS,
+            self.file.fm.header.b_set_bytes as LS,
+        )
+    }
     pub fn debug(&mut self) -> Result<()> {
-        let mut buf = [0u8; 1024];
+        let mut buf = [0u8; 512];
         let mut num_read;
         loop {
             num_read = self.file.fm.read_general(&mut buf[..])?;
             if num_read < 1 {
                 break;
             }
-            eprintln!("{:?}", &buf[..num_read]);
+            eprint!("{:?}", &buf[..num_read]);
         }
         Ok(())
     }
@@ -102,8 +142,8 @@ impl DB {
         eprintln!("complete.");
         Ok(db)
     }
-
-    pub fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
+    // ------------------
+    fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
         let fm = &mut self.file.fm;
         let elem = self.bst.elem_lim();
 
@@ -125,47 +165,6 @@ impl DB {
             Ok((None, pos))
         }
     }
-    pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
-        match self.binary_search(bytes_a_or_b)?.0 {
-            Some(value) => Ok(Some(value)),
-            None => Ok(None),
-        }
-    }
-    pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let mut packet = Packet::new();
-
-        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
-            match self.binary_search(bytes[0])? {
-                (None, pos) => packet.push((bytes.concat(), pos)),
-                (Some(_), _) => {
-                    return errbang!(err::Interrupted, "item already exists");
-                }
-            }
-        }
-
-        packet.sort_by_key(|k| k.1); // sort by position in the file
-
-        dbg!(&packet);
-
-        let (ptr0, buf0) = &packet[0];
-        let (ptr1, buf1) = &packet[1];
-
-        let fm = self.file_manager();
-        // fm.insert_special(&buf0, ptr0.pos, ptr1.pos)?;
-        // fm.insert_special(&buf1, ptr1.pos, 0)?;
-        todo!("insert")
-
-        // fm.header.current_height += 1;
-        // fm.flush_header()
-    }
-    pub fn close(self) {}
-    pub fn info(&self) -> (LS, LS, LS) {
-        (
-            self.file.fm.header.current_height as LS,
-            self.file.fm.header.a_set_bytes as LS,
-            self.file.fm.header.b_set_bytes as LS,
-        )
-    }
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {
         self.file.fm.borrow_mut()
     }
@@ -179,14 +178,5 @@ impl Concentric<Console> for DB {
     fn concentric(&mut self, _some_plugin: Option<Plugin<Console>>) -> &mut Self {
         self.console = _some_plugin;
         self
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn start() -> Result<()> {
-        Ok(())
     }
 }

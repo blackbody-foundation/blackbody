@@ -26,7 +26,6 @@ use crate::{
     types::{bytes::U512, Lim, MBox, VLim},
 };
 
-pub trait OrderedFile {}
 
 #[derive(Debug)]
 pub struct BST {

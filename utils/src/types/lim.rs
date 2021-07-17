@@ -26,12 +26,19 @@ pub struct Lim<T> {
     pub start: T,
     pub end: T,
 }
-impl<T> Lim<T> {
+impl<T: PartialEq + Ord + Clone> Lim<T> {
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
     }
     pub fn into_(self) -> (T, T) {
         (self.start, self.end)
+    }
+    pub fn lim(&self, target: T) -> T {
+        match target {
+            v if v <= self.start => self.start.clone(),
+            v if v >= self.end => self.end.clone(),
+            _ => target,
+        }
     }
 }
 

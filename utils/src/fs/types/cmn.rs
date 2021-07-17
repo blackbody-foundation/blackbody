@@ -21,7 +21,7 @@
 //! common
 
 pub use crate::types::{Lim, VLim};
-pub use crate::{errmatch, system::*};
+pub use crate::{errmatch, system::*, types::CHUNK_SIZE};
 
 pub use std::fs::File;
 pub use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
@@ -34,9 +34,9 @@ pub type iPS = i64;
 pub type LS = usize; // len size
 /// **************************
 
-pub const CHUNK_SIZE: LS = 8 * 1024;
-
 pub type Packet = Vec<(Vec<u8>, uPS)>;
 
 pub type Reader = Box<BufReader<File>>;
 pub type Writer = Box<BufWriter<File>>;
+
+pub trait OrderedFile {}
