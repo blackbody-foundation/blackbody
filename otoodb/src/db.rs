@@ -41,13 +41,11 @@ pub struct DB {
 impl DB {
     pub fn open(file_path: &'static str, a_set_bytes: LS, b_set_bytes: LS) -> Result<Self> {
         let (mid, end) = (a_set_bytes, b_set_bytes);
-
         let header = OtooHeader::new(0, mid as HUSize, end as HUSize);
         let file = File::open(file_path, header)?;
 
-        let file_lim = file.fm.content_lim.clone();
-        let elem_lim = VLim::new(0, mid, end);
-
+        let file_lim = Lim::<uPS>::new(0, (mid + end) as uPS); // initial
+        let elem_lim = VLim::new(0, mid, mid + end);
         let bst = BST::new(file_lim, elem_lim)?;
 
         let db = Self {
@@ -56,9 +54,21 @@ impl DB {
             console: None,
         };
         eprintln!("file successfully opened.");
-        Self::validate(db)
+        // Self::validate(db)
+        Ok(db)
     }
-
+    pub fn debug(&mut self) {
+        self.file.fm.debug().unwrap();
+    }
+    fn init(fm: &mut FM<OtooHeader>, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
+        let a_set = [bytes_a, bytes_b].concat();
+        let b_set = [bytes_b, bytes_a].concat();
+        let total_len = (bytes_a.len() + bytes_b.len()) as uPS;
+        dbg!(&a_set, &b_set, &total_len);
+        dbg!(fm.write_cursoring(&a_set[..], 0)?);
+        dbg!(fm.write_cursoring(&b_set[..], total_len)?);
+        Ok(())
+    }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
         match self.binary_search(bytes_a_or_b)?.0 {
             Some(value) => Ok(Some(value)),
@@ -66,25 +76,28 @@ impl DB {
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let mut packet = Packet::new();
+        let db_height = self.file.fm.header.current_height;
+        if db_height == 0 {
+            Self::init(&mut self.file.fm, bytes_a, bytes_b)?;
+        } else {
+            let mut packet = Packet::new();
 
-        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
-            match self.binary_search(bytes[0])? {
-                (None, pos) => packet.push((bytes.concat(), pos)),
-                (Some(_), _) => {
-                    return errbang!(err::Interrupted, "item already exists");
+            for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
+                match self.binary_search(bytes[0])? {
+                    (None, pos) => packet.push((bytes.concat(), pos)),
+                    (Some(_), _) => {
+                        return errbang!(err::Interrupted, "item already exists");
+                    }
                 }
             }
+
+            dbg!(&packet);
+            let fm = self.file_manager();
+
+            insert::cross_insert::insert(fm, packet)?;
         }
-
-        dbg!(&packet);
-
-        let fm = self.file_manager();
-
-        insert::cross_insert::insert(fm, packet)?;
-
-        fm.header.current_height += 1;
-        fm.flush_header()
+        self.file.fm.header.current_height += 1;
+        self.file.fm.flush_header()
     }
     pub fn close(self) {}
     pub fn info(&self) -> (LS, LS, LS) {
@@ -93,18 +106,6 @@ impl DB {
             self.file.fm.header.a_set_bytes as LS,
             self.file.fm.header.b_set_bytes as LS,
         )
-    }
-    pub fn debug(&mut self) -> Result<()> {
-        let mut buf = [0u8; 512];
-        let mut num_read;
-        loop {
-            num_read = self.file.fm.read_general(&mut buf[..])?;
-            if num_read < 1 {
-                break;
-            }
-            eprint!("{:?}", &buf[..num_read]);
-        }
-        Ok(())
     }
     pub fn validate(mut db: DB) -> Result<DB> {
         let (height, a_bytes, b_bytes) = db.info();
@@ -145,13 +146,17 @@ impl DB {
     // ------------------
     fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
         let fm = &mut self.file.fm;
+
         let elem = self.bst.elem_lim();
 
-        let start_pos = match elem.is_right_side(target)? {
-            false => 0,
-            true => fm.header.current_height * elem.end as u64,
+        let right = elem.is_right_side(target)?;
+        let (start_pos, end_pos) = match right {
+            false => (0, fm.header.current_height * elem.end as uPS),
+            true => (
+                fm.header.current_height * elem.end as uPS,
+                fm.content_end_pos(false)?,
+            ),
         };
-        let end_pos = self.bst.file_lim().end;
 
         self.bst.change_file_lim(Lim::new(start_pos, end_pos))?;
 
@@ -159,7 +164,11 @@ impl DB {
 
         if found {
             fm.read_cursoring(self.bst.buf_mut(), pos)?;
-            let buf = self.bst.buf_right_limed();
+            let buf = if right {
+                self.bst.buf_reversed_right_limed()
+            } else {
+                self.bst.buf_right_limed()
+            };
             Ok((Some(buf.to_vec()), pos))
         } else {
             Ok((None, pos))

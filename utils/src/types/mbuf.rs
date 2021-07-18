@@ -24,6 +24,7 @@ use std::io;
 
 use super::CHUNK_SIZE;
 
+#[derive(Debug, Clone)]
 pub struct MBuf {
     pub buf: [u8; CHUNK_SIZE],
     pos: u64,
@@ -43,14 +44,14 @@ impl MBuf {
     }
     pub fn set_buf_from(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         let src_len = buf.len();
-        if src_len > self.len {
+        if src_len > CHUNK_SIZE {
             Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "input size overflow.",
             ))
         } else {
-            for (i, char) in buf.iter().enumerate() {
-                self.buf[i] = *char;
+            for (i, byte) in buf.iter().enumerate() {
+                self.buf[i] = *byte;
             }
             self.len = src_len;
             Ok(self.len)

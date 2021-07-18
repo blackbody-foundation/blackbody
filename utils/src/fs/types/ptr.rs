@@ -33,14 +33,14 @@ impl Ptr {
             file: Box::new(file),
         }
     }
-    /// copying
-    pub fn to_reader(&self) -> Result<Box<BufReader<File>>> {
-        Ok(Box::new(BufReader::new(self.try_clone()?)))
-    }
-    /// copying
-    pub fn to_writer(&self) -> Result<Box<BufWriter<File>>> {
-        Ok(Box::new(BufWriter::new(self.try_clone()?)))
-    }
+    // /// copying
+    // pub fn to_reader(&self) -> Result<Box<File>> {
+    //     Ok(Box::new((self.try_clone()?)))
+    // }
+    // /// copying
+    // pub fn to_writer(&self) -> Result<Box<File>> {
+    //     Ok(Box::new((self.try_clone()?)))
+    // }
 }
 
 impl Deref for Ptr {

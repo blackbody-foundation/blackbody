@@ -27,6 +27,7 @@ pub mod rmbox;
 mod lim;
 
 pub use lim::{Lim, VLim};
+pub use mbuf::MBuf;
 pub use rmbox::{MBox, RMBox};
 
 pub const CHUNK_SIZE: usize = 4 * 1024;

@@ -23,7 +23,8 @@ use std::{error, result};
 pub mod args;
 
 pub mod errors;
-pub use errors::err;
+pub use super::macros::errbang::*;
+pub use errors::*;
 
 pub mod timer;
 pub use timer::Timer;

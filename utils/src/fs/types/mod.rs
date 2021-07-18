@@ -29,6 +29,3 @@ pub use self::cmn::*;
 pub use fm::FM;
 pub use header::*;
 pub use ptr::Ptr;
-
-pub use reader::Reader;
-pub use writer::Writer;

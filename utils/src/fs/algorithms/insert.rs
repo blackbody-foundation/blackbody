@@ -19,25 +19,20 @@
 */
 
 use crate::fs::types::{HeaderTrait, Lim, Packet, FM, LS};
-use crate::{system::*, types::CHUNK_SIZE};
+use crate::{
+    system::*,
+    types::{MBuf, CHUNK_SIZE},
+};
 
 pub mod cross_insert {
-
-    use crate::{
-        fs::types::{Reader, Writer},
-        types::mbuf::MBuf,
-    };
 
     use super::*;
 
     pub fn insert<T: HeaderTrait>(fm: &mut FM<T>, mut packet: Packet) -> Result<()> {
         packet.sort_by_key(|k| k.1); // sort by position in the file
 
-        let mut reader = fm.try_to_create_reader()?;
-        let mut writer = fm.try_to_create_writer()?;
-
-        let mut read_buf = MBuf::default();
-        let mut write_buf = MBuf::default();
+        let mut read_buf = MBuf::new(packet[0].1);
+        let mut write_buf = MBuf::new(packet[0].1);
 
         let lim = Lim::<LS>::new(0, CHUNK_SIZE);
 
@@ -45,47 +40,58 @@ pub mod cross_insert {
 
         let max_i = packet.len() - 1;
 
-        let mut eof = false;
+        let mut eop;
 
         for (i, (bytes, pos)) in packet.iter().enumerate() {
-            read_buf.reset(*pos);
-
             write_buf.set_buf_from(bytes.as_slice())?;
 
             next_packet_pos = if i < max_i {
                 packet[i + 1].1
             } else {
-                fm.content_lim.end
+                fm.content_end_pos(false)?
             };
 
-            while !eof {
+            if bytes.len() < (next_packet_pos - pos) as LS {
+                return errbang!(
+                    err::OutOfBounds,
+                    "insert bytes length must be less than previous read buf length."
+                );
+            }
+            dbg!("before", &write_buf.pos(), &read_buf.pos());
+            read_buf.reset(*pos);
+
+            eop = false;
+            while !eop {
                 rest_pos = lim.lim((next_packet_pos - read_buf.pos()) as LS);
 
                 read_buf.set_len(rest_pos); // limited
 
-                if read_buf.is_empty() {
-                    break;
-                }
+                eop = read_checking(fm, &mut read_buf)?;
 
-                eof = read_checking(&mut reader, &mut read_buf)?;
-                write_checking(&mut writer, &mut write_buf)?;
+                write_checking(fm, &mut write_buf)?;
 
                 std::mem::swap(&mut read_buf.buf, &mut write_buf.buf);
+                write_buf.set_len(read_buf.len());
             }
         }
-
+        dbg!("done.", fm.debug()?);
         Ok(())
     }
 
-    fn read_checking<T: HeaderTrait>(reader: &mut Reader<T>, mbuf: &mut MBuf) -> Result<bool> {
-        reader.set_cursor(mbuf.pos())?;
-        let num_read = reader.read_general(mbuf.get_mut_slice())?;
+    fn read_checking<T: HeaderTrait>(fm: &mut FM<T>, mbuf: &mut MBuf) -> Result<bool> {
+        fm.set_cursor(mbuf.pos())?;
+
+        let num_read = fm.read_general(mbuf.get_mut_slice())?;
         mbuf.add_num_process(num_read);
+
         Ok(num_read == 0)
     }
-    fn write_checking<T: HeaderTrait>(writer: &mut Writer<T>, mbuf: &mut MBuf) -> Result<()> {
-        writer.write_cursoring(mbuf.get_slice(), mbuf.pos())?;
-        mbuf.add_num_process(mbuf.len());
-        Ok(())
+    fn write_checking<T: HeaderTrait>(fm: &mut FM<T>, mbuf: &mut MBuf) -> Result<usize> {
+        let len = mbuf.len();
+
+        fm.write_cursoring(mbuf.get_slice(), mbuf.pos())?;
+        mbuf.add_num_process(len);
+
+        Ok(len)
     }
 }

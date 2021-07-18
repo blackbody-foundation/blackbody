@@ -50,17 +50,23 @@ impl<T: HeaderTrait> FM<T> {
             content_lim: Lim::new(header_size, file_size),
         })
     }
-    pub fn try_to_create_reader(&self) -> Result<Reader<T>> {
-        Reader::new(&self, &self.ptr)
+    pub fn content_end_pos(&mut self, flush: bool) -> Result<uPS> {
+        if flush {
+            self.flush_file_size()?;
+        }
+        Ok(self.content_lim.end - self.header_size)
     }
-    pub fn try_to_create_writer(&self) -> Result<Writer<T>> {
-        Writer::new(&self, &self.ptr)
-    }
+    // pub fn try_to_create_reader(&self) -> Result<Reader<T>> {
+    //     Reader::new(&self, &self.ptr)
+    // }
+    // pub fn try_to_create_writer(&self) -> Result<Writer<T>> {
+    //     Writer::new(&self, &self.ptr)
+    // }
     pub fn flush_header(&mut self) -> Result<()> {
         let ptr = &mut self.ptr;
         let header_size = self.header.write(ptr)?;
         self.header_size = header_size as uPS;
-        Ok(())
+        self.flush_file_size()
     }
     pub fn is_eof(&mut self) -> Result<bool> {
         if 0 == self.ptr.read(&mut [0u8; 1])? {
@@ -104,7 +110,28 @@ impl<T: HeaderTrait> FM<T> {
         self.set_cursor(pos)?;
         Self::err_tunnel(self.ptr.write_all(buf))
     }
+    fn flush_file_size(&mut self) -> Result<()> {
+        self.file_size = Self::err_tunnel(self.ptr.seek(SeekFrom::End(0)))?;
+        self.content_lim = Lim::new(self.header_size, self.file_size);
+        Ok(())
+    }
     fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
         errors::handle_io_error(io_e)
+    }
+    pub fn debug(&mut self) -> Result<()> {
+        let mut buf = [0u8; 256];
+        let mut num_read;
+        let prev_pos = SeekFrom::Current(0);
+        self.set_cursor(0)?;
+        loop {
+            num_read = self.read_general(&mut buf[..])?;
+            if num_read < 1 {
+                break;
+            }
+            eprint!("{:?}", &buf[..num_read]);
+        }
+        eprintln!();
+        self.ptr.seek(prev_pos)?;
+        Ok(())
     }
 }
