@@ -31,7 +31,7 @@ fn main() -> Result<()> {
     db.define(&[1, 2, 3, 4], &[1; 32])?;
     let a = db.get(&[1, 2, 3, 4])?;
     let c = db.get(&[1; 32])?;
-    eprintln!("[9;32]: {:?}\n\n [5,6,7,8]: {:?}", c, a);
+    eprintln!("[1;32]: {:?}\n\n [1,2,3,4]: {:?}", c, a);
     db.debug()?;
     db.close();
     Ok(())

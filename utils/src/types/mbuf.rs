@@ -19,6 +19,9 @@
 */
 
 //! smart memorized buf
+
+use std::io;
+
 use super::CHUNK_SIZE;
 
 pub struct MBuf {
@@ -34,9 +37,24 @@ impl MBuf {
             len: 0,
         }
     }
-    pub fn add_num_process(&mut self, num_read: usize) {
-        self.len = num_read;
-        self.pos += num_read as u64;
+    pub fn add_num_process(&mut self, num: usize) {
+        self.len = num;
+        self.pos += num as u64;
+    }
+    pub fn set_buf_from(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+        let src_len = buf.len();
+        if src_len > self.len {
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input size overflow.",
+            ))
+        } else {
+            for (i, char) in buf.iter().enumerate() {
+                self.buf[i] = *char;
+            }
+            self.len = src_len;
+            Ok(self.len)
+        }
     }
     pub fn reset(&mut self, pos: u64) {
         self.pos = pos;

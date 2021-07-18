@@ -41,7 +41,7 @@ pub mod cross_insert {
 
         let lim = Lim::<LS>::new(0, CHUNK_SIZE);
 
-        let (mut next_target_pos, mut limit);
+        let (mut next_packet_pos, mut rest_pos);
 
         let max_i = packet.len() - 1;
 
@@ -49,18 +49,23 @@ pub mod cross_insert {
 
         for (i, (bytes, pos)) in packet.iter().enumerate() {
             read_buf.reset(*pos);
-            write_buf.reset(*pos);
 
-            next_target_pos = if i < max_i {
+            write_buf.set_buf_from(bytes.as_slice())?;
+
+            next_packet_pos = if i < max_i {
                 packet[i + 1].1
             } else {
                 fm.content_lim.end
             };
 
             while !eof {
-                limit = lim.lim((next_target_pos - read_buf.pos()) as LS);
+                rest_pos = lim.lim((next_packet_pos - read_buf.pos()) as LS);
 
-                read_buf.set_len(limit);
+                read_buf.set_len(rest_pos); // limited
+
+                if read_buf.is_empty() {
+                    break;
+                }
 
                 eof = read_checking(&mut reader, &mut read_buf)?;
                 write_checking(&mut writer, &mut write_buf)?;

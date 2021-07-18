@@ -104,69 +104,6 @@ impl<T: HeaderTrait> FM<T> {
         self.set_cursor(pos)?;
         Self::err_tunnel(self.ptr.write_all(buf))
     }
-    pub fn insert_special(&mut self, buf: &[u8], pos: uPS, stop_pos: uPS) -> Result<()> {
-        let mut reader = BufReader::new(self.ptr.try_clone()?);
-        let mut writer = BufWriter::new(self.ptr.try_clone()?);
-        let mut buffer_1 = [0_u8; CHUNK_SIZE];
-        let mut buffer_2 = [0_u8; CHUNK_SIZE];
-
-        let mut checked_pos_1 = pos;
-        let mut checked_pos_2 = pos;
-        let mut num_read_1 = 1;
-        let mut num_read_2 = 1;
-
-        num_read_1 = buf.len();
-
-        self.set_cursor(checked_pos_1)?;
-
-        match Self::err_tunnel(reader.read_exact(&mut buffer_1[..num_read_1])) {
-            Err(e) if errmatch!(e, err::UnexpectedEof) => {
-                return Self::err_tunnel(writer.write_all(&buf));
-            }
-            Err(e) => return Err(e),
-            Ok(_) => {}
-        }
-
-        checked_pos_1 += num_read_1 as uPS;
-
-        self.set_cursor(checked_pos_2)?;
-
-        Self::err_tunnel(writer.write_all(&buf))?;
-
-        checked_pos_2 += num_read_1 as uPS;
-
-        let mut rot = true;
-        let mut looping = true;
-
-        while looping {
-            self.set_cursor(checked_pos_2)?;
-            num_read_2 = Self::err_tunnel(reader.read(&mut if rot { buffer_2 } else { buffer_1 }))?;
-
-            checked_pos_2 += num_read_2 as uPS;
-
-            self.set_cursor(checked_pos_1)?;
-
-            let diff = checked_pos_2 - stop_pos;
-            if diff > 0 {
-                num_read_2.overflowing_sub(diff as LS);
-                looping = false;
-            }
-            if diff == 0 {
-                break;
-            }
-
-            Self::err_tunnel(writer.write_all(if rot {
-                &buffer_1[..num_read_1]
-            } else {
-                num_read_1 = num_read_2;
-                &buffer_2[..num_read_2]
-            }))?;
-
-            checked_pos_1 += num_read_1 as uPS;
-            rot = !rot;
-        }
-        Ok(())
-    }
     fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
         errors::handle_io_error(io_e)
     }
