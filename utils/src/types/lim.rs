@@ -18,6 +18,8 @@
 
 */
 
+use std::ops::Sub;
+
 use crate::fs::types::LS;
 use crate::{errbang, system::*};
 
@@ -92,6 +94,9 @@ impl VLim {
     }
     pub fn create<T: Default + Clone>(&self) -> Vec<T> {
         vec![T::default(); self.end]
+    }
+    pub fn width(&self) -> LS {
+        self.end - self.start
     }
     pub fn into_(self) -> (LS, LS, LS) {
         (self.start, self.mid, self.end)

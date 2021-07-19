@@ -76,26 +76,22 @@ impl DB {
         }
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let db_height = self.file.fm.header.current_height;
-        if db_height == 0 {
-            Self::init(&mut self.file.fm, bytes_a, bytes_b)?;
-        } else {
-            let mut packet = Packet::new();
+        let mut packet = Packet::new();
 
-            for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
-                match self.binary_search(bytes[0])? {
-                    (None, pos) => packet.push((bytes.concat(), pos)),
-                    (Some(_), _) => {
-                        return errbang!(err::Interrupted, "item already exists");
-                    }
+        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
+            match self.binary_search(bytes[0])? {
+                (None, pos) => packet.push((bytes.concat(), pos)),
+                (Some(_), _) => {
+                    return errbang!(err::Interrupted, "item already exists");
                 }
             }
-
-            dbg!(&packet);
-            let fm = self.file_manager();
-
-            insert::cross_insert::insert(fm, packet)?;
         }
+
+        dbg!(&packet);
+        let fm = self.file_manager();
+
+        insert::cross_insert::insert(fm, packet)?;
+
         self.file.fm.header.current_height += 1;
         self.file.fm.flush_header()
     }
@@ -151,9 +147,9 @@ impl DB {
 
         let right = elem.is_right_side(target)?;
         let (start_pos, end_pos) = match right {
-            false => (0, fm.header.current_height * elem.end as uPS),
+            false => (0, fm.header.current_height * elem.width() as uPS),
             true => (
-                fm.header.current_height * elem.end as uPS,
+                fm.header.current_height * elem.width() as uPS,
                 fm.content_end_pos(false)?,
             ),
         };
@@ -161,7 +157,7 @@ impl DB {
         self.bst.change_file_lim(Lim::new(start_pos, end_pos))?;
 
         let (found, pos) = self.bst.search(fm, target)?;
-
+        dbg!(&found, &pos);
         if found {
             fm.read_cursoring(self.bst.buf_mut(), pos)?;
             let buf = if right {

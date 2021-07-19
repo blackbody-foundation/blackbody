@@ -46,11 +46,11 @@ macro_rules! is_bytes_len {
     };
 }
 
-/// Picking maximum bytes (by U512 little endian)
+/// Picking maximum bytes (by U512 'little endian')
 ///
 /// ```
-/// let max = max_bytes![&[0,0,0], &[1,2,3], &[5,2,3]];
-/// assert_eq!(max, &[5,2,3]);
+/// let max = max_bytes![&[0,0,0], &[1,2,3], &[3,2,1]];
+/// assert_eq!(max, &[1,2,3]);
 /// ```
 ///
 /// - If several elements are equally maximum, the last element is returned.

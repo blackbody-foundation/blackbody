@@ -28,9 +28,9 @@ use crate::{
 
 #[derive(Debug)]
 pub struct BST {
-    file_lim: Lim<uPS>,
-    elem_lim: VLim,
-    buf: Vec<u8>,
+    file_lim: Lim<uPS>, // searchable range
+    elem_lim: VLim,     // a pair data element had (start, mid, end)
+    buf: Vec<u8>,       // temporary buf vector
     width: uPS,
 }
 
@@ -38,7 +38,7 @@ impl BST {
     pub fn new(file_lim: Lim<uPS>, elem_lim: VLim) -> Result<Self> {
         if Self::check_lens(&file_lim, &elem_lim) {
             let buf = elem_lim.create::<u8>();
-            let width = file_lim.end / elem_lim.end as uPS;
+            let width = (file_lim.end - file_lim.start) / elem_lim.width() as uPS;
             Ok(Self {
                 file_lim,
                 elem_lim,
@@ -50,7 +50,7 @@ impl BST {
         }
     }
     fn check_lens(file_lim: &Lim<uPS>, elem_lim: &VLim) -> bool {
-        let (file_len, elem_len) = (file_lim.end, elem_lim.end as uPS);
+        let (file_len, elem_len) = (file_lim.end - file_lim.start, elem_lim.width() as uPS);
         file_len % elem_len == 0
     }
     pub fn file_lim(&self) -> &Lim<uPS> {
@@ -81,7 +81,7 @@ impl BST {
         match Self::check_lens(&file_lim, &self.elem_lim) {
             true => {
                 self.file_lim = file_lim;
-                self.change_width();
+                self.flush_width();
                 Ok(())
             }
             false => errbang!(err::InvalidLenSize),
@@ -91,7 +91,7 @@ impl BST {
         match Self::check_lens(&self.file_lim, &elem_lim) {
             true => {
                 self.elem_lim = elem_lim;
-                self.change_width();
+                self.flush_width();
                 Ok(())
             }
             false => errbang!(err::InvalidLenSize),
@@ -101,15 +101,14 @@ impl BST {
         if Self::check_lens(&file_lim, &elem_lim) {
             self.file_lim = file_lim;
             self.elem_lim = elem_lim;
-            self.change_width();
+            self.flush_width();
             Ok(())
         } else {
             errbang!(err::InvalidLenSize)
         }
     }
-    fn change_width(&mut self) {
-        self.width = (self.file_lim.end - self.file_lim.start)
-            / (self.elem_lim.end - self.elem_lim.start) as uPS;
+    fn flush_width(&mut self) {
+        self.width = (self.file_lim.end - self.file_lim.start) / self.elem_lim.width() as uPS;
     }
     pub fn validate(&self) -> Result<()> {
         todo!()
@@ -119,35 +118,63 @@ impl BST {
         T: HeaderTrait + OrderedFile,
     {
         let elem = &mut self.elem_lim;
-        let m = MBox::new(&elem.right);
+        let m = MBox::new(&elem.right); // memorizing
 
         elem.right = elem.is_right_side(target)?;
 
-        let buf = elem.mut_lim(&mut self.buf)?;
+        let buf = elem.mut_lim(&mut self.buf)?; // get a chunk
 
-        let start = self.file_lim.start; // header size excluded
-        let elem_total_len = elem.end as uPS;
+        let elem_total_len = elem.width() as uPS;
+
+        let start = self.file_lim.start; // starting point
+        dbg!("start:::", &start);
 
         let mut distance = self.width;
 
-        let (mut mid, mut pos) = (0, 0);
+        let mut mid = 0;
+
+        let mut pos;
 
         let mut forward = true;
 
-        let mut check_zero = false;
+        dbg!("width::", &self.width);
+        // init
+        match self.width {
+            0 => {
+                return Ok((false, start)); // had no element in the whole range
+            }
+            1 => {
+                fm.read_cursoring(buf, start)?;
+                dbg!(
+                    "max? ",
+                    &target,
+                    U512::from_little_endian(&target),
+                    &buf,
+                    U512::from_little_endian(&buf)
+                );
+                forward = target == max_bytes![target, buf]?;
+                dbg!(&forward);
+                m.to(&mut elem.right); // returning previous value (elem.right)
+                if target == buf {
+                    return Ok((true, start));
+                } else {
+                    return Ok((false, start + if forward { elem_total_len } else { 0 }));
+                }
+            }
+            _ => {}
+        }
+
         loop {
             distance /= 2;
 
             if forward {
-                mid += distance + if distance == 0 && check_zero { 1 } else { 0 };
-            } else if mid > (distance + 1) {
-                mid -= distance - if distance == 0 && check_zero { 1 } else { 0 };
+                mid += distance + if distance == 0 { 1 } else { 0 };
             } else {
-                mid = 0;
+                mid -= distance + if distance == 0 { 1 } else { 0 };
             }
 
             pos = start + mid * elem_total_len;
-            
+
             fm.read_cursoring(buf, pos)?;
 
             if target == buf {
@@ -155,17 +182,13 @@ impl BST {
                 return Ok((true, pos));
             }
 
-            forward = target == max_bytes![target, buf]?;
-
             if distance == 0 {
-                if check_zero || self.width == 1 {
-                    m.to(&mut elem.right);
-                    pos += if forward { elem_total_len } else { 0 };
-                    return Ok((false, pos));
-                } else {
-                    check_zero = true;
-                }
+                m.to(&mut elem.right);
+                pos += if forward { elem_total_len } else { 0 };
+                return Ok((false, pos));
             }
+
+            forward = target == max_bytes![target, buf]?;
         }
     }
 }
@@ -175,7 +198,7 @@ impl Default for BST {
         let file_lim = Lim::new(0, 1);
         let elem_lim = VLim::new(0, 0, 1);
         let buf = elem_lim.create::<u8>();
-        let width = file_lim.end / elem_lim.end as uPS;
+        let width = (file_lim.end - file_lim.start) / elem_lim.width() as uPS;
         Self {
             file_lim,
             elem_lim,
