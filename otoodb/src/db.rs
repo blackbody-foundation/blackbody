@@ -54,20 +54,10 @@ impl DB {
             console: None,
         };
         eprintln!("file successfully opened.");
-        // Self::validate(db)
-        Ok(db)
+        Self::validate(db)
     }
     pub fn debug(&mut self) {
         self.file.fm.debug().unwrap();
-    }
-    fn init(fm: &mut FM<OtooHeader>, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
-        let a_set = [bytes_a, bytes_b].concat();
-        let b_set = [bytes_b, bytes_a].concat();
-        let total_len = (bytes_a.len() + bytes_b.len()) as uPS;
-        dbg!(&a_set, &b_set, &total_len);
-        dbg!(fm.write_cursoring(&a_set[..], 0)?);
-        dbg!(fm.write_cursoring(&b_set[..], total_len)?);
-        Ok(())
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
         match self.binary_search(bytes_a_or_b)?.0 {
@@ -78,16 +68,17 @@ impl DB {
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let mut packet = Packet::new();
 
-        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]] {
+        for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]].iter() {
             match self.binary_search(bytes[0])? {
-                (None, pos) => packet.push((bytes.concat(), pos)),
+                (None, pos) => {
+                    packet.push((bytes.concat(), pos));
+                }
                 (Some(_), _) => {
                     return errbang!(err::Interrupted, "item already exists");
                 }
             }
         }
 
-        dbg!(&packet);
         let fm = self.file_manager();
 
         insert::cross_insert::insert(fm, packet)?;
@@ -139,25 +130,23 @@ impl DB {
         eprintln!("complete.");
         Ok(db)
     }
-    // ------------------
+
     fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
         let fm = &mut self.file.fm;
-
         let elem = self.bst.elem_lim();
+        let b_start_pos = fm.header.current_height * elem.width() as uPS;
 
         let right = elem.is_right_side(target)?;
+
         let (start_pos, end_pos) = match right {
-            false => (0, fm.header.current_height * elem.width() as uPS),
-            true => (
-                fm.header.current_height * elem.width() as uPS,
-                fm.content_end_pos(false)?,
-            ),
+            false => (0, b_start_pos),
+            true => (b_start_pos, fm.content_end_pos(false)?), // no refresh
         };
 
         self.bst.change_file_lim(Lim::new(start_pos, end_pos))?;
 
         let (found, pos) = self.bst.search(fm, target)?;
-        dbg!(&found, &pos);
+
         if found {
             fm.read_cursoring(self.bst.buf_mut(), pos)?;
             let buf = if right {
@@ -173,10 +162,10 @@ impl DB {
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {
         self.file.fm.borrow_mut()
     }
-    fn cli(&mut self, context: String) -> Result<()> {
-        employ!(self.console)?.cli(context);
-        Ok(())
-    }
+    // fn cli(&mut self, context: String) -> Result<()> {
+    //     employ!(self.console)?.cli(context);
+    //     Ok(())
+    // }
 }
 
 impl Concentric<Console> for DB {

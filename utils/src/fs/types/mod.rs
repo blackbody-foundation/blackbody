@@ -22,8 +22,6 @@ mod cmn;
 mod fm;
 mod header;
 mod ptr;
-mod reader;
-mod writer;
 
 pub use self::cmn::*;
 pub use fm::FM;

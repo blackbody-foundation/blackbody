@@ -22,31 +22,6 @@
 // cccs = collapsed and compressed core star
 
 use utils::system::*;
-use wormhole::DB;
 fn main() -> Result<()> {
-    let console = Console::new();
-    let mut db = DB::open("test", 4, 32)?;
-    db.concentric(Some(console));
-
-    // db.define(&[1, 2, 3, 4], &[1; 32])?;
-    // db.define(&[5, 6, 7, 8], &[2; 32])?;
-    let mut a = db.get(&[1, 2, 3, 4])?;
-    let mut c = db.get(&[1; 32])?;
-    eprintln!("[1;32]: {:?}\n\n [1,2,3,4]: {:?}", c, a);
-    // a = db.get(&[5, 6, 7, 8])?;
-    // c = db.get(&[2; 32])?;
-    // eprintln!("[2;32]: {:?}\n\n [5,6,7,8]: {:?}", c, a);
-
-    // db.define(&[2, 2, 3, 5], &[3; 32])?;
-    // db.define(&[6, 6, 4, 3], &[4; 32])?;
-    // let mut a = db.get(&[2, 2, 3, 5])?;
-    // let mut c = db.get(&[3; 32])?;
-    // eprintln!("[3;32]: {:?}\n\n [2,2,3,5]: {:?}", c, a);
-    // a = db.get(&[6, 6, 4, 3])?;
-    // c = db.get(&[4; 32])?;
-    // eprintln!("[4;32]: {:?}\n\n [6,6,4,3]: {:?}", c, a);
-
-    db.debug();
-    db.close();
     Ok(())
 }

@@ -18,8 +18,6 @@
 
 */
 
-use std::ops::Sub;
-
 use crate::fs::types::LS;
 use crate::{errbang, system::*};
 

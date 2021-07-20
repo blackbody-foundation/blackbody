@@ -20,8 +20,39 @@
 
 //! One to One Set Database.
 
+mod cmn;
 mod db;
 mod head;
-mod cmn;
 
 pub use db::DB;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cmn::Result;
+    #[test]
+    fn otoodb() -> Result<()> {
+        let mut db = DB::open("test", 4, 32)?;
+
+        let mut packet = Vec::new();
+        for i in 1..=250_u8 {
+            packet.push((vec![i + 1, i + 2, i + 3, i + 4], vec![i + 5; 32]));
+        }
+
+        for p in packet.iter() {
+            db.define(&p.0, &p.1)?;
+        }
+
+        let (mut a, mut b);
+        for p in packet.iter() {
+            a = db.get(&p.0)?.unwrap();
+            b = db.get(&p.1)?.unwrap();
+            assert_eq!(a, p.1.to_vec());
+            assert_eq!(b, p.0.to_vec());
+        }
+
+        // db.debug();
+        db.close();
+        Ok(())
+    }
+}

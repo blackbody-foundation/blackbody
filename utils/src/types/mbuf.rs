@@ -71,7 +71,7 @@ impl MBuf {
         self.len == 0
     }
     pub fn set_len(&mut self, len: usize) {
-        self.len = len;
+        self.len = if len > CHUNK_SIZE { CHUNK_SIZE } else { len };
     }
     pub fn get_slice(&self) -> &[u8] {
         &self.buf[..self.len]

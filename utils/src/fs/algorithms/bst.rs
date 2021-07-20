@@ -19,11 +19,13 @@
 */
 
 use crate::{
-    errbang,
     fs::types::*,
-    max_bytes,
+    macros::errbang,
     system::*,
-    types::{bytes::U512, Lim, MBox, VLim},
+    types::{
+        bytes::{max_bytes, U512},
+        Lim, MBox, VLim,
+    },
 };
 
 #[derive(Debug)]
@@ -91,6 +93,7 @@ impl BST {
         match Self::check_lens(&self.file_lim, &elem_lim) {
             true => {
                 self.elem_lim = elem_lim;
+                self.buf = self.elem_lim.create::<u8>();
                 self.flush_width();
                 Ok(())
             }
@@ -101,6 +104,7 @@ impl BST {
         if Self::check_lens(&file_lim, &elem_lim) {
             self.file_lim = file_lim;
             self.elem_lim = elem_lim;
+            self.buf = self.elem_lim.create::<u8>();
             self.flush_width();
             Ok(())
         } else {
@@ -127,17 +131,9 @@ impl BST {
         let elem_total_len = elem.width() as uPS;
 
         let start = self.file_lim.start; // starting point
-        dbg!("start:::", &start);
 
-        let mut distance = self.width;
+        let mut forward;
 
-        let mut mid = 0;
-
-        let mut pos;
-
-        let mut forward = true;
-
-        dbg!("width::", &self.width);
         // init
         match self.width {
             0 => {
@@ -145,15 +141,9 @@ impl BST {
             }
             1 => {
                 fm.read_cursoring(buf, start)?;
-                dbg!(
-                    "max? ",
-                    &target,
-                    U512::from_little_endian(&target),
-                    &buf,
-                    U512::from_little_endian(&buf)
-                );
+
                 forward = target == max_bytes![target, buf]?;
-                dbg!(&forward);
+
                 m.to(&mut elem.right); // returning previous value (elem.right)
                 if target == buf {
                     return Ok((true, start));
@@ -164,14 +154,12 @@ impl BST {
             _ => {}
         }
 
-        loop {
-            distance /= 2;
+        let (mut low, mut high) = (0, self.width - 1);
 
-            if forward {
-                mid += distance + if distance == 0 { 1 } else { 0 };
-            } else {
-                mid -= distance + if distance == 0 { 1 } else { 0 };
-            }
+        let (mut mid, mut pos);
+
+        loop {
+            mid = low + ((high - low) / 2);
 
             pos = start + mid * elem_total_len;
 
@@ -182,14 +170,20 @@ impl BST {
                 return Ok((true, pos));
             }
 
-            if distance == 0 {
-                m.to(&mut elem.right);
-                pos += if forward { elem_total_len } else { 0 };
-                return Ok((false, pos));
-            }
-
             forward = target == max_bytes![target, buf]?;
+
+            if low >= high {
+                break;
+            }
+            if forward {
+                low = mid + 1;
+            } else {
+                high = mid - if mid == 0 { 0 } else { 1 };
+            }
         }
+
+        m.to(&mut elem.right);
+        Ok((false, pos + if forward { elem_total_len } else { 0 }))
     }
 }
 
