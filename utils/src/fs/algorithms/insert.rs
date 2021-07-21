@@ -54,7 +54,8 @@ pub mod cross_insert {
             if bytes.len() >= CHUNK_SIZE {
                 return errbang!(
                     err::OutOfBounds,
-                    "insert bytes length must be less than CHUNK_SIZE"
+                    "insert bytes length must be less than CHUNK_SIZE: {}",
+                    CHUNK_SIZE
                 );
             }
 

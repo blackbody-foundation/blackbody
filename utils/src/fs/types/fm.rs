@@ -23,6 +23,7 @@ use super::*;
 #[derive(Debug)]
 pub struct FM<T> {
     ptr: Ptr,
+    pub path: PathBuf,
     pub header: Box<T>,
     pub header_size: uPS,
     pub file_size: uPS,
@@ -30,7 +31,7 @@ pub struct FM<T> {
 }
 
 impl<T: HeaderTrait> FM<T> {
-    pub fn new(path: &'static str, mut header: Box<T>) -> Result<Self> {
+    pub fn new(path: &str, mut header: Box<T>) -> Result<Self> {
         let file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
@@ -39,11 +40,14 @@ impl<T: HeaderTrait> FM<T> {
 
         let mut ptr = Ptr::new(file);
 
+        let path = PathBuf::from(path);
+
         let header_size = header.read(&mut ptr)? as uPS;
         let file_size = ptr.seek(SeekFrom::End(0))?;
 
         Ok(Self {
             ptr,
+            path,
             header,
             header_size,
             file_size,

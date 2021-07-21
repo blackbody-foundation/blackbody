@@ -26,15 +26,14 @@ use types::*;
 
 #[derive(Debug)]
 pub struct File<T> {
-    pub path: &'static str,
     pub fm: FM<T>,
 }
 
 impl<T: HeaderTrait> File<T> {
-    pub fn open(path: &'static str, header: Box<T>) -> Result<Self> {
+    pub fn open(path: &str, header: Box<T>) -> Result<Self> {
         let fm = FM::new(path, header)?;
 
-        Ok(Self { path, fm })
+        Ok(Self { fm })
     }
     pub fn close(self) {}
 }

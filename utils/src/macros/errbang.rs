@@ -20,8 +20,8 @@
 
 #[macro_export]
 macro_rules! errbang {
-    ($kind:ty$(, $message:expr)?) => {
-        Result::Err(Box::new(<$kind>::new(format!(concat!("[{}:{}] ", $($message)?), file!(), line!()))))
+    ($kind:ty$(, $format_str:expr$(, $val:expr )* )?) => {
+        Result::Err(Box::new(<$kind>::new(format!(concat!("[{}:{}] ", $($format_str)?), file!(), line!(), $( $($val),* )?))))
     };
 }
 

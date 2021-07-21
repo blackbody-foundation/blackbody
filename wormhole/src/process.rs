@@ -1,5 +1,5 @@
 /*
-    .. + system + ..
+    .. + process.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,27 +18,12 @@
 
 */
 
-use std::{error, result};
+use super::cmn::*;
 
-pub mod args;
-
-pub mod errors;
-pub use super::macros::errbang::*;
-pub use errors::*;
-
-pub mod timer;
-pub use timer::Timer;
-
-pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
-pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
-
-pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
-
-pub mod console;
-pub use console::Console;
-
-#[macro_use]
-pub mod concentric;
-pub use concentric::*;
-
-pub use crossbeam;
+pub fn process_loop(
+    read_rx: channel::Receiver<Vec<u8>>,
+    otoodb: DB,
+    write_tx: channel::Sender<Vec<u8>>,
+) -> io::Result<()> {
+    Ok(())
+}

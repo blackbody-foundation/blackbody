@@ -39,8 +39,9 @@ pub struct DB {
 }
 
 impl DB {
-    pub fn open(file_path: &'static str, a_set_bytes: LS, b_set_bytes: LS) -> Result<Self> {
+    pub fn open(file_path: &str, a_set_bytes: LS, b_set_bytes: LS) -> Result<Self> {
         let (mid, end) = (a_set_bytes, b_set_bytes);
+
         let header = OtooHeader::new(0, mid as HUSize, end as HUSize);
         let file = File::open(file_path, header)?;
 
@@ -86,16 +87,19 @@ impl DB {
         self.file.fm.header.current_height += 1;
         self.file.fm.flush_header()
     }
-    pub fn close(self) {}
-    pub fn info(&self) -> (LS, LS, LS) {
+    pub fn get_file_path(&self) -> &Path {
+        &self.file.fm.path
+    }
+    pub fn get_info(&self) -> (LS, LS, LS) {
         (
             self.file.fm.header.current_height as LS,
             self.file.fm.header.a_set_bytes as LS,
             self.file.fm.header.b_set_bytes as LS,
         )
     }
+    pub fn close(self) {}
     pub fn validate(mut db: DB) -> Result<DB> {
-        let (height, a_bytes, b_bytes) = db.info();
+        let (height, a_bytes, b_bytes) = db.get_info();
         eprintln!(
             "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
             height, a_bytes, b_bytes

@@ -1,5 +1,5 @@
 /*
-    .. + system + ..
+    .. + cmn.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,27 +18,15 @@
 
 */
 
-use std::{error, result};
+//! common
 
-pub mod args;
+pub use utils::{
+    fs::types::{uPS, LS},
+    system::*,
+};
 
-pub mod errors;
-pub use super::macros::errbang::*;
-pub use errors::*;
+pub use otoodb::DB;
 
-pub mod timer;
-pub use timer::Timer;
+pub use crossbeam::channel;
 
-pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
-pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
-
-pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
-
-pub mod console;
-pub use console::Console;
-
-#[macro_use]
-pub mod concentric;
-pub use concentric::*;
-
-pub use crossbeam;
+pub use std::{io, thread};
