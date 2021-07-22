@@ -23,13 +23,13 @@ use std::{error, result};
 mod args;
 
 mod errors;
-pub use super::macros::errbang::*;
 pub use errors::*;
 
 pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
 pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
-
 pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
+
+pub use super::macros::errbang::*;
 
 #[macro_use]
 mod path;

@@ -31,6 +31,6 @@ pub use crossbeam::channel;
 
 pub use std::{io, path::PathBuf, thread};
 
-pub use super::target::Target;
+pub use super::target;
 
 pub const BOUNDED_CAP: usize = 1024;

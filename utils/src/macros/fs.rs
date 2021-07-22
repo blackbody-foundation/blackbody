@@ -18,10 +18,9 @@
 
 */
 
-pub use super::*;
+pub use super::derives::serde::*;
 pub use crate::fs::types::*;
 pub use crate::system::*;
-pub use std::io::{self, Read, Seek, SeekFrom, Write};
 ///```
 /// fheader! {
 ///     pub struct Name {
@@ -112,7 +111,7 @@ macro_rules! fheader {
                 ptr.seek(SeekFrom::Start(0))?;
                 match ptr.read_exact(&mut buf[..]) {
 
-                    Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                    Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
                         if Self::is_eof(ptr)? {
                             ptr.seek(SeekFrom::Start(0))?;
                             ptr.write_all(&src)?; // create

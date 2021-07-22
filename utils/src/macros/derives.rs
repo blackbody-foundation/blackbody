@@ -20,7 +20,7 @@
 
 #[macro_export]
 macro_rules! derives {
-    ($( $name:ident => { $(#[$id:tt($($derive:ident),*)]),* } )*) => {
+    ($( $name:ident => { $(#[$id:tt($($derive:expr),*)]),* } )*) => {
         $(
             #[macro_export]
             macro_rules! $name {
@@ -35,7 +35,6 @@ macro_rules! derives {
     };
 }
 derives! {
-    serialize => { #[derive(Serialize, Deserialize, Debug, PartialEq)] }
     ordering => { #[derive(Eq, PartialEq, PartialOrd)] }
     camelCase => { #[allow(non_snake_case)], #[warn(non_camel_case_types)] }
     snake_case => { #[allow(non_camel_case_types)], #[warn(non_snake_case)] }
@@ -43,5 +42,21 @@ derives! {
 
 pub use camelCase;
 pub use ordering;
-pub use serialize;
 pub use snake_case;
+
+///
+///
+///
+pub mod serde {
+    #[macro_export]
+    macro_rules! serialize {
+        ($i:item) => {
+            #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+            #[serde(crate = "self::serde")]
+            $i
+        };
+    }
+    pub use bincode;
+    pub use serde::{self, Deserialize, Serialize};
+    pub use serialize;
+}

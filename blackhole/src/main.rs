@@ -25,6 +25,6 @@ use utils::system::*;
 use wormhole::Wormhole;
 
 fn main() -> Result<()> {
-    let mut wormhole = Wormhole::new("db.hawking", 4, 32);
+    let wormhole = Wormhole::new("db.hawking", 4, 32);
     Ok(())
 }

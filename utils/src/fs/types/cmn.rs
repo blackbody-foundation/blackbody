@@ -21,7 +21,7 @@
 //! common
 
 pub use crate::types::{Lim, VLim};
-pub use crate::{errmatch, system::*, types::CHUNK_SIZE};
+pub use crate::{system::*, types::CHUNK_SIZE};
 
 pub use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 pub use std::{

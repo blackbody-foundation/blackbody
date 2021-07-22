@@ -25,13 +25,14 @@ mod process;
 mod read;
 mod write;
 
-mod target;
+pub mod cccs;
+pub mod target;
 
 /// this has only Path and Sizes(two of usize) so it's cheap to clone or new
 pub struct Wormhole {
     pub db_path: PathBuf,
-    src_bytes_size: LS,
-    dst_bytes_size: LS,
+    pub src_bytes_size: LS,
+    pub dst_bytes_size: LS,
 }
 
 impl Wormhole {
@@ -44,8 +45,7 @@ impl Wormhole {
         }
     }
     pub fn transform<'a>(&self, file_path: &'a str) -> Result<&'a str> {
-        let otoodb = self.load_otoodb()?;
-        let target = Target::new(file_path, otoodb);
+        let otoodb = target::OtooDB(self.load_otoodb()?);
 
         let (read_tx, read_rx) = channel::bounded(BOUNDED_CAP);
         let (write_tx, write_rx) = channel::bounded(BOUNDED_CAP);
@@ -53,7 +53,7 @@ impl Wormhole {
         let read_handle = thread::spawn(move || read::read_loop(read_tx));
 
         let process_handle =
-            thread::spawn(move || process::process_loop(read_rx, target, write_tx));
+            thread::spawn(move || process::process_loop(read_rx, otoodb, write_tx));
 
         let write_handle = thread::spawn(move || write::write_loop(write_rx));
 

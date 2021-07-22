@@ -20,22 +20,21 @@
 
 use super::cmn::*;
 
-pub struct Target {
-    otoodb: DB,
-    pub file_path: PathBuf,
-    pub src_bytes_size: LS,
-    pub dst_bytes_size: LS,
-}
+pub struct OtooDB(pub DB);
 
-impl Target {
-    pub fn new(file_path: &str, otoodb: DB) -> Self {
-        let (_, src_bytes_size, dst_bytes_size) = otoodb.get_info();
-        let file_path = pathy!(file_path);
-        Self {
-            otoodb,
-            file_path,
-            src_bytes_size,
-            dst_bytes_size,
-        }
+impl OtooDB {
+    /// (a_set_bytes, b_set_bytes): (LS, LS)
+    pub fn get_info(&self) -> (LS, LS) {
+        let (_, src_bytes_size, dst_bytes_size) = self.0.get_info();
+        (src_bytes_size, dst_bytes_size)
+    }
+
+    /// *** if any error occurs then panic! ***
+    pub fn transform(&mut self, src_bytes: &[u8]) -> Option<Vec<u8>> {
+        self.0
+            .get(src_bytes)
+            .expect("cannot transform some of src_bytes. &[u8]")
     }
 }
+
+pub struct File(pub std::fs::File);

@@ -22,24 +22,55 @@ use super::cmn::*;
 
 pub fn process_loop(
     read_rx: channel::Receiver<Vec<u8>>,
-    target: Target,
+    mut target: target::OtooDB,
     write_tx: channel::Sender<Vec<u8>>,
 ) -> io::Result<()> {
     let mut temporary = Vec::<u8>::new();
     let mut len;
-    let mut src_set = target.src_bytes_size;
     let mut rest;
+    let (src_size, dst_size) = target.get_info();
 
-    while let Ok(received_vec) = read_rx.recv() {
-        temporary.extend(received_vec.into_iter());
-        len = temporary.len();
-        if len < src_set {
-            continue;
+    let mut found_count: uPS;
+    'outer: loop {
+        found_count = 0;
+        while let Ok(r_vec) = read_rx.recv() {
+            // received vector into the temporary vector
+            temporary.extend(r_vec.into_iter());
+
+            len = temporary.len();
+
+            if len < src_size {
+                continue; // collect more
+            }
+
+            // get the chunks of source's bytes
+            for src_bytes in temporary.chunks(src_size) {
+                //
+                // transform source bytes to target bytes
+                if let Some(dst_bytes) = target.transform(src_bytes) {
+                    //
+                    // send the target bytes and then break out
+                    if write_tx.send(dst_bytes).is_err() {
+                        break 'outer;
+                    }
+                    found_count += 1;
+                }
+            }
+
+            // calculates rest of source bytes
+            rest = (len % src_size) / 8;
+            // replace whole vector of temporary to the rest of source bytes
+            temporary = (temporary[len - rest..len]).to_vec();
         }
-
-        // processed
-        rest = (len % src_set) / 8;
-        temporary = (temporary[len - rest..len]).to_vec();
+        // completed transforming
+        // flush header,
+        // temporary.len() <- stopped index
+        if found_count == 0 {
+            // if any of transforming process doesn't, just break out
+            break;
+        }
+        // or repeat more
     }
+
     Ok(())
 }

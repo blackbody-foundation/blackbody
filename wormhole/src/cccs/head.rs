@@ -1,5 +1,5 @@
 /*
-    .. + macros + ..
+    .. + head.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,22 +18,12 @@
 
 */
 
-pub mod bytes;
-pub mod derives;
-pub mod epool;
-pub mod errbang;
-pub mod fs;
+//! Header Configures for .cccs file
 
-pub mod gost;
+use utils::macros::fs::*;
 
-pub use derives::*;
-pub use errbang::*;
-
-#[macro_export]
-macro_rules! downcast {
-    ($i:expr, $t:ty) => {
-        ($i as &dyn Any).downcast_ref::<$t>()
-    };
+fheader! {
+    pub struct CCCSHeader {
+        pub statement: u8, // pub = free marked
+    }
 }
-
-pub use downcast;
