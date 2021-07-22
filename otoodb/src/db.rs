@@ -90,6 +90,10 @@ impl DB {
     pub fn get_file_path(&self) -> &Path {
         &self.file.fm.path
     }
+    /// header's
+    /// ```rust
+    /// (height, a_set_bytes, b_set_bytes): (LS, LS, LS)
+    /// ```
     pub fn get_info(&self) -> (LS, LS, LS) {
         (
             self.file.fm.header.current_height as LS,

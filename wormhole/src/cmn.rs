@@ -29,4 +29,8 @@ pub use otoodb::DB;
 
 pub use crossbeam::channel;
 
-pub use std::{io, thread};
+pub use std::{io, path::PathBuf, thread};
+
+pub use super::target::Target;
+
+pub const BOUNDED_CAP: usize = 1024;

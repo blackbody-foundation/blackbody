@@ -1,5 +1,5 @@
 /*
-    .. + system + ..
+    .. + process.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,31 +18,24 @@
 
 */
 
-use std::{error, result};
+use super::cmn::*;
 
-mod args;
+pub struct Target {
+    otoodb: DB,
+    pub file_path: PathBuf,
+    pub src_bytes_size: LS,
+    pub dst_bytes_size: LS,
+}
 
-mod errors;
-pub use super::macros::errbang::*;
-pub use errors::*;
-
-pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
-pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
-
-pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
-
-#[macro_use]
-mod path;
-pub use path::*;
-
-mod timer;
-pub use timer::Timer;
-
-#[macro_use]
-mod concentric;
-pub use concentric::*;
-
-pub use crossbeam;
-
-mod console;
-pub use console::Console;
+impl Target {
+    pub fn new(file_path: &str, otoodb: DB) -> Self {
+        let (_, src_bytes_size, dst_bytes_size) = otoodb.get_info();
+        let file_path = pathy!(file_path);
+        Self {
+            otoodb,
+            file_path,
+            src_bytes_size,
+            dst_bytes_size,
+        }
+    }
+}

@@ -22,8 +22,24 @@ use super::cmn::*;
 
 pub fn process_loop(
     read_rx: channel::Receiver<Vec<u8>>,
-    otoodb: DB,
+    target: Target,
     write_tx: channel::Sender<Vec<u8>>,
 ) -> io::Result<()> {
+    let mut temporary = Vec::<u8>::new();
+    let mut len;
+    let mut src_set = target.src_bytes_size;
+    let mut rest;
+
+    while let Ok(received_vec) = read_rx.recv() {
+        temporary.extend(received_vec.into_iter());
+        len = temporary.len();
+        if len < src_set {
+            continue;
+        }
+
+        // processed
+        rest = (len % src_set) / 8;
+        temporary = (temporary[len - rest..len]).to_vec();
+    }
     Ok(())
 }
