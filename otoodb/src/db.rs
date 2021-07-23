@@ -61,10 +61,7 @@ impl DB {
         self.file.fm.debug().unwrap();
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
-        match self.binary_search(bytes_a_or_b)?.0 {
-            Some(value) => Ok(Some(value)),
-            None => Ok(None),
-        }
+        Ok(self.binary_search(bytes_a_or_b)?.0)
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let mut packet = Packet::new();
@@ -93,10 +90,11 @@ impl DB {
     /// header's
     /// (height, a_set_bytes, b_set_bytes): (LS, LS, LS)
     pub fn get_info(&self) -> (LS, LS, LS) {
+        let header = self.file.fm.header.as_ref();
         (
-            self.file.fm.header.current_height as LS,
-            self.file.fm.header.a_set_bytes as LS,
-            self.file.fm.header.b_set_bytes as LS,
+            header.current_height as LS,
+            header.a_set_bytes as LS,
+            header.b_set_bytes as LS,
         )
     }
     pub fn close(self) {}
@@ -106,12 +104,13 @@ impl DB {
             "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
             height, a_bytes, b_bytes
         );
-        if height <= 1 {
+        if height < 2 {
             eprintln!("complete.");
             return Ok(db);
         }
 
         let fm = db.file_manager();
+
         fm.set_cursor(0)?;
 
         for (a_bl, b_bl) in [(a_bytes, b_bytes), (b_bytes, a_bytes)] {
@@ -119,7 +118,7 @@ impl DB {
             let mut prev_buf = vec![0_u8; a_bl];
 
             fm.read(&mut prev_buf)?;
-            fm.set_cursor_relative(b_bl as iPS)?;
+            fm.set_cursor_relative(b_bl as iPS)?; // *** warning b_bl is (usize)LS ***
 
             for _ in 1..height {
                 fm.read(&mut buf)?;

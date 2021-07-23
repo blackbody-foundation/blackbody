@@ -62,14 +62,16 @@ macro_rules! max_bytes {
     (
         $bytes0:expr$(, $bytes:expr)*
     ) => {
-        match vec![
-            ($bytes0, U512::from_little_endian($bytes0)),
-            $(
-                ($bytes, U512::from_little_endian($bytes))
-            ),*
-        ].iter().max_by_key(|x| x.1) {
-            Some(x) => Result::Ok(x.0),
-            None => errbang!(err::EmptyArgument)
+        {
+            match vec![
+                ($bytes0, U512::from_little_endian($bytes0)),
+                $(
+                    ($bytes, U512::from_little_endian($bytes))
+                ),*
+            ].into_iter().max_by_key(|x| x.1) {
+                Some(x) => Result::Ok(x.0),
+                None => errbang!(err::EmptyArgument)
+            }
         }
     };
 }
