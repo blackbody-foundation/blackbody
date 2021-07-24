@@ -1,5 +1,5 @@
 /*
-    .. + cmn.rs + ..
+    .. + tgroup.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,26 +18,19 @@
 
 */
 
-//! common
-
-pub use utils::{
-    fs::types::{uPS, LS},
-    macros::message,
-    system::*,
-};
-
-pub use otoodb::DB;
-
-pub use crossbeam::channel;
-
-pub use std::{io, path::PathBuf, thread};
-
-pub use super::target;
-
-pub const BOUNDED_CAP: usize = 1024;
-
-message! {
-    pub enum msg <=> Vec<u8> {
-        Through,
-    }
+/// Thread Group. R = requirement
+pub trait TGroup {
+    type R;
+    type O;
+    fn new(requirement: Self::R) -> Self;
+    fn join(self) -> Vec<Self::O>;
 }
+
+/// Thread Sub Group. R = Requirement, O = Handle Output
+pub trait TSubGroup {
+    type R;
+    type O;
+    fn new(requirement: &Self::R) -> std::thread::JoinHandle<Self::O>;
+}
+
+pub use crate::tgroup;

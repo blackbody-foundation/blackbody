@@ -18,15 +18,13 @@
 
 */
 
-mod cmn;
-use cmn::*;
+use utils::{fs::types::LS, system::*};
 
-mod process;
-mod read;
-mod write;
+use otoodb::DB;
+use std::path::PathBuf;
 
 pub mod cccs;
-pub mod target;
+mod tgroup; // thread group
 
 /// this has only Path and Sizes(two of usize) so it's cheap to clone or new
 pub struct Wormhole {
@@ -37,30 +35,28 @@ pub struct Wormhole {
 
 impl Wormhole {
     pub fn new(db_path: &str, src_bytes_size: LS, dst_bytes_size: LS) -> Self {
-        let db_path = pathy!(db_path);
         Self {
-            db_path,
+            db_path: pathy!(db_path),
             src_bytes_size,
             dst_bytes_size,
         }
     }
     pub fn transform<'a>(&self, file_path: &'a str) -> Result<&'a str> {
-        let input = file_path.to_string();
-        let otoodb = target::OtooDB(self.load_otoodb()?);
+        // let input = file_path.to_string();
 
-        let (read_tx, read_rx) = channel::bounded(BOUNDED_CAP);
-        let (write_tx, write_rx) = channel::bounded(BOUNDED_CAP);
+        // let (read_tx, read_rx) = channel::bounded(BOUNDED_CAP);
+        // let (write_tx, write_rx) = channel::bounded(BOUNDED_CAP);
 
-        let read_handle = thread::spawn(move || read::read_loop(input, read_tx));
+        // let read_handle = thread::spawn(move || read::read_loop(input, read_tx));
 
-        let process_handle =
-            thread::spawn(move || process::process_loop(read_rx, otoodb, write_tx));
+        // let process_handle =
+        //     thread::spawn(move || process::process_loop(read_rx, otoodb, write_tx));
 
-        let write_handle = thread::spawn(move || write::write_loop(write_rx));
+        // let write_handle = thread::spawn(move || write::write_loop(write_rx));
 
-        read_handle.join().unwrap()?;
-        process_handle.join().unwrap()?;
-        write_handle.join().unwrap()?;
+        // read_handle.join().unwrap()?;
+        // process_handle.join().unwrap()?;
+        // write_handle.join().unwrap()?;
 
         Ok(file_path)
     }

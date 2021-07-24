@@ -1,5 +1,5 @@
 /*
-    .. + types + ..
+    .. + mod.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,22 +18,19 @@
 
 */
 
-pub mod bytes;
-pub mod cheque128;
-pub mod epool;
-pub mod mbuf;
-pub mod message;
-pub mod rmbox;
-pub mod tgroup;
+pub mod cmn;
 
-mod lim;
+mod process;
+mod read;
+mod write;
 
-pub use lim::{Lim, VLim};
-pub use mbuf::MBuf;
-pub use rmbox::{MBox, RMBox};
+use cmn::*;
 
-pub const CHUNK_SIZE: usize = 4 * 1024;
-
-pub fn type_of<T>(_: T) -> &'static str {
-    std::any::type_name::<T>()
+tgroup! {
+    pub TG,
+    R = Requirement,
+    O = (),
+    read::TRead,
+    process::TProcess,
+    write::TWrite,
 }

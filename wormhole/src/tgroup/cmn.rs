@@ -1,5 +1,5 @@
 /*
-    .. + process.rs + ..
+    .. + cmn.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,23 +18,30 @@
 
 */
 
-use super::cmn::*;
+//! common
 
-pub struct OtooDB(pub DB);
+pub use utils::{
+    fs::types::{uPS, LS},
+    macros::message,
+    system::*,
+};
 
-impl OtooDB {
-    /// (a_set_bytes, b_set_bytes): (LS, LS)
-    pub fn get_info(&self) -> (LS, LS) {
-        let (_, src_bytes_size, dst_bytes_size) = self.0.get_info();
-        (src_bytes_size, dst_bytes_size)
-    }
+pub use otoodb::DB;
 
-    /// *** if any error occurs then panic! ***
-    pub fn transform(&mut self, src_bytes: &[u8]) -> Option<Vec<u8>> {
-        self.0
-            .get(src_bytes)
-            .expect("cannot transform some of src_bytes. &[u8]")
+pub use crossbeam::channel;
+
+pub use std::{io, path::PathBuf, thread};
+
+pub const BOUNDED_CAP: usize = 1024;
+
+message! {
+    pub enum msg <=> Vec<u8> {
+        Through,
     }
 }
 
-pub struct File(pub std::fs::File);
+pub use utils::types::tgroup::*;
+pub struct Requirement {
+    pub file_path: String, // target
+    pub db: otoodb::DB,
+}

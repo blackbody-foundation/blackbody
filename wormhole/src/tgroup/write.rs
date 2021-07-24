@@ -20,8 +20,21 @@
 
 //! write cccs or any file
 
+// use super::cmn::*;
+
+// pub fn write_loop(write_rx: channel::Receiver<Vec<u8>>) -> io::Result<()> {
+//     Ok(())
+// }
+
 use super::cmn::*;
 
-pub fn write_loop(write_rx: channel::Receiver<Vec<u8>>) -> io::Result<()> {
-    Ok(())
+pub struct TWrite {
+    file_path: String,
+}
+impl TSubGroup for TWrite {
+    type R = Requirement;
+    type O = ();
+    fn new(requirement: &Self::R) -> std::thread::JoinHandle<Self::O> {
+        std::thread::spawn(move || {})
+    }
 }
