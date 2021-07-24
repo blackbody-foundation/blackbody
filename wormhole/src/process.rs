@@ -21,7 +21,7 @@
 use super::cmn::*;
 
 pub fn process_loop(
-    read_rx: channel::Receiver<Vec<u8>>,
+    read_rx: channel::Receiver<msg::Message>,
     mut target: target::OtooDB,
     write_tx: channel::Sender<Vec<u8>>,
 ) -> io::Result<()> {
@@ -33,7 +33,8 @@ pub fn process_loop(
     let mut found_count: uPS;
     'outer: loop {
         found_count = 0;
-        while let Ok(r_vec) = read_rx.recv() {
+        while let Ok(p) = read_rx.recv() {
+            let r_vec = p.content;
             // received vector into the temporary vector
             temporary.extend(r_vec.into_iter());
 

@@ -20,8 +20,19 @@
 
 //! read cccs or any file
 
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+};
+
 use super::cmn::*;
 
-pub fn read_loop(read_tx: channel::Sender<Vec<u8>>) -> io::Result<()> {
+pub fn read_loop(input: String, read_tx: channel::Sender<msg::Message>) -> io::Result<()> {
+    let mut reader: Box<dyn Read> = if input.is_empty() {
+        Box::new(BufReader::new(io::stdin()))
+    } else {
+        Box::new(BufReader::new(File::open(input)?))
+    };
+
     Ok(())
 }

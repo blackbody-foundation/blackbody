@@ -1,5 +1,5 @@
 /*
-    .. + types + ..
+    .. + message.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,21 +18,7 @@
 
 */
 
-pub mod bytes;
-pub mod cheque128;
-pub mod epool;
-pub mod mbuf;
-pub mod rmbox;
-pub mod message;
-
-mod lim;
-
-pub use lim::{Lim, VLim};
-pub use mbuf::MBuf;
-pub use rmbox::{MBox, RMBox};
-
-pub const CHUNK_SIZE: usize = 4 * 1024;
-
-pub fn type_of<T>(_: T) -> &'static str {
-    std::any::type_name::<T>()
+pub struct Message<E, T> {
+    pub kind: E,
+    pub content: T,
 }

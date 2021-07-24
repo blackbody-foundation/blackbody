@@ -61,13 +61,21 @@ impl DB {
         self.file.fm.debug().unwrap();
     }
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
-        Ok(self.binary_search(bytes_a_or_b)?.0)
+        Ok(self.binary_search(bytes_a_or_b, 0)?.0)
+    }
+    /// version == specific height limited
+    pub fn get_by_version(
+        &mut self,
+        bytes_a_or_b: &[u8],
+        limited_height: HHSize,
+    ) -> Result<Option<Vec<u8>>> {
+        Ok(self.binary_search(bytes_a_or_b, limited_height)?.0)
     }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let mut packet = Packet::new();
 
         for bytes in [[bytes_a, bytes_b], [bytes_b, bytes_a]].iter() {
-            match self.binary_search(bytes[0])? {
+            match self.binary_search(bytes[0], 0)? {
                 (None, pos) => {
                     packet.push((bytes.concat(), pos));
                 }
@@ -136,16 +144,38 @@ impl DB {
         Ok(db)
     }
 
-    fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
+    /// if limit_height == 0 then limit_height = fm.header.current_height
+    fn binary_search(
+        &mut self,
+        target: &[u8],
+        limited_height: HHSize,
+    ) -> Result<(Option<Vec<u8>>, uPS)> {
         let fm = &mut self.file.fm;
+        let height = fm.header.current_height;
+        let limited_height = if limited_height > 0 {
+            limited_height
+        } else {
+            height
+        };
+        if height < limited_height {
+            return errbang!(
+                err::HigherVersion,
+                "limit height({}) must be less than original height({}).",
+                limited_height,
+                height
+            );
+        }
         let elem = self.bst.elem_lim();
-        let b_start_pos = fm.header.current_height * elem.width() as uPS;
 
         let right = elem.is_right_side(target)?;
 
         let (start_pos, end_pos) = match right {
-            false => (0, b_start_pos),
-            true => (b_start_pos, fm.content_end_pos(false)?), // no refresh
+            // careful mul overflow
+            false => (0, limited_height * elem.width() as uPS),
+            true => (
+                height * elem.width() as uPS,
+                (height + limited_height) * elem.width() as uPS,
+            ),
         };
 
         self.bst.change_file_lim(Lim::new(start_pos, end_pos))?;

@@ -34,6 +34,7 @@ errors! {
     UnwrapingError => "unwrap failed."
     OutOfBounds => "index out of bounds."
     ThreadSending => "thread sending error."
+    HigherVersion => "higher version data cannot be read."
 }
 
 pub fn handle_io_error<T>(io_error: std::io::Result<T>) -> Result<T> {

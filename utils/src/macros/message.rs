@@ -1,5 +1,5 @@
 /*
-    .. + types + ..
+    .. + message.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,21 +18,24 @@
 
 */
 
-pub mod bytes;
-pub mod cheque128;
-pub mod epool;
-pub mod mbuf;
-pub mod rmbox;
-pub mod message;
+#[macro_export]
+macro_rules! message {
+    (
+        $vis:vis enum $name:ident <=> $t:ty {
+            $($kind:ident$(,)?)*
+        }
+    ) => {
+        /// message
+        $vis mod $name {
+            use utils::types::message;
 
-mod lim;
+            pub type Message = message::Message<Kind, $t>;
 
-pub use lim::{Lim, VLim};
-pub use mbuf::MBuf;
-pub use rmbox::{MBox, RMBox};
-
-pub const CHUNK_SIZE: usize = 4 * 1024;
-
-pub fn type_of<T>(_: T) -> &'static str {
-    std::any::type_name::<T>()
+            pub enum Kind {
+                $($kind),*
+            }
+        }
+    };
 }
+
+pub use message;

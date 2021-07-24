@@ -22,10 +22,12 @@
 
 use utils::macros::fs::*;
 
-/// *** warning: both must be less than 'usize(=LS)' ***
+// *** warning: both must be less than 'usize(=LS)' ***
+/// header height size
 pub type HHSize = u64;
+/// header unit size
 pub type HUSize = u32;
-/// ***********************************************
+// ***********************************************
 use utils::fs::types::HeaderTrait;
 
 fheader! {

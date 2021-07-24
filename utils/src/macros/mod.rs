@@ -23,11 +23,13 @@ pub mod derives;
 pub mod epool;
 pub mod errbang;
 pub mod fs;
+pub mod message;
 
 pub mod gost;
 
 pub use derives::*;
 pub use errbang::*;
+pub use message::*;
 
 #[macro_export]
 macro_rules! downcast {

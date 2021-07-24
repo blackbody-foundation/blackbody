@@ -22,8 +22,8 @@ use super::*;
 
 pub type Header = Box<dyn HeaderTrait>;
 pub trait HeaderTrait: std::fmt::Debug {
-    /// return value is bytes length of successfully filled buffer.
+    /// return value is bytes length of header
     fn read(&mut self, ptr: &mut Ptr) -> Result<LS>;
-    /// return value is bytes length of successfully filled buffer.
+    /// return value is bytes length of header
     fn write(&mut self, ptr: &mut Ptr) -> Result<LS>;
 }

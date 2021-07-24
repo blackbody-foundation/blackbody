@@ -22,6 +22,7 @@
 
 pub use utils::{
     fs::types::{uPS, LS},
+    macros::message,
     system::*,
 };
 
@@ -34,3 +35,9 @@ pub use std::{io, path::PathBuf, thread};
 pub use super::target;
 
 pub const BOUNDED_CAP: usize = 1024;
+
+message! {
+    pub enum msg <=> Vec<u8> {
+        Through,
+    }
+}

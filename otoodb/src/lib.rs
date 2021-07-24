@@ -25,14 +25,22 @@ mod db;
 mod head;
 
 pub use db::DB;
+pub use head::*;
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
     use crate::cmn::Result;
+
+    const FILE_PATH: &str = "test";
     #[test]
     fn otoodb() -> Result<()> {
-        let mut db = DB::open("test", 4, 32)?;
+        if std::path::Path::new(FILE_PATH).exists() {
+            fs::remove_file(FILE_PATH)?;
+        }
+        let mut db = DB::open(FILE_PATH, 4, 32)?;
 
         let mut packet = Vec::new();
         for i in 1..=250_u8 {
@@ -43,8 +51,19 @@ mod tests {
             db.define(&p.0, &p.1)?;
         }
 
-        let (mut a, mut b);
-        for p in packet.iter() {
+        let (mut a, mut b) = (Vec::new(), Vec::new());
+        for (current_height, p) in packet.iter().enumerate() {
+            if current_height > 1 {
+                let prev_a = db
+                    .get_by_version(&packet[current_height - 1].0, current_height as HHSize)?
+                    .unwrap();
+                let prev_b = db
+                    .get_by_version(&packet[current_height - 1].1, current_height as HHSize)?
+                    .unwrap();
+                assert_eq!(prev_a, a);
+                assert_eq!(prev_b, b);
+            }
+
             a = db.get(&p.0)?.unwrap();
             b = db.get(&p.1)?.unwrap();
             assert_eq!(a, p.1.to_vec());
@@ -53,6 +72,7 @@ mod tests {
 
         // db.debug();
         db.close();
+        fs::remove_file(FILE_PATH)?;
         Ok(())
     }
 }

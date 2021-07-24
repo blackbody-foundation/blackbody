@@ -36,7 +36,7 @@ macro_rules! fheader {
 
         $vis:vis struct $name:ident {
 
-            $($free_mark:vis $var:ident: $t:ty),*,
+            $($free_mark:vis $var:ident: $t:ty),*$(,)?
 
         }
 

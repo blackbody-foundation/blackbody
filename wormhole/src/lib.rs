@@ -45,12 +45,13 @@ impl Wormhole {
         }
     }
     pub fn transform<'a>(&self, file_path: &'a str) -> Result<&'a str> {
+        let input = file_path.to_string();
         let otoodb = target::OtooDB(self.load_otoodb()?);
 
         let (read_tx, read_rx) = channel::bounded(BOUNDED_CAP);
         let (write_tx, write_rx) = channel::bounded(BOUNDED_CAP);
 
-        let read_handle = thread::spawn(move || read::read_loop(read_tx));
+        let read_handle = thread::spawn(move || read::read_loop(input, read_tx));
 
         let process_handle =
             thread::spawn(move || process::process_loop(read_rx, otoodb, write_tx));

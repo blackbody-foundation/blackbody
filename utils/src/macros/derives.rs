@@ -51,7 +51,7 @@ pub mod serde {
     #[macro_export]
     macro_rules! serialize {
         ($i:item) => {
-            #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+            #[derive(Clone, Debug, Deserialize, Serialize)]
             #[serde(crate = "self::serde")]
             $i
         };
