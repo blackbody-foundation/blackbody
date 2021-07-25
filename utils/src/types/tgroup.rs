@@ -18,7 +18,9 @@
 
 */
 
-/// Thread Group. R = requirement
+/// Thread Group.<br>
+/// R = Requirement<br>
+/// O = Handle Output<br>
 pub trait TGroup {
     type R;
     type O;
@@ -26,11 +28,16 @@ pub trait TGroup {
     fn join(self) -> Vec<Self::O>;
 }
 
-/// Thread Sub Group. R = Requirement, O = Handle Output
-pub trait TSubGroup {
+use super::chan::Chan;
+
+/// Thread Sub Group.<br>
+/// R = Requirement<br>
+/// O = Handle Output<br>
+/// M = Message Type<br>
+pub trait TSubGroup<M = ()> {
     type R;
     type O;
-    fn new(requirement: &Self::R) -> std::thread::JoinHandle<Self::O>;
+    fn new(requirement: &Self::R, channel: Chan<M>) -> std::thread::JoinHandle<Self::O>;
 }
 
 pub use crate::tgroup;

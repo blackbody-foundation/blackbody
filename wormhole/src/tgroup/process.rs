@@ -80,10 +80,10 @@ use super::cmn::*;
 pub struct TProcess {
     file_path: String,
 }
-impl TSubGroup for TProcess {
+impl TSubGroup<msg::Message> for TProcess {
     type R = Requirement;
     type O = ();
-    fn new(requirement: &Self::R) -> std::thread::JoinHandle<Self::O> {
+    fn new(requirement: &Self::R, channel: Chan<msg::Message>) -> std::thread::JoinHandle<Self::O> {
         std::thread::spawn(move || {})
     }
 }

@@ -19,6 +19,7 @@
 */
 
 pub mod bytes;
+pub mod chan;
 pub mod derives;
 pub mod epool;
 pub mod errbang;
@@ -28,6 +29,7 @@ pub mod tgroup;
 
 pub mod gost;
 
+pub use chan::*;
 pub use derives::*;
 pub use errbang::*;
 pub use message::*;

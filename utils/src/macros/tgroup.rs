@@ -22,18 +22,36 @@
 ///tgroup! {
 ///     pub TG,
 ///     R = Requirement,
-///     O = ResultSend<()>,
-///     TRead,
-///     TWrite,
+///     O = Vec<u8>,
+///     pipeline(msg::Message, 1024), // optional
+///     [
+///         TRead,
+///         TWrite,
+///     ]
 /// }
 ///```
+/// R = Requirement Type<br>
+/// O = JoinHandler Output Type<br>
+/// pipeline(MssageType, BoundedCap)<br>
+/// or
+/// pipeline(MessageType)<br>
+/// this creates unbounded channels<br><br>
+/// if pipeline is actived,
+/// * TRead, TWrite, ... <- must be ordered by pipechan
 #[macro_export]
 macro_rules! tgroup {
+    (@count) => {0usize};
+    (@count $_head:tt$($tail:tt)*) => {1usize + tgroup!(@count $($tail)*)};
     (
         $vis:vis $name:ident,
         R = $requirement:ty,
         O = $output:ty,
-        $($sub_group:ty$(,)?)*
+        $(
+        pipeline($message_type:ty$(,$cap:expr)?),
+        )?
+        [
+        $($sub_group:ty$(,)?)+
+        ]
     ) => {
 
         $vis struct $name {
@@ -46,9 +64,15 @@ macro_rules! tgroup {
             type O = $output;
             fn new(requirement: Self::R) -> Self {
                 let mut sub = Vec::new();
+                let count = tgroup!(@count $($sub_group)+); // count number of sub groups
+                let mut chan_iter = utils::macros::pipechan!(count$( $(,cap:$cap)?, msg:$message_type )?).into_iter(); // create pipe channels
+
                 $(
-                    sub.push(<$sub_group>::new(&requirement));
-                )*
+
+                    sub.push(<$sub_group>::new(&requirement, chan_iter.next().unwrap()));
+
+                )+
+
                 Self{requirement, sub}
             }
             fn join(self) -> Vec<Self::O> {

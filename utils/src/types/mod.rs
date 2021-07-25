@@ -19,6 +19,7 @@
 */
 
 pub mod bytes;
+pub mod chan;
 pub mod cheque128;
 pub mod epool;
 pub mod mbuf;

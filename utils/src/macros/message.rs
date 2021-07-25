@@ -18,10 +18,23 @@
 
 */
 
+///```rust
+/// message! {
+///     pub name,
+///     M = Vec<u8>,
+///     K = enum {
+///         Kind1,
+///         Kind2,
+///     }
+/// }
+///```
+/// M = Message Type, K = Kind Enum
 #[macro_export]
 macro_rules! message {
     (
-        $vis:vis enum $name:ident <=> $t:ty {
+        $vis:vis $name:ident,
+        M = $t:ty,
+        K = enum {
             $($kind:ident$(,)?)*
         }
     ) => {

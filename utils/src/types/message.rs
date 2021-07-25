@@ -18,7 +18,10 @@
 
 */
 
-pub struct Message<E, T> {
-    pub kind: E,
-    pub content: T,
+pub struct Message<K, C> {
+    pub kind: K,
+    pub content: C,
 }
+impl<K, C> Messages for Message<K, C> {}
+
+pub trait Messages {}

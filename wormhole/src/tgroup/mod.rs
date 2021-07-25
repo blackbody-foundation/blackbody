@@ -28,9 +28,15 @@ use cmn::*;
 
 tgroup! {
     pub TG,
+
     R = Requirement,
     O = (),
-    read::TRead,
-    process::TProcess,
-    write::TWrite,
+
+    pipeline(msg::Message, BOUNDED_CAP),
+
+    [
+        read::TRead,
+        process::TProcess,
+        write::TWrite,
+    ]
 }

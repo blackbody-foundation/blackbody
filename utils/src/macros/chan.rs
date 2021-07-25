@@ -1,0 +1,63 @@
+/*
+    .. + chan.rs + ..
+
+    Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
+
+    BlackBody is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    BlackBody is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with BlackBody. If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
+/// pipechan!(num_pipe, bounded_cap(-1 == unbounded), MessageType);
+#[macro_export]
+macro_rules! pipechan {
+    (@create_channel $cap:expr, $message_type:ty) => {
+        crossbeam::channel::bounded::<$message_type>($cap)
+    };
+    (@create_channel $message_type:ty) => {
+        crossbeam::channel::unbounded::<$message_type>()
+    };
+    (
+        $number:expr
+    ) => {
+        vec![utils::types::chan::Chan::<()>::none(); $number]
+    };
+    (
+        $number:expr, $(cap:$cap:expr,)? msg:$message_type:ty
+    ) => {
+        {
+            assert!(
+                $number < 3,
+                "pipechan's the number of channels must be more than 3."
+            );
+            let mut pipe = Vec::new();
+
+            let (tx, mut prev_rx) = utils::macros::pipechan!(@create_channel $($cap,)? $message_type);
+
+            pipe.push(utils::types::chan::Chan::new(Some(tx), None));
+
+            for _ in 1..$number { // number of channels = n - 1
+                let (tx, rx) = utils::macros::pipechan!(@create_channel $($cap,)? $message_type);
+                let chan = utils::types::chan::Chan::new(Some(tx), Some(prev_rx));
+                prev_rx = rx;
+                pipe.push(chan);
+            }
+
+            pipe.push(utils::types::chan::Chan::new(None, Some(prev_rx)));
+
+            pipe
+        }
+    };
+}
+
+pub use pipechan;

@@ -31,10 +31,10 @@ use super::cmn::*;
 pub struct TWrite {
     file_path: String,
 }
-impl TSubGroup for TWrite {
+impl TSubGroup<msg::Message> for TWrite {
     type R = Requirement;
     type O = ();
-    fn new(requirement: &Self::R) -> std::thread::JoinHandle<Self::O> {
+    fn new(requirement: &Self::R, channel: Chan<msg::Message>) -> std::thread::JoinHandle<Self::O> {
         std::thread::spawn(move || {})
     }
 }

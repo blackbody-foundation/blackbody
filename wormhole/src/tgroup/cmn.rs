@@ -24,6 +24,7 @@ pub use utils::{
     fs::types::{uPS, LS},
     macros::message,
     system::*,
+    types::{chan::*, tgroup::*},
 };
 
 pub use otoodb::DB;
@@ -35,12 +36,13 @@ pub use std::{io, path::PathBuf, thread};
 pub const BOUNDED_CAP: usize = 1024;
 
 message! {
-    pub enum msg <=> Vec<u8> {
+    pub msg,
+    M = Vec<u8>,
+    K = enum {
         Through,
     }
 }
 
-pub use utils::types::tgroup::*;
 pub struct Requirement {
     pub file_path: String, // target
     pub db: otoodb::DB,

@@ -42,10 +42,10 @@ use super::cmn::*;
 pub struct TRead {
     file_path: String,
 }
-impl TSubGroup for TRead {
+impl TSubGroup<msg::Message> for TRead {
     type R = Requirement;
     type O = ();
-    fn new(requirement: &Self::R) -> std::thread::JoinHandle<Self::O> {
-       std::thread::spawn(move || { })
+    fn new(requirement: &Self::R, channel: Chan<msg::Message>) -> std::thread::JoinHandle<Self::O> {
+        std::thread::spawn(move || {})
     }
 }
