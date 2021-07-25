@@ -33,8 +33,15 @@ pub struct TWrite {
 }
 impl TSubGroup<msg::Message> for TWrite {
     type R = Requirement;
-    type O = ();
+    type O = ResultSend<()>; // join handler output type
     fn new(requirement: &Self::R, channel: Chan<msg::Message>) -> std::thread::JoinHandle<Self::O> {
-        std::thread::spawn(move || {})
+        // -> rx
+        std::thread::spawn(move || -> ResultSend<()> {
+            let m = channel.recv().unwrap();
+            match m.kind {
+                msg::Kind::End => Ok(()),
+                msg::Kind::Through => Ok(()),
+            }
+        })
     }
 }

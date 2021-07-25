@@ -23,14 +23,13 @@ pub use crate::types::bytes::U512;
 
 /// Bytes length match macro
 ///
-/// ```
+/// ```rust
 /// let len = is_bytes_len![&[0,0,0], 2, 3, 6];
 /// assert_eq!(len, 3);
 /// ```
 ///
 /// - if the match is invalid, return Err(err::InvalidLenSize)
 ///
-/// ```
 #[macro_export]
 macro_rules! is_bytes_len {
     (
@@ -48,7 +47,7 @@ macro_rules! is_bytes_len {
 
 /// Picking maximum bytes (by U512 'little endian')
 ///
-/// ```
+/// ```rust
 /// let max = max_bytes![&[0,0,0], &[1,2,3], &[3,2,1]];
 /// assert_eq!(max, &[1,2,3]);
 /// ```
@@ -56,7 +55,6 @@ macro_rules! is_bytes_len {
 /// - If several elements are equally maximum, the last element is returned.
 /// - If the arguments place is empty, Err(err::EmptyArgument) is returned.
 ///
-/// ```
 #[macro_export]
 macro_rules! max_bytes {
     (

@@ -18,6 +18,7 @@
 
 */
 
+/// custom derives
 #[macro_export]
 macro_rules! derives {
     ($( $name:ident => { $(#[$id:tt($($derive:expr),*)]),* } )*) => {
@@ -43,6 +44,30 @@ derives! {
 pub use camelCase;
 pub use ordering;
 pub use snake_case;
+
+///
+///
+///
+#[macro_export]
+macro_rules! derive_new {
+    (
+        $vis:vis struct $name:ident {
+            $($f_vis:vis $var:ident: $t:ty),*$(,)?
+        }
+    ) => {
+        $vis struct $name {
+            $($f_vis $var: $t),*
+        }
+        impl $name {
+            $vis fn new($($var: $t),*) -> Self {
+                Self {
+                    $($var),*
+                }
+            }
+        }
+    };
+}
+pub use derive_new;
 
 ///
 ///

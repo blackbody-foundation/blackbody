@@ -51,7 +51,7 @@ macro_rules! tgroup {
         )?
         [
         $($sub_group:ty$(,)?)+
-        ]
+        ]$(,)?
     ) => {
 
         $vis struct $name {
@@ -65,7 +65,7 @@ macro_rules! tgroup {
             fn new(requirement: Self::R) -> Self {
                 let mut sub = Vec::new();
                 let count = tgroup!(@count $($sub_group)+); // count number of sub groups
-                let mut chan_iter = utils::macros::pipechan!(count$( $(,cap:$cap)?, msg:$message_type )?).into_iter(); // create pipe channels
+                let mut chan_iter = utils::pipechan!(count$( $(,cap:$cap)?, msg:$message_type )?).into_iter(); // create pipe channels
 
                 $(
 

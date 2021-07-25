@@ -20,9 +20,12 @@
 
 //! common
 
+pub use std::{io, path::PathBuf, thread};
+
 pub use utils::{
+    derive_new,
     fs::types::{uPS, LS},
-    macros::message,
+    message,
     system::*,
     types::{chan::*, tgroup::*},
 };
@@ -31,8 +34,6 @@ pub use otoodb::DB;
 
 pub use crossbeam::channel;
 
-pub use std::{io, path::PathBuf, thread};
-
 pub const BOUNDED_CAP: usize = 1024;
 
 message! {
@@ -40,10 +41,13 @@ message! {
     M = Vec<u8>,
     K = enum {
         Through,
+        End,
     }
 }
 
-pub struct Requirement {
-    pub file_path: String, // target
-    pub db: otoodb::DB,
+derive_new! {
+    pub struct Requirement {
+        pub file_path: String, // target
+        pub db: otoodb::DB
+    }
 }

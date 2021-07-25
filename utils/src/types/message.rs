@@ -22,6 +22,12 @@ pub struct Message<K, C> {
     pub kind: K,
     pub content: C,
 }
+impl<K, C> Message<K, C> {
+    pub fn new(kind: K, content: C) -> Self {
+        Self { kind, content }
+    }
+}
+
 impl<K, C> Messages for Message<K, C> {}
 
 pub trait Messages {}

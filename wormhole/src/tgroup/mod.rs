@@ -18,19 +18,20 @@
 
 */
 
-pub mod cmn;
-
 mod process;
 mod read;
 mod write;
 
+mod cmn;
 use cmn::*;
+
+pub use cmn::Requirement;
 
 tgroup! {
     pub TG,
 
     R = Requirement,
-    O = (),
+    O = ResultSend<()>,
 
     pipeline(msg::Message, BOUNDED_CAP),
 

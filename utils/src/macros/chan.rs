@@ -18,7 +18,8 @@
 
 */
 
-/// pipechan!(num_pipe, bounded_cap(-1 == unbounded), MessageType);
+/// pipechan!(num_pipe, $(bounded_cap)?, MessageType);
+/// if bounded_cap is empty then creates unbounded channels
 #[macro_export]
 macro_rules! pipechan {
     (@create_channel $cap:expr, $message_type:ty) => {
@@ -42,12 +43,12 @@ macro_rules! pipechan {
             );
             let mut pipe = Vec::new();
 
-            let (tx, mut prev_rx) = utils::macros::pipechan!(@create_channel $($cap,)? $message_type);
+            let (tx, mut prev_rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
 
             pipe.push(utils::types::chan::Chan::new(Some(tx), None));
 
             for _ in 1..$number { // number of channels = n - 1
-                let (tx, rx) = utils::macros::pipechan!(@create_channel $($cap,)? $message_type);
+                let (tx, rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
                 let chan = utils::types::chan::Chan::new(Some(tx), Some(prev_rx));
                 prev_rx = rx;
                 pipe.push(chan);

@@ -26,6 +26,13 @@ macro_rules! errbang {
 }
 
 #[macro_export]
+macro_rules! errbangsend {
+    ($kind:ty$(, $format_str:expr$(, $val:expr )* )?) => {
+        ResultSend::Err((Box::new(<$kind>::new(format!(concat!("[{}:{}] ", $($format_str)?), file!(), line!(), $( $($val),* )?)))))
+    };
+}
+
+#[macro_export]
 macro_rules! errmatch {
     ($err:expr, $kind:ty) => {
         match $err.downcast_ref::<$kind>() {
@@ -77,5 +84,6 @@ macro_rules! errors {
 }
 
 pub use errbang;
+pub use errbangsend;
 pub use errmatch;
 pub use errors;

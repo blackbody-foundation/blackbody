@@ -18,13 +18,15 @@
 
 */
 
-use utils::{fs::types::LS, system::*};
+use utils::{fs::types::LS, system::*, types::tgroup::TGroup};
 
 use otoodb::DB;
 use std::path::PathBuf;
 
 pub mod cccs;
+
 mod tgroup; // thread group
+use tgroup::TG;
 
 /// this has only Path and Sizes(two of usize) so it's cheap to clone or new
 pub struct Wormhole {
@@ -42,22 +44,11 @@ impl Wormhole {
         }
     }
     pub fn transform<'a>(&self, file_path: &'a str) -> Result<&'a str> {
-        // let input = file_path.to_string();
-
-        // let (read_tx, read_rx) = channel::bounded(BOUNDED_CAP);
-        // let (write_tx, write_rx) = channel::bounded(BOUNDED_CAP);
-
-        // let read_handle = thread::spawn(move || read::read_loop(input, read_tx));
-
-        // let process_handle =
-        //     thread::spawn(move || process::process_loop(read_rx, otoodb, write_tx));
-
-        // let write_handle = thread::spawn(move || write::write_loop(write_rx));
-
-        // read_handle.join().unwrap()?;
-        // process_handle.join().unwrap()?;
-        // write_handle.join().unwrap()?;
-
+        let tg = TG::new(tgroup::Requirement::new(
+            file_path.to_owned(),
+            self.load_otoodb()?,
+        ));
+        tg.join();
         Ok(file_path)
     }
     fn load_otoodb(&self) -> Result<DB> {
