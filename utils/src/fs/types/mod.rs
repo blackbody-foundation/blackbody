@@ -22,8 +22,10 @@ mod cmn;
 mod fm;
 mod header;
 mod ptr;
+mod stdptr;
 
 pub use self::cmn::*;
 pub use fm::FM;
 pub use header::*;
 pub use ptr::Ptr;
+pub use stdptr::StdPtr;

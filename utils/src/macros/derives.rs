@@ -51,12 +51,20 @@ pub use snake_case;
 #[macro_export]
 macro_rules! derive_new {
     (
+        $(#[$meta:meta])*
         $vis:vis struct $name:ident {
-            $($f_vis:vis $var:ident: $t:ty),*$(,)?
+            $(
+                $(#[$field_meta:meta])*
+                $f_vis:vis $var:ident: $t:ty
+            ),*$(,)?
         }
     ) => {
+        $(#[$meta])*
         $vis struct $name {
-            $($f_vis $var: $t),*
+            $(
+                $(#[$field_meta])*
+                $f_vis $var: $t
+            ),*
         }
         impl $name {
             $vis fn new($($var: $t),*) -> Self {
@@ -68,6 +76,39 @@ macro_rules! derive_new {
     };
 }
 pub use derive_new;
+
+///
+///
+///
+#[macro_export]
+macro_rules! derive_substruct {
+    (
+        super: $super:ty;
+        $(#[$meta:meta])*
+        $vis:vis struct $name:ident {
+            $(
+                $(#[$field_meta:meta])*
+                $f_vis:vis $var:ident: $t:ty
+            ),*$(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        $vis struct $name {
+            $(
+                $(#[$field_meta:meta])*
+                $f_vis $var: $t
+            ),*
+        }
+        impl $name {
+            $vis fn copy_from_super(requirement: &$super) -> Self {
+                Self {
+                    $($var: requirement.$var.clone()),*
+                }
+            }
+        }
+    };
+}
+pub use derive_substruct;
 
 ///
 ///

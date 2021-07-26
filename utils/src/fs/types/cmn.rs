@@ -24,7 +24,7 @@ pub use crate::types::{Lim, VLim};
 pub use crate::{system::*, types::CHUNK_SIZE};
 
 pub use std::fs::File;
-pub use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
+pub use std::io::{self, BufReader, BufWriter, Read, Seek, SeekFrom, Stdin, Stdout, Write};
 
 /// *** warning ***
 #[allow(non_camel_case_types)]

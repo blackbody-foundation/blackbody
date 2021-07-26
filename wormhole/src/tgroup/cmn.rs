@@ -20,13 +20,16 @@
 
 //! common
 
+pub use std::io;
+
 pub use utils::{
-    derive_new,
+    derive_substruct,
     fs::types::{uPS, LS},
-    message,
     system::*,
     types::{chan::*, tgroup::*},
 };
+
+pub use crate::CCCSHeader;
 
 pub use otoodb::DB;
 
@@ -34,7 +37,7 @@ pub use crossbeam::channel;
 
 pub const BOUNDED_CAP: usize = 1024;
 
-message! {
+utils::message! {
     pub msg,
     M = Vec<u8>,
     K = enum {
@@ -43,9 +46,9 @@ message! {
     }
 }
 
-derive_new! {
+utils::derive_new! {
     pub struct Requirement {
-        pub file_path: String, // target
+        pub infile: String, // target
         pub db: otoodb::DB
     }
 }

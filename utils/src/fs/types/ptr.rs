@@ -18,32 +18,11 @@
 
 */
 
-use std::ops::{Deref, DerefMut};
-
 use super::*;
 
-#[derive(Debug)]
-pub struct Ptr {
-    file: Box<File>,
-}
-
-impl Ptr {
-    pub fn new(file: File) -> Self {
-        Self {
-            file: Box::new(file),
-        }
-    }
-}
-
-impl Deref for Ptr {
-    type Target = Box<File>;
-    fn deref(&self) -> &Self::Target {
-        &self.file
-    }
-}
-
-impl DerefMut for Ptr {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.file
-    }
+impl Ptr for File{}
+pub trait Ptr
+where
+    Self: Read + Write + Seek + std::fmt::Debug,
+{
 }

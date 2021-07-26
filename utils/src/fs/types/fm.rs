@@ -22,7 +22,7 @@ use super::*;
 
 #[derive(Debug)]
 pub struct FM<T> {
-    ptr: Ptr,
+    ptr: Box<dyn Ptr>,
     pub path: PathBuf,
     pub header: Box<T>,
     pub header_size: uPS,
@@ -38,11 +38,14 @@ impl<T: HeaderTrait> FM<T> {
             .read(true)
             .open(path)?;
 
-        let mut ptr = Ptr::new(file);
+        let mut ptr: Box<dyn Ptr> = Box::new(file);
 
         let path = PathBuf::from(path);
 
-        let header_size = header.read(&mut ptr)? as uPS;
+        let header_size = errextract!(header.read(&mut ptr),
+            err::UnexpectedEof => header.overwrite(&mut ptr)?
+        ) as uPS;
+
         let file_size = ptr.seek(SeekFrom::End(0))?;
 
         Ok(Self {

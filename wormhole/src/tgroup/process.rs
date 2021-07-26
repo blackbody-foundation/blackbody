@@ -77,8 +77,11 @@
 
 use super::cmn::*;
 
-pub struct TProcess {
-    file_path: String,
+derive_substruct! {
+    super: Requirement;
+    pub struct TProcess {
+        infile: String,
+    }
 }
 impl TSubGroup<msg::Message> for TProcess {
     type R = Requirement;
@@ -88,6 +91,8 @@ impl TSubGroup<msg::Message> for TProcess {
         channel: Chan<msg::Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx -> tx
+        let _info = Self::copy_from_super(requirement);
+
         std::thread::spawn(move || -> ResultSend<()> {
             while let Ok(m) = channel.recv() {
                 match m.kind {

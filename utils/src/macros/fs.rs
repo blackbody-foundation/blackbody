@@ -33,7 +33,7 @@ pub use crate::system::*;
 #[macro_export]
 macro_rules! fheader {
     (
-
+        $(#[$meta:meta])*
         $vis:vis struct $name:ident {
 
             $($free_mark:vis $var:ident: $t:ty),*$(,)?
@@ -45,6 +45,7 @@ macro_rules! fheader {
 
         serialize! {
 
+            $(#[$meta])*
             $vis struct $name {
 
                 $($vis $var: $t),*
@@ -66,7 +67,7 @@ macro_rules! fheader {
 
         impl HeaderTrait for $name {
 
-            fn read(&mut self, ptr: &mut Ptr) -> Result<LS> {
+            fn read<R: Read + Seek>(&mut self, ptr: &mut R) -> Result<LS> {
 
                 let src = bincode::serialize(&self)?;
 
@@ -79,7 +80,7 @@ macro_rules! fheader {
                 Ok(dst.len())
 
             }
-            fn write(&mut self, ptr: &mut Ptr) -> Result<LS> {
+            fn write<P: Read + Write + Seek>(&mut self, ptr: &mut P) -> Result<LS> {
 
                 let mut src = bincode::serialize(&self)?;
 
@@ -93,33 +94,29 @@ macro_rules! fheader {
                 Ok(src.len())
 
             }
+            fn overwrite<W: Write + Seek>(&mut self, ptr: &mut W) -> Result<LS> {
+
+                let mut src = bincode::serialize(&self)?;
+
+                ptr.seek(SeekFrom::Start(0))?;
+                ptr.write_all(&src)?;
+
+                Ok(src.len())
+
+            }
         }
 
         impl $name {
-            fn is_eof(ptr: &mut Ptr) -> Result<bool> {
-                if 0 == ptr.read(&mut [0u8; 1])? {
-                    Ok(true)
-                } else {
-                    ptr.seek(SeekFrom::Current(-1))?;
-                    Ok(false)
-                }
-            }
-            fn read_header_bytes(ptr: &mut Ptr, src: &[u8]) -> Result<Vec<u8>> {
+            fn read_header_bytes<R: Read + Seek>(ptr: &mut R, src: &[u8]) -> Result<Vec<u8>> {
 
                 let mut buf = vec![0; src.len()];
 
                 ptr.seek(SeekFrom::Start(0))?;
                 match ptr.read_exact(&mut buf[..]) {
 
-                    Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                        if Self::is_eof(ptr)? {
-                            ptr.seek(SeekFrom::Start(0))?;
-                            ptr.write_all(&src)?; // create
-                            Ok(src.clone().to_vec())
-                        } else {
-                            errbang!(err::BrokenHeader)
-                        }
-                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof =>
+                        errbang!(err::UnexpectedEof),
+
                     Err(_) => errbang!(err::BrokenHeader),
                     _ => Ok(buf)
 

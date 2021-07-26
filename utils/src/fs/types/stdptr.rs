@@ -1,5 +1,5 @@
 /*
-    .. + header.rs + ..
+    .. + stdptr.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -20,13 +20,32 @@
 
 use super::*;
 
-pub type Header = Box<dyn HeaderTrait>;
+#[derive(Debug)]
+pub struct StdPtr {
+    instream: Stdin,
+    outstream: Stdout,
+}
 
-pub trait HeaderTrait: std::fmt::Debug {
-    /// return value is length of bytes for header
-    fn read<R: Read + Seek>(&mut self, ptr: &mut R) -> Result<LS>;
-    /// return value is length of bytes for header
-    fn write<W: Read + Write + Seek>(&mut self, ptr: &mut W) -> Result<LS>;
-    /// return value is length of bytes for header
-    fn overwrite<W: Write + Seek>(&mut self, ptr: &mut W) -> Result<LS>;
+impl Ptr for StdPtr {}
+
+impl Read for StdPtr {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.instream.read(buf)
+    }
+}
+
+impl Seek for StdPtr {
+    /// this will not work
+    fn seek(&mut self, _pos: SeekFrom) -> io::Result<u64> {
+        Ok(0)
+    }
+}
+
+impl Write for StdPtr {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.outstream.write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }

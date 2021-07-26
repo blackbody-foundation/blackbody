@@ -24,33 +24,42 @@ use cmn::*;
 mod tgroup; // thread group
 use tgroup as tg;
 
-pub mod cccs;
+mod cccs;
+pub use cccs::head::CCCSHeader;
 
+///```no_run
+/// {
+///     pub db_path: PathBuf,
+///     pub src_atom_len: LS,
+///     pub dst_atom_len: LS,
+/// }
+///```
 /// this has only Path and Sizes(two of usize) so it's cheap to clone or new
 pub struct Wormhole {
     pub db_path: PathBuf,
-    pub src_bytes_size: LS,
-    pub dst_bytes_size: LS,
+    pub src_atom_len: LS,
+    pub dst_atom_len: LS,
 }
 
 impl Wormhole {
-    pub fn new(db_path: &str, src_bytes_size: LS, dst_bytes_size: LS) -> Self {
+    pub fn new(db_path: &str, src_atom_len: LS, dst_atom_len: LS) -> Self {
         Self {
             db_path: pathy!(db_path),
-            src_bytes_size,
-            dst_bytes_size,
+            src_atom_len,
+            dst_atom_len,
         }
     }
-    pub fn transform<'a>(&self, file_path: &'a str) -> Result<&'a str> {
-        let otoodb = self.load_otoodb()?;
-        tg::TransformTG::new(tg::Requirement::new(file_path.to_owned(), otoodb)).join()?;
-        Ok(file_path)
+    /// if infile is empty then excute from io::stdin(), out to io::stdout()
+    pub fn transform(&self, infile: String) -> Result<()> {
+        let db = self.load_otoodb()?;
+        tg::TransformTG::new(tg::Requirement::new(infile, db)).join()?;
+        Ok(())
     }
     fn load_otoodb(&self) -> Result<DB> {
         DB::open(
             valid_path!(self.db_path)?,
-            self.src_bytes_size,
-            self.dst_bytes_size,
+            self.src_atom_len,
+            self.dst_atom_len,
         )
     }
 }

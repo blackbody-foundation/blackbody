@@ -20,28 +20,15 @@
 
 //! read cccs or any file
 
-// use std::{
-//     fs::File,
-//     io::{BufReader, Read},
-// };
-
-// use crate::cmn::*;
-
-// pub fn read_loop(input: String, read_tx: channel::Sender<msg::Message>) -> io::Result<()> {
-//     let mut reader: Box<dyn Read> = if input.is_empty() {
-//         Box::new(BufReader::new(io::stdin()))
-//     } else {
-//         Box::new(BufReader::new(File::open(input)?))
-//     };
-
-//     Ok(())
-// }
-
 use super::cmn::*;
 
-pub struct TRead {
-    file_path: String,
+derive_substruct! {
+    super: Requirement;
+    pub struct TRead {
+        infile: String,
+    }
 }
+
 impl TSubGroup<msg::Message> for TRead {
     type R = Requirement;
     type O = (); // join handler's output type
@@ -50,10 +37,23 @@ impl TSubGroup<msg::Message> for TRead {
         channel: Chan<msg::Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // tx ->
+        let info = Self::copy_from_super(requirement);
+
         std::thread::spawn(move || -> ResultSend<()> {
+            let _reader = get_reader(&info.infile)?;
+
             loop {
                 channel.send(msg::Message::new(msg::Kind::Through, vec![23, 12]))?;
             }
         })
     }
+}
+
+fn get_reader(infile: &str) -> ResultSend<impl io::Read> {
+    let reader: Box<dyn io::Read> = if infile.is_empty() {
+        Box::new(io::BufReader::new(io::stdin()))
+    } else {
+        Box::new(io::BufReader::new(std::fs::File::open(infile)?))
+    };
+    Ok(reader)
 }

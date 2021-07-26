@@ -20,16 +20,13 @@
 
 //! write cccs or any file
 
-// use super::cmn::*;
-
-// pub fn write_loop(write_rx: channel::Receiver<Vec<u8>>) -> io::Result<()> {
-//     Ok(())
-// }
-
 use super::cmn::*;
 
-pub struct TWrite {
-    file_path: String,
+derive_substruct! {
+    super: Requirement;
+    pub struct TWrite {
+        infile: String,
+    }
 }
 impl TSubGroup<msg::Message> for TWrite {
     type R = Requirement;
@@ -39,6 +36,8 @@ impl TSubGroup<msg::Message> for TWrite {
         channel: Chan<msg::Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx
+        let _info = Self::copy_from_super(requirement);
+
         std::thread::spawn(move || -> ResultSend<()> {
             while let Ok(m) = channel.recv() {
                 match m.kind {

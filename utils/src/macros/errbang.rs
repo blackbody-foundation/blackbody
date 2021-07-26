@@ -43,6 +43,17 @@ macro_rules! errmatch {
 }
 
 #[macro_export]
+macro_rules! errextract {
+    ($result:expr, $kind:ty => $match:expr) => {
+        match $result {
+            Ok(v) => v,
+            Err(e) if errmatch!(e, $kind) => $match,
+            Err(e) => return Err(e),
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! errors {
     (
             $($kind:ident => $message:tt$(,)?)*
@@ -85,5 +96,6 @@ macro_rules! errors {
 
 pub use errbang;
 pub use errbangsend;
+pub use errextract;
 pub use errmatch;
 pub use errors;
