@@ -1,5 +1,5 @@
 /*
-    .. + tgroup.rs + ..
+    .. + cmn.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,29 +18,5 @@
 
 */
 
-use super::chan::Chan;
-use crate::system::{Result, ResultSend};
-
-/// Thread Group.<br>
-/// R = Requirement<br>
-/// O = Handle Ok Output<br>
-pub trait TGroup {
-    type R;
-    type O;
-    fn new(requirement: Self::R) -> Self;
-    /// returns Result::Err if any thread in the tgroup has an error
-    fn join(self) -> Result<Vec<Self::O>>;
-}
-
-/// Thread Sub Group.<br>
-/// R = Requirement<br>
-/// O = Handle Ok Output<br>
-/// M = Message Type<br>
-pub trait TSubGroup<M = ()> {
-    type R;
-    type O;
-    fn new(requirement: &Self::R, channel: Chan<M>)
-        -> std::thread::JoinHandle<ResultSend<Self::O>>;
-}
-
-pub use crate::tgroup;
+pub use otoodb::DB;
+pub use utils::{fs::types::LS, system::*, types::tgroup::*};

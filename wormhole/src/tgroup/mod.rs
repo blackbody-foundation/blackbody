@@ -28,10 +28,10 @@ use cmn::*;
 pub use cmn::Requirement;
 
 tgroup! {
-    pub TG,
+    pub TransformTG,
 
     R = Requirement,
-    O = ResultSend<()>,
+    O = (),
 
     pipeline(msg::Message, BOUNDED_CAP),
 

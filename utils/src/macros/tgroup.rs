@@ -31,7 +31,7 @@
 /// }
 ///```
 /// R = Requirement Type<br>
-/// O = JoinHandler Output Type<br>
+/// O = JoinHandler Result Ok Type<br>
 /// pipeline(MssageType, BoundedCap)<br>
 /// or
 /// pipeline(MessageType)<br>
@@ -57,7 +57,7 @@ macro_rules! tgroup {
         $vis struct $name {
             $vis requirement: $requirement,
             /// sub group thread handlers
-            $vis sub: Vec<std::thread::JoinHandle<$output>>,
+            $vis sub: Vec<std::thread::JoinHandle<ResultSend<$output>>>,
         }
         impl TGroup for $name {
             type R = $requirement;
@@ -75,12 +75,13 @@ macro_rules! tgroup {
 
                 Self{requirement, sub}
             }
-            fn join(self) -> Vec<Self::O> {
+            /// returns Result::Err if any thread in the tgroup has an error
+            fn join(self) -> Result<Vec<Self::O>> {
                 let mut res = Vec::new();
                 for handles in self.sub.into_iter() {
-                    res.push(handles.join().unwrap());
+                    res.push(resultcast!(handles.join().unwrap(), Result::<Self::O>)?);
                 }
-                res
+                Ok(res)
             }
         }
 

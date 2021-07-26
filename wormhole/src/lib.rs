@@ -18,15 +18,13 @@
 
 */
 
-use utils::{fs::types::LS, system::*, types::tgroup::TGroup};
-
-use otoodb::DB;
-use std::path::PathBuf;
-
-pub mod cccs;
+mod cmn;
+use cmn::*;
 
 mod tgroup; // thread group
-use tgroup::TG;
+use tgroup as tg;
+
+pub mod cccs;
 
 /// this has only Path and Sizes(two of usize) so it's cheap to clone or new
 pub struct Wormhole {
@@ -44,11 +42,8 @@ impl Wormhole {
         }
     }
     pub fn transform<'a>(&self, file_path: &'a str) -> Result<&'a str> {
-        let tg = TG::new(tgroup::Requirement::new(
-            file_path.to_owned(),
-            self.load_otoodb()?,
-        ));
-        tg.join();
+        let otoodb = self.load_otoodb()?;
+        tg::TransformTG::new(tg::Requirement::new(file_path.to_owned(), otoodb)).join()?;
         Ok(file_path)
     }
     fn load_otoodb(&self) -> Result<DB> {

@@ -28,7 +28,7 @@ macro_rules! errbang {
 #[macro_export]
 macro_rules! errbangsend {
     ($kind:ty$(, $format_str:expr$(, $val:expr )* )?) => {
-        ResultSend::Err((Box::new(<$kind>::new(format!(concat!("[{}:{}] ", $($format_str)?), file!(), line!(), $( $($val),* )?)))))
+        ResultSend::Err(Box::new(<$kind>::new(format!(concat!("[{}:{}] ", $($format_str)?), file!(), line!(), $( $($val),* )?))))
     };
 }
 

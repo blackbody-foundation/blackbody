@@ -44,11 +44,16 @@ pub struct TRead {
 }
 impl TSubGroup<msg::Message> for TRead {
     type R = Requirement;
-    type O = ResultSend<()>; // join handler output type
-    fn new(requirement: &Self::R, channel: Chan<msg::Message>) -> std::thread::JoinHandle<Self::O> {
+    type O = (); // join handler's output type
+    fn new(
+        requirement: &Self::R,
+        channel: Chan<msg::Message>,
+    ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // tx ->
         std::thread::spawn(move || -> ResultSend<()> {
-            channel.send(msg::Message::new(msg::Kind::Through, vec![23, 12]))
+            loop {
+                channel.send(msg::Message::new(msg::Kind::Through, vec![23, 12]))?;
+            }
         })
     }
 }

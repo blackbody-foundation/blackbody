@@ -18,18 +18,15 @@
 
 */
 
-use std::{error, result};
-
 mod args;
 
 mod errors;
 pub use errors::*;
 
-pub type ErrPool = super::types::epool::Pool<Box<dyn error::Error>>;
-pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
-pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
+mod results;
+pub use results::*;
 
-pub use super::macros::errbang::*;
+pub use super::macros::{errbang::*, results::*};
 
 #[macro_use]
 mod path;
@@ -42,7 +39,8 @@ pub use timer::Timer;
 mod concentric;
 pub use concentric::*;
 
-pub use crossbeam;
-
 mod console;
 pub use console::Console;
+
+//
+pub use crossbeam;

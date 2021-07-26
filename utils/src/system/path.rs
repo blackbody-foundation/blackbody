@@ -18,7 +18,7 @@
 
 */
 
-pub use std::path::PathBuf;
+pub use std::path::{Path, PathBuf};
 
 /// &str change into PathBuf
 #[macro_export]
