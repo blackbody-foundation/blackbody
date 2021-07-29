@@ -1,5 +1,5 @@
 /*
-    .. + results.rs + ..
+    .. + get_reader.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,7 +18,13 @@
 
 */
 
-use std::{error, result};
+use super::*;
 
-pub type Result<T> = result::Result<T, Box<dyn error::Error>>;
-pub type ResultSend<T> = result::Result<T, Box<dyn error::Error + Send + Sync>>;
+pub fn get_reader(infile: &str) -> ResultSend<impl io::Read> {
+    let reader: Box<dyn io::Read> = if infile.is_empty() {
+        Box::new(io::BufReader::new(io::stdin()))
+    } else {
+        Box::new(io::BufReader::new(std::fs::File::open(infile)?))
+    };
+    Ok(reader)
+}

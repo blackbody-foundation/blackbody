@@ -1,5 +1,5 @@
 /*
-    .. + stdptr.rs + ..
+    .. + func.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,34 +18,12 @@
 
 */
 
+//! wormhole/read - functions
+
 use super::*;
 
-#[derive(Debug)]
-pub struct StdPtr {
-    instream: Stdin,
-    outstream: Stdout,
-}
+mod get_reader;
+pub use get_reader::*;
 
-impl Ptr for StdPtr {}
-
-impl Read for StdPtr {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.instream.read(buf)
-    }
-}
-
-impl Seek for StdPtr {
-    /// this will not work
-    fn seek(&mut self, _pos: SeekFrom) -> io::Result<u64> {
-        Ok(0)
-    }
-}
-
-impl Write for StdPtr {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.outstream.write(buf)
-    }
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
+mod send_message;
+pub use send_message::*;

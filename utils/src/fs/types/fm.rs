@@ -132,6 +132,6 @@ impl<T: HeaderTrait> FM<T> {
         Ok(())
     }
     fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
-        handle_io_error(io_e)
+        fn_handle_io_error(io_e)
     }
 }

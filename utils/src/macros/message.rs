@@ -44,6 +44,8 @@ macro_rules! message {
 
             pub type Message = message::Message<Kind, $t>;
 
+            pub type TypePayload = $t;
+
             pub enum Kind {
                 $($kind),*
             }

@@ -18,7 +18,6 @@
 
 */
 
-use crate::fs::types::LS;
 use crate::system::*;
 
 #[derive(Debug, Clone)]
@@ -44,14 +43,14 @@ impl<T: PartialEq + Ord + Clone> Lim<T> {
 
 #[derive(Debug, Clone)]
 pub struct VLim {
-    pub start: LS,
-    pub mid: LS,
-    pub end: LS,
+    pub start: usize,
+    pub mid: usize,
+    pub end: usize,
     /// *** warning ***
     pub right: bool,
 }
 impl VLim {
-    pub fn new(start: LS, mid: LS, end: LS) -> Self {
+    pub fn new(start: usize, mid: usize, end: usize) -> Self {
         Self {
             start,
             mid,
@@ -93,10 +92,10 @@ impl VLim {
     pub fn create<T: Default + Clone>(&self) -> Vec<T> {
         vec![T::default(); self.end]
     }
-    pub fn width(&self) -> LS {
+    pub fn width(&self) -> usize {
         self.end - self.start
     }
-    pub fn into_(self) -> (LS, LS, LS) {
+    pub fn into_(self) -> (usize, usize, usize) {
         (self.start, self.mid, self.end)
     }
 }

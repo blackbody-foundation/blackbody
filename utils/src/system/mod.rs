@@ -18,15 +18,8 @@
 
 */
 
-mod args;
-
 mod errors;
 pub use errors::*;
-
-mod results;
-pub use results::*;
-
-pub use super::macros::{errbang::*, results::*};
 
 #[macro_use]
 mod path;

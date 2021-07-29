@@ -22,6 +22,8 @@
 
 use super::cmn::*;
 
+mod func;
+
 derive_substruct! {
     super: Requirement;
     pub struct TRead {
@@ -39,21 +41,12 @@ impl TSubGroup<msg::Message> for TRead {
         // tx ->
         let info = Self::copy_from_super(requirement);
 
-        std::thread::spawn(move || -> ResultSend<()> {
-            let _reader = get_reader(&info.infile)?;
+        std::thread::spawn(move || -> ResultSend<Self::O> {
+            let _reader = func::get_reader(&info.infile)?;
 
             loop {
                 channel.send(msg::Message::new(msg::Kind::Through, vec![23, 12]))?;
             }
         })
     }
-}
-
-fn get_reader(infile: &str) -> ResultSend<impl io::Read> {
-    let reader: Box<dyn io::Read> = if infile.is_empty() {
-        Box::new(io::BufReader::new(io::stdin()))
-    } else {
-        Box::new(io::BufReader::new(std::fs::File::open(infile)?))
-    };
-    Ok(reader)
 }

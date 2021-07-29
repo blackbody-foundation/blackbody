@@ -22,12 +22,11 @@ pub mod bytes;
 pub mod chan;
 pub mod cheque128;
 pub mod epool;
+pub mod lim;
 pub mod mbuf;
 pub mod message;
 pub mod rmbox;
 pub mod tgroup;
-
-mod lim;
 
 pub use lim::{Lim, VLim};
 pub use mbuf::MBuf;

@@ -18,7 +18,6 @@
 
 */
 
-pub use super::errbang::errbang;
 pub use crate::types::bytes::U512;
 
 /// Bytes length match macro

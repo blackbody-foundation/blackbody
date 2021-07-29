@@ -54,6 +54,7 @@ macro_rules! tgroup {
         ]$(,)?
     ) => {
 
+        
         $vis struct $name {
             $vis requirement: $requirement,
             /// sub group thread handlers

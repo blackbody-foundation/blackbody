@@ -1,5 +1,5 @@
 /*
-    .. + results.rs + ..
+    .. + send_message.rs + ..
 
     Copyright (C) 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,18 +18,12 @@
 
 */
 
-///```rust
-/// resultcast!(errbangsend!(err::UnexpectedEof), Result::<()>);
-///```
-/// result type cast macro
-#[macro_export]
-macro_rules! resultcast {
-    ($result:expr, $new_result:ty) => {
-        match $result {
-            Ok(o) => <$new_result>::Ok(o),
-            Err(e) => <$new_result>::Err(e),
-        }
-    };
-}
+use super::*;
 
-pub use resultcast;
+pub fn send_message(
+    chan: Chan<msg::Message>,
+    kind: msg::Kind,
+    payload: msg::TypePayload,
+) -> ResultSend<()> {
+    chan.send(msg::Message::new(kind, payload))
+}

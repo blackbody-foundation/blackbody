@@ -18,10 +18,9 @@
 
 */
 
-use super::Result;
-use crate::macros::errbang::*;
+pub use utils_results::*;
 
-errors! {
+err! {
     ValidationFailed => "invalid ordering sus."
     BrokenHeader => "broken header."
     AnotherHeader => "not matched header."
@@ -37,13 +36,7 @@ errors! {
     HigherVersion => "higher version data cannot be read."
 }
 
-pub fn handle_io_error<T>(io_error: std::io::Result<T>) -> Result<T> {
-    match io_error {
-        Err(e) => match e.kind() {
-            std::io::ErrorKind::UnexpectedEof => errbang!(err::UnexpectedEof),
-            std::io::ErrorKind::Interrupted => errbang!(err::Interrupted),
-            _ => Err(Box::new(e)),
-        },
-        Ok(t) => Ok(t),
-    }
+fn_handle_io_error! {
+    UnexpectedEof => err::UnexpectedEof
+    Interrupted => err::Interrupted
 }

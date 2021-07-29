@@ -38,7 +38,7 @@ impl TSubGroup<msg::Message> for TWrite {
         // -> rx
         let _info = Self::copy_from_super(requirement);
 
-        std::thread::spawn(move || -> ResultSend<()> {
+        std::thread::spawn(move || -> ResultSend<Self::O> {
             while let Ok(m) = channel.recv() {
                 match m.kind {
                     msg::Kind::End => break,
