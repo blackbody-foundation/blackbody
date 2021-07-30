@@ -27,25 +27,24 @@ mod func;
 derive_substruct! {
     super: Requirement;
     pub struct TRead {
-        infile: String,
+        file_path: String,
     }
 }
 
-impl TSubGroup<msg::Message> for TRead {
+impl TSubGroup<Message> for TRead {
     type R = Requirement;
     type O = (); // join handler's output type
     fn new(
         requirement: &Self::R,
-        channel: Chan<msg::Message>,
+        channel: Chan<Message>, // tx ->
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
-        // tx ->
         let info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
-            let _reader = func::get_reader(&info.infile)?;
-
+            let mut reader = func::get_reader(&info.file_path)?;
+            let _ = reader.seek(std::io::SeekFrom::Start(0))?;
             loop {
-                channel.send(msg::Message::new(msg::Kind::Through, vec![23, 12]))?;
+                send_message(&channel, Kind::Through, vec![23, 12])?;
             }
         })
     }

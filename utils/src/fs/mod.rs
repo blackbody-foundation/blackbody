@@ -36,3 +36,35 @@ impl<T: HeaderTrait> File<T> {
     }
     pub fn close(self) {}
 }
+
+impl<T: HeaderTrait> Ptr for File<T> {}
+impl<T: HeaderTrait> ReadPtr for File<T> {}
+impl<T: HeaderTrait> WritePtr for File<T> {}
+
+impl<T: HeaderTrait> Read for File<T> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.fm.ptr.read(buf)
+    }
+}
+
+impl<T: HeaderTrait> Write for File<T> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.fm.ptr.write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.fm.ptr.flush()
+    }
+}
+
+impl<T: HeaderTrait> Seek for File<T> {
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        match pos {
+            SeekFrom::Start(v) => err_to_io!(self.fm.set_cursor(v)),
+            SeekFrom::Current(v) => err_to_io!(self.fm.set_cursor_relative(v)),
+            SeekFrom::End(v) => {
+                let pos = err_to_io!(self.fm.content_end_pos(false))?;
+                err_to_io!(self.fm.set_cursor(pos + v as u64))
+            }
+        }
+    }
+}

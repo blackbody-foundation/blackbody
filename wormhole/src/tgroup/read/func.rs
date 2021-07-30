@@ -24,6 +24,3 @@ use super::*;
 
 mod get_reader;
 pub use get_reader::*;
-
-mod send_message;
-pub use send_message::*;

@@ -80,7 +80,7 @@ use super::cmn::*;
 derive_substruct! {
     super: Requirement;
     pub struct TProcess {
-        infile: String,
+        file_path: String,
     }
 }
 impl TSubGroup<msg::Message> for TProcess {

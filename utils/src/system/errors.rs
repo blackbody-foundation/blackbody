@@ -36,7 +36,7 @@ err! {
     HigherVersion => "higher version data cannot be read."
 }
 
-fn_handle_io_error! {
+io_err! {
     UnexpectedEof => err::UnexpectedEof
     Interrupted => err::Interrupted
 }

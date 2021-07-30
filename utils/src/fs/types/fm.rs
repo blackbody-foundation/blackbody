@@ -22,7 +22,7 @@ use super::*;
 
 #[derive(Debug)]
 pub struct FM<T> {
-    ptr: Box<dyn Ptr>,
+    pub ptr: Box<dyn Ptr>,
     pub path: PathBuf,
     pub header: Box<T>,
     pub header_size: uPS,
@@ -78,6 +78,7 @@ impl<T: HeaderTrait> FM<T> {
                 - self.header_size as uPS,
         )
     }
+    /// normal read
     pub fn read_general(&mut self, buf: &mut [u8]) -> Result<LS> {
         Self::err_tunnel(self.ptr.read(buf))
     }
@@ -132,6 +133,6 @@ impl<T: HeaderTrait> FM<T> {
         Ok(())
     }
     fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
-        fn_handle_io_error(io_e)
+        io_to_err!(io_e)
     }
 }

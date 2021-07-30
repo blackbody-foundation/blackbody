@@ -24,8 +24,8 @@ use otoodb::HHSize;
 use utils::macros::fs::*;
 
 fheader! {
-    #[derive(Default)]
     pub struct CCCSHeader {
+        ident: u8 => 0b10101010_u8,
         pub version: HHSize, // = hawking file height
         pub flag: bool, // true == .cccs -> binary
         pub completion: bool,

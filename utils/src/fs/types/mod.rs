@@ -26,4 +26,4 @@ mod ptr;
 pub use cmn::*;
 pub use fm::FM;
 pub use header::*;
-pub use ptr::Ptr;
+pub use ptr::*;

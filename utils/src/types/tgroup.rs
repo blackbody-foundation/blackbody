@@ -18,7 +18,7 @@
 
 */
 
-use super::chan::Chan;
+use super::{chan::Chan, message::Messages};
 use crate::system::{Result, ResultSend};
 
 /// Thread Group.<br>
@@ -36,7 +36,7 @@ pub trait TGroup {
 /// R = Requirement<br>
 /// O = Handle Ok Output<br>
 /// M = Message Type<br>
-pub trait TSubGroup<M = ()> {
+pub trait TSubGroup<M: Messages> {
     type R;
     type O;
     fn new(requirement: &Self::R, channel: Chan<M>)

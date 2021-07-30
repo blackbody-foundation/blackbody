@@ -24,7 +24,10 @@ pub use std::io;
 
 pub use utils::{
     derive_substruct,
-    fs::types::{uPS, LS},
+    fs::{
+        types::{uPS, Ptr, ReadPtr, LS},
+        File,
+    },
     system::*,
     types::{chan::*, tgroup::*},
 };
@@ -48,7 +51,13 @@ utils::message! {
 
 utils::derive_new! {
     pub struct Requirement {
-        pub infile: String, // target
+        pub file_path: String, // target
         pub db: otoodb::DB
     }
+}
+
+pub use msg::*;
+
+pub fn send_message(chan: &Chan<Message>, kind: Kind, payload: TypePayload) -> ResultSend<()> {
+    chan.send(Message::new(kind, payload))
 }

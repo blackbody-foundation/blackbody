@@ -33,10 +33,20 @@ pub use crate::system::*;
 #[macro_export]
 macro_rules! fheader {
     (
+        @default_or (), $t:ty
+    ) => {
+        <$t>::default()
+    };
+    (
+        @default_or ($val:expr), $t:ty
+    ) => {
+        $val
+    };
+    (
         $(#[$meta:meta])*
         $vis:vis struct $name:ident {
 
-            $($free_mark:vis $var:ident: $t:ty),*$(,)?
+            $($free_mark:vis $var:ident: $t:ty$( => $val:expr)?),*$(,)?
 
         }
 
@@ -62,11 +72,22 @@ macro_rules! fheader {
                     $($var),*
                 })
             }
+            $vis fn default() -> Box<$name> {
+                Box::new(Self {
+                    $(
+                        $var: fheader!(@default_or ($($val)?), $t)
+                    ),*
+                })
+            }
 
         }
 
+
         impl HeaderTrait for $name {
 
+            fn to_vec(&self) -> Result<Vec<u8>> {
+                Ok(bincode::serialize(&self)?.to_vec())
+            }
             fn read<R: Read + Seek>(&mut self, ptr: &mut R) -> Result<LS> {
 
                 let src = bincode::serialize(&self)?;

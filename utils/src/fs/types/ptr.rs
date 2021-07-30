@@ -26,3 +26,16 @@ where
     Self: Read + Write + Seek + std::fmt::Debug,
 {
 }
+pub trait ReadPtr
+where
+    Self: Read + Seek + std::fmt::Debug,
+{
+}
+pub trait WritePtr
+where
+    Self: Write + Seek + std::fmt::Debug,
+{
+}
+
+impl<R: Read + Seek + std::fmt::Debug> ReadPtr for BufReader<R> {}
+impl<W: Write + Seek + std::fmt::Debug> WritePtr for BufWriter<W> {}

@@ -18,13 +18,15 @@
 
 */
 
+use io::BufReader;
+
 use super::*;
 
-pub fn get_reader(infile: &str) -> ResultSend<impl io::Read> {
-    let reader: Box<dyn io::Read> = if infile.is_empty() {
-        Box::new(io::BufReader::new(io::stdin()))
-    } else {
-        Box::new(io::BufReader::new(std::fs::File::open(infile)?))
+pub fn get_reader(file_path: &str) -> ResultSend<Box<dyn ReadPtr>> {
+    let header = CCCSHeader::default();
+    let reader: Box<dyn ReadPtr> = match File::open(file_path, header) {
+        Ok(v) => Box::new(v),
+        Err(_) => Box::new(BufReader::new(std::fs::File::open(file_path)?)),
     };
     Ok(reader)
 }
