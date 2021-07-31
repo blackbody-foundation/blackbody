@@ -25,28 +25,37 @@ pub use std::io;
 pub use utils::{
     derive_substruct,
     fs::{
-        types::{uPS, Ptr, ReadPtr, LS},
+        types::{uPS, ReadPtr, LS},
         File,
     },
     system::*,
-    types::{chan::*, tgroup::*},
+    types::{bytes::*, chan::*, tgroup::*},
 };
 
 pub use crate::CCCSHeader;
-
 pub use otoodb::DB;
 
 pub use crossbeam::channel;
-
 pub const BOUNDED_CAP: usize = 1024;
 
 utils::message! {
     pub msg,
     M = Vec<u8>,
     K = enum {
+        Header,
         Through,
         End,
     }
+}
+
+pub use msg::*;
+
+pub fn send_message(
+    chan: &Chan<Message>,
+    kind: Kind,
+    payload: Option<TypePayload>,
+) -> ResultSend<()> {
+    chan.send(Message::new(kind, payload))
 }
 
 utils::derive_new! {
@@ -54,10 +63,4 @@ utils::derive_new! {
         pub file_path: String, // target
         pub db: otoodb::DB
     }
-}
-
-pub use msg::*;
-
-pub fn send_message(chan: &Chan<Message>, kind: Kind, payload: TypePayload) -> ResultSend<()> {
-    chan.send(Message::new(kind, payload))
 }

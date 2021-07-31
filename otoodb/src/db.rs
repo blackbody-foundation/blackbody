@@ -35,7 +35,6 @@ use utils::{
 pub struct DB {
     file: File<OtooHeader>,
     bst: BST,
-    console: Option<Plugin<Console>>,
 }
 
 impl DB {
@@ -49,11 +48,7 @@ impl DB {
         let elem_lim = VLim::new(0, mid, mid + end);
         let bst = BST::new(file_lim, elem_lim)?;
 
-        let db = Self {
-            file,
-            bst,
-            console: None,
-        };
+        let db = Self { file, bst };
         eprintln!("file successfully opened.");
         Self::validate(db)
     }
@@ -196,16 +191,5 @@ impl DB {
     }
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {
         self.file.fm.borrow_mut()
-    }
-    // fn cli(&mut self, context: String) -> Result<()> {
-    //     employ!(self.console)?.cli(context);
-    //     Ok(())
-    // }
-}
-
-impl Concentric<Console> for DB {
-    fn concentric(&mut self, _some_plugin: Option<Plugin<Console>>) -> &mut Self {
-        self.console = _some_plugin;
-        self
     }
 }

@@ -28,21 +28,22 @@ derive_substruct! {
         file_path: String,
     }
 }
-impl TSubGroup<msg::Message> for TWrite {
+impl TSubGroup<Message> for TWrite {
     type R = Requirement;
     type O = (); // join handler's output type
     fn new(
         requirement: &Self::R,
-        channel: Chan<msg::Message>,
+        channel: Chan<Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx
         let _info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
+            // looping
             while let Ok(m) = channel.recv() {
                 match m.kind {
-                    msg::Kind::End => break,
-                    msg::Kind::Through => {}
+                    Kind::Through => {}
+                    _ => break,
                 }
             }
             Ok(())

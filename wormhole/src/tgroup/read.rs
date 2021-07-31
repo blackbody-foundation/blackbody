@@ -41,10 +41,14 @@ impl TSubGroup<Message> for TRead {
         let info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
-            let mut reader = func::get_reader(&info.file_path)?;
-            let _ = reader.seek(std::io::SeekFrom::Start(0))?;
+            let (mut reader, header) = func::get_reader(&info.file_path)?;
+
+            let header = resultcastsend!(header.into_bytes())?;
+            send_message(&channel, Kind::Header, header)?; // send header
+
+            // looping
             loop {
-                send_message(&channel, Kind::Through, vec![23, 12])?;
+                send_message(&channel, Kind::Header, Some(vec![2, 3, 4]))?;
             }
         })
     }

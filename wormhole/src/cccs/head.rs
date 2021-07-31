@@ -27,7 +27,7 @@ fheader! {
     pub struct CCCSHeader {
         ident: u8 => 0b10101010_u8,
         pub version: HHSize, // = hawking file height
-        pub flag: bool, // true == .cccs -> binary
+        pub flag: bool, // true => .cccs -> binary
         pub completion: bool,
         pub last_pos: Vec<uPS> // last_pos.len() = how many times file is transformed
     }

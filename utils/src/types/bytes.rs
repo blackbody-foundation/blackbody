@@ -20,3 +20,34 @@
 
 pub use crate::macros::bytes::*;
 pub use primitive_types::U512;
+
+use crate::system::*;
+
+pub trait BytesSer {
+    fn into_bytes(self) -> Result<Option<Vec<u8>>>;
+}
+pub trait BytesDe {
+    fn into_something<T>(self) -> Result<Option<T>>
+    where
+        T: serde::de::DeserializeOwned;
+}
+
+impl<T: serde::Serialize> BytesSer for Option<T> {
+    fn into_bytes(self) -> Result<Option<Vec<u8>>> {
+        match self {
+            Some(v) => Ok(Some(bincode::serialize(&v)?)),
+            _ => Ok(None),
+        }
+    }
+}
+impl BytesDe for Option<Vec<u8>> {
+    fn into_something<T>(self) -> Result<Option<T>>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        match self {
+            Some(v) => Ok(Some(bincode::deserialize::<T>(&v)?)),
+            _ => Ok(None),
+        }
+    }
+}

@@ -46,6 +46,7 @@ macro_rules! message {
 
             pub type TypePayload = $t;
 
+            #[derive(PartialEq, Debug)]
             pub enum Kind {
                 $($kind),*
             }

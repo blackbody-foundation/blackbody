@@ -18,15 +18,27 @@
 
 */
 
-use io::BufReader;
+use std::io::BufReader;
 
 use super::*;
 
-pub fn get_reader(file_path: &str) -> ResultSend<Box<dyn ReadPtr>> {
+pub type Reader = (Box<dyn ReadPtr>, Option<Box<CCCSHeader>>);
+
+/// ### returns
+///```no_run
+/// (Box<dyn ReadPtr>, Option<Box<CCCSHeader>>)
+///```
+pub fn get_reader(file_path: &str) -> ResultSend<Reader> {
     let header = CCCSHeader::default();
-    let reader: Box<dyn ReadPtr> = match File::open(file_path, header) {
-        Ok(v) => Box::new(v),
-        Err(_) => Box::new(BufReader::new(std::fs::File::open(file_path)?)),
-    };
-    Ok(reader)
+
+    match File::open(file_path, header) {
+        Ok(v) => {
+            let header = v.fm.header.clone();
+            Ok((Box::new(v), Some(header)))
+        }
+        Err(_) => Ok((
+            Box::new(BufReader::new(std::fs::File::open(file_path)?)),
+            None,
+        )),
+    }
 }

@@ -20,13 +20,24 @@
 
 #[macro_export]
 macro_rules! epool {
-    ($vis:vis enum $name:ident<T> {
-        $($variant:ident(T)),*,
-    }) => {
+    (
+        $(#[$outer:meta])*
+        $vis:vis enum $name:ident<T> {
+        $(
+            $(#[$inner:ident $($args:tt)*])*
+            $variant:ident(T)
+        ),*,
+    }
+    ) => {
+
 
         #[derive(PartialEq, Debug)]
+        $(#[$outer])*
         $vis enum $name<T> {
-            $($variant(T)),*
+            $(
+                $(#[$inner $($args)*])*
+                $variant(T)
+            ),*
         }
 
         impl<T> $name<T> {
@@ -41,6 +52,21 @@ macro_rules! epool {
                 }
             }
             $vis fn discriminate(&self) -> ($name<()>, &T) {
+                match self {
+                    $($name::$variant(val) => ($name::$variant(()), val)),*
+                }
+            }
+            $vis fn into_dump(self) -> T {
+                match self {
+                    $($name::$variant(val) => val),*
+                }
+            }
+            $vis fn into_flee(self) -> $name<()> {
+                match self {
+                    $($name::$variant(_t) => $name::$variant(())),*
+                }
+            }
+            $vis fn into_discriminate(self) -> ($name<()>, T) {
                 match self {
                     $($name::$variant(val) => ($name::$variant(()), val)),*
                 }

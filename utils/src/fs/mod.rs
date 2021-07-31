@@ -23,6 +23,23 @@ pub mod types;
 
 use types::*;
 
+use super::epool;
+
+epool! {
+    ///```no_run
+    ///{
+    ///     HasHeader(T),
+    ///     HasNoHeader(T),
+    ///}
+    ///```
+    pub enum FilePool<T>
+    {
+        HasHeader(T),
+        HasNoHeader(T),
+    }
+}
+
+/// File\<dyn HeaderTrait\>
 #[derive(Debug)]
 pub struct File<T> {
     pub fm: FM<T>,
@@ -57,6 +74,7 @@ impl<T: HeaderTrait> Write for File<T> {
 }
 
 impl<T: HeaderTrait> Seek for File<T> {
+    /// only content seek (this means pos(0) = pos(header_size))
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         match pos {
             SeekFrom::Start(v) => err_to_io!(self.fm.set_cursor(v)),

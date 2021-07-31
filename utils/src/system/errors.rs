@@ -33,6 +33,7 @@ err! {
     UnwrapingError => "unwrap failed."
     OutOfBounds => "index out of bounds."
     ThreadSending => "thread sending error."
+    ThreadReceiving => "thread receiving error."
     HigherVersion => "higher version data cannot be read."
 }
 

@@ -83,23 +83,35 @@ derive_substruct! {
         file_path: String,
     }
 }
-impl TSubGroup<msg::Message> for TProcess {
+impl TSubGroup<Message> for TProcess {
     type R = Requirement;
     type O = (); // join handler's output type
     fn new(
         requirement: &Self::R,
-        channel: Chan<msg::Message>,
+        channel: Chan<Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx -> tx
         let _info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
+            let header: CCCSHeader;
+
+            match channel.recv().unwrap() {
+                m if m.kind == Kind::Header => {
+                    header = resultcastsend!(m.payload.into_something())?.unwrap();
+                }
+                _ => {
+                    return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
+                }
+            }
+
+            // looping
             while let Ok(m) = channel.recv() {
                 match m.kind {
-                    msg::Kind::End => break,
-                    msg::Kind::Through => {
-                        channel.send(msg::Message::new(msg::Kind::Through, m.payload))?;
+                    Kind::Through => {
+                        channel.send(Message::new(Kind::Through, m.payload))?;
                     }
+                    _ => break,
                 }
             }
             Ok(())

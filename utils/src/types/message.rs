@@ -20,10 +20,10 @@
 
 pub struct Message<K, C> {
     pub kind: K,
-    pub payload: C,
+    pub payload: Option<C>,
 }
 impl<K, C> Message<K, C> {
-    pub fn new(kind: K, payload: C) -> Self {
+    pub fn new(kind: K, payload: Option<C>) -> Self {
         Self { kind, payload }
     }
 }

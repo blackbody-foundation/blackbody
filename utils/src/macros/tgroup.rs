@@ -56,7 +56,6 @@ macro_rules! tgroup {
 
 
         $vis struct $name {
-            $vis requirement: $requirement,
             /// sub group thread handlers
             $vis sub: Vec<std::thread::JoinHandle<ResultSend<$output>>>,
         }
@@ -74,13 +73,13 @@ macro_rules! tgroup {
 
                 )+
 
-                Self{requirement, sub}
+                Self{sub}
             }
             /// returns Result::Err if any thread in the tgroup has an error
             fn join(self) -> Result<Vec<Self::O>> {
                 let mut res = Vec::new();
                 for handles in self.sub.into_iter() {
-                    res.push(resultcast!(handles.join().unwrap(), Result::<Self::O>)?);
+                    res.push(resultcast!(handles.join().unwrap())?);
                 }
                 Ok(res)
             }
