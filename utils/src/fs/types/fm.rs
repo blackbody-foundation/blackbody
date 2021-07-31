@@ -31,16 +31,16 @@ pub struct FM<T> {
 }
 
 impl<T: HeaderTrait> FM<T> {
-    pub fn new(path: &str, mut header: Box<T>) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(path: P, mut header: Box<T>) -> Result<Self> {
         let file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .read(true)
-            .open(path)?;
+            .open(path.as_ref())?;
 
         let mut ptr: Box<dyn Ptr> = Box::new(file);
 
-        let path = PathBuf::from(path);
+        let path = path.as_ref().to_path_buf();
 
         let header_size = errextract!(header.read(&mut ptr),
             err::UnexpectedEof => header.overwrite(&mut ptr)?

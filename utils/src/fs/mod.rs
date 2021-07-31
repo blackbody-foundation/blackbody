@@ -46,8 +46,8 @@ pub struct File<T> {
 }
 
 impl<T: HeaderTrait> File<T> {
-    pub fn open(path: &str, header: Box<T>) -> Result<Self> {
-        let fm = FM::new(path, header)?;
+    pub fn open<P: AsRef<Path>>(path: P, header: Box<T>) -> Result<Self> {
+        let fm = FM::new(path.as_ref(), header)?;
 
         Ok(Self { fm })
     }

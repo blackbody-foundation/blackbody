@@ -25,7 +25,7 @@ pub use std::io;
 pub use utils::{
     derive_substruct,
     fs::{
-        types::{uPS, ReadPtr, LS},
+        types::{uPS, ReadPtr, WritePtr, LS},
         File,
     },
     system::*,
@@ -33,7 +33,7 @@ pub use utils::{
 };
 
 pub use crate::CCCSHeader;
-pub use otoodb::DB;
+pub use otoodb::{HHSize, DB};
 
 pub use crossbeam::channel;
 pub const BOUNDED_CAP: usize = 1024;
@@ -60,7 +60,8 @@ pub fn send_message(
 
 utils::derive_new! {
     pub struct Requirement {
-        pub file_path: String, // target
-        pub db: otoodb::DB
+        pub file_path: PathBuf, // target
+        pub db: otoodb::DB,
+        pub version: HHSize
     }
 }

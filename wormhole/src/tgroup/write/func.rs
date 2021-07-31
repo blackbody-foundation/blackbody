@@ -1,5 +1,5 @@
 /*
-    .. + get_reader.rs + ..
+    .. + func.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,27 +18,9 @@
 
 */
 
-use std::io::BufReader;
+//! wormhole/read - functions
 
 use super::*;
 
-pub type Reader = (Box<dyn ReadPtr>, Option<Box<CCCSHeader>>);
-
-/// ### returns
-///```no_run
-/// (Box<dyn ReadPtr>, Option<Box<CCCSHeader>>)
-///```
-pub fn get_reader(file_path: &Path) -> ResultSend<Reader> {
-    let header = CCCSHeader::default();
-
-    match File::open(file_path, header) {
-        Ok(v) => {
-            let header = v.fm.header.clone();
-            Ok((Box::new(v), Some(header)))
-        }
-        Err(_) => Ok((
-            Box::new(BufReader::new(std::fs::File::open(file_path)?)),
-            None,
-        )),
-    }
-}
+mod get_writer;
+pub use get_writer::*;

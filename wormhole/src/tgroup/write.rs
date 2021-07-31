@@ -22,10 +22,13 @@
 
 use super::cmn::*;
 
+mod func;
+
 derive_substruct! {
     super: Requirement;
     pub struct TWrite {
-        file_path: String,
+        version: HHSize,
+        file_path: PathBuf,
     }
 }
 impl TSubGroup<Message> for TWrite {
@@ -36,13 +39,30 @@ impl TSubGroup<Message> for TWrite {
         channel: Chan<Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx
-        let _info = Self::copy_from_super(requirement);
+        let mut info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
+            info.file_path.set_extension("cccs_tmp0");
+
+            let mut writer = func::get_writer(&info.file_path)?;
+            let mut header;
+
+            match channel.recv().unwrap() {
+                m if m.kind == Kind::Header && m.payload.is_none() => {
+                    header = CCCSHeader::default();
+                    header.version = info.version;
+                    writer.write_all(&resultcastsend!(header.into_bytes())?)?;
+                }
+                _ => {
+                    return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
+                }
+            }
+
             // looping
             while let Ok(m) = channel.recv() {
                 match m.kind {
                     Kind::Through => {}
+                    Kind::Header => {}
                     _ => break,
                 }
             }

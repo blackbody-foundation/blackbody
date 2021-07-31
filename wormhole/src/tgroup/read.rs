@@ -20,6 +20,8 @@
 
 //! read cccs or any file
 
+use utils::types::CHUNK_SIZE;
+
 use super::cmn::*;
 
 mod func;
@@ -27,7 +29,7 @@ mod func;
 derive_substruct! {
     super: Requirement;
     pub struct TRead {
-        file_path: String,
+        file_path: PathBuf,
     }
 }
 
@@ -46,10 +48,19 @@ impl TSubGroup<Message> for TRead {
             let header = resultcastsend!(header.into_bytes())?;
             send_message(&channel, Kind::Header, header)?; // send header
 
+            reader.seek(io::SeekFrom::Start(0))?;
+
+            let mut buf = [0_u8; CHUNK_SIZE];
+            let mut num_read;
             // looping
             loop {
-                send_message(&channel, Kind::Header, Some(vec![2, 3, 4]))?;
+                num_read = match reader.read(&mut buf) {
+                    Ok(0) | Err(_) => break,
+                    Ok(v) => v,
+                };
+                send_message(&channel, Kind::Header, Some(Vec::from(&buf[..num_read])))?;
             }
+            Ok(())
         })
     }
 }

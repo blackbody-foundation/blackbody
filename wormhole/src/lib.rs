@@ -50,9 +50,10 @@ impl Wormhole {
         }
     }
     /// if infile is empty then excute from io::stdin(), out to io::stdout()
-    pub fn transform(&self, infile: String) -> Result<()> {
+    pub fn transform(&self, infile: PathBuf) -> Result<()> {
         let db = self.load_otoodb()?;
-        tg::TransformTG::new(tg::Requirement::new(infile, db)).join()?;
+        let version = db.version();
+        tg::TransformTG::new(tg::Requirement::new(infile, db, version)).join()?;
         Ok(())
     }
     fn load_otoodb(&self) -> Result<DB> {

@@ -23,16 +23,17 @@ pub use primitive_types::U512;
 
 use crate::system::*;
 
-pub trait BytesSer {
-    fn into_bytes(self) -> Result<Option<Vec<u8>>>;
+pub trait BytesSer<T> {
+    fn into_bytes(self) -> Result<T>;
 }
-pub trait BytesDe {
-    fn into_something<T>(self) -> Result<Option<T>>
-    where
-        T: serde::de::DeserializeOwned;
+pub trait BytesDe<T>
+where
+    T: serde::de::DeserializeOwned,
+{
+    fn into_something(self) -> Result<T>;
 }
 
-impl<T: serde::Serialize> BytesSer for Option<T> {
+impl<T: serde::Serialize> BytesSer<Option<Vec<u8>>> for Option<T> {
     fn into_bytes(self) -> Result<Option<Vec<u8>>> {
         match self {
             Some(v) => Ok(Some(bincode::serialize(&v)?)),
@@ -40,14 +41,22 @@ impl<T: serde::Serialize> BytesSer for Option<T> {
         }
     }
 }
-impl BytesDe for Option<Vec<u8>> {
-    fn into_something<T>(self) -> Result<Option<T>>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+impl<T: serde::de::DeserializeOwned> BytesDe<Option<T>> for Option<Vec<u8>> {
+    fn into_something(self) -> Result<Option<T>> {
         match self {
             Some(v) => Ok(Some(bincode::deserialize::<T>(&v)?)),
             _ => Ok(None),
         }
+    }
+}
+
+impl<T: serde::Serialize> BytesSer<Vec<u8>> for T {
+    fn into_bytes(self) -> Result<Vec<u8>> {
+        Ok(bincode::serialize(&self)?)
+    }
+}
+impl<T: serde::de::DeserializeOwned> BytesDe<T> for Vec<u8> {
+    fn into_something(self) -> Result<T> {
+        Ok(bincode::deserialize::<T>(&self)?)
     }
 }
