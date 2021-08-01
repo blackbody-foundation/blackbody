@@ -19,7 +19,7 @@ edition = "2018"
 
 [dependencies]
 utils-results = "2.2.2"
-serde = { version = "1.0.126", features = ["derive"] }
+serde = { version = "1.0.127", features = ["derive"] }
 bincode = "1.3.3"
 primitive-types = "0.10.1"
 crossbeam = "0.8.1"

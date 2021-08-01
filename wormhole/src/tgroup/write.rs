@@ -61,7 +61,9 @@ impl TSubGroup<Message> for TWrite {
             // looping
             while let Ok(m) = channel.recv() {
                 match m.kind {
-                    Kind::Phase0Forward => {}
+                    Kind::Phase0Forward => {
+                        writer.write_all(m.payload.unwrap().as_slice())?;
+                    }
                     _ => break,
                 }
             }

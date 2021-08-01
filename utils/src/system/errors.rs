@@ -34,7 +34,7 @@ err! {
     OutOfBounds => "index out of bounds."
     ThreadSending => "thread sending error."
     ThreadReceiving => "thread receiving error."
-    HigherVersion => "higher version data cannot be read."
+    UnexpectedVersion => "version is not matched."
 }
 
 io_err! {

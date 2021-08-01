@@ -18,7 +18,7 @@
 
 */
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Cheque128 {
     cheque: Vec<u128>,
 }
@@ -68,6 +68,29 @@ impl Cheque128 {
     pub fn get(&self) -> (usize, u128) {
         let len = self.len();
         (len - 1, self.cheque[len])
+    }
+    pub fn into_le_bytes(self) -> Vec<u8> {
+        self.cheque
+            .into_iter()
+            .flat_map(|v| v.to_le_bytes())
+            .collect()
+    }
+    pub fn to_le_bytes(&self) -> Vec<u8> {
+        self.cheque.iter().flat_map(|v| v.to_le_bytes()).collect()
+    }
+    pub fn into_be_bytes(self) -> Vec<u8> {
+        self.cheque
+            .into_iter()
+            .rev()
+            .flat_map(|v| v.to_be_bytes())
+            .collect()
+    }
+    pub fn to_be_bytes(&self) -> Vec<u8> {
+        self.cheque
+            .iter()
+            .rev()
+            .flat_map(|v| v.to_be_bytes())
+            .collect()
     }
 }
 

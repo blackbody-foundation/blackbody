@@ -18,8 +18,6 @@
 
 */
 
-pub use crate::types::bytes::U512;
-
 /// Bytes length match macro
 ///
 /// ```rust
@@ -44,30 +42,47 @@ macro_rules! is_bytes_len {
     };
 }
 
-/// Picking maximum bytes (by U512 'little endian')
+/// Picking maximum bytes ('little endian')
 ///
 /// ```rust
-/// let max = max_bytes![&[0,0,0], &[1,2,3], &[3,2,1]];
+/// let max = max_bytes![&[0,1,2], &[1,2,3], &[3,2,1]];
 /// assert_eq!(max, &[1,2,3]);
 /// ```
-///
-/// - If several elements are equally maximum, the last element is returned.
-/// - If the arguments place is empty, Err(err::EmptyArgument) is returned.
-///
 #[macro_export]
 macro_rules! max_bytes {
     (
-        $bytes0:expr$(, $bytes:expr)*
+        $bytes0:expr$(, $bytes:expr)+
     ) => {
         {
-            match vec![
-                ($bytes0, U512::from_little_endian($bytes0)),
-                $(
-                    ($bytes, U512::from_little_endian($bytes))
-                ),*
-            ].into_iter().max_by_key(|x| x.1) {
-                Some(x) => Result::Ok(x.0),
-                None => errbang!(err::EmptyArgument)
+            {
+                let list = vec![$bytes0, $($bytes),*];
+                let (mut max_len, mut max_i) = (list[0].len(), 0);
+                let mut len;
+
+                for (mut i, bytes) in list.iter().skip(1).enumerate() {
+                    i += 1;
+
+                    len = bytes.len();
+
+                    if max_len < len {
+
+                        max_len = len;
+                        max_i = i;
+
+                    } else if max_len == len {
+                        for j in (0..len).rev() {
+
+                            if list[max_i][j] < list[i][j]  {
+                                max_i = i;
+                            } else if list[max_i][j] > list[i][j] {
+                                break;
+                            }
+
+                        }
+                    }
+
+                }
+                list[max_i]
             }
         }
     };

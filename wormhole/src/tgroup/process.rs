@@ -104,9 +104,9 @@ impl TSubGroup<Message> for TProcess {
                 m if m.kind == Kind::Phase0Header => {
                     // if target file has a header
                     header = resultcastsend!(m.payload.into_something())?.unwrap();
-                    if header.version > db_version {
-                        // matching our db version
-                        return errbangsend!(err::HigherVersion);
+                    if header.version != db_version {
+                        // *** warning: matching our db version ***
+                        return errbangsend!(err::UnexpectedVersion);
                     }
                     // decoding order
                     std::mem::swap(&mut db_src_size, &mut db_dst_size);
@@ -133,7 +133,7 @@ impl TSubGroup<Message> for TProcess {
                         for src_bytes in temporary.chunks(db_src_size) {
                             //
                             // transform source bytes to target bytes
-                            if let Ok(dst_bytes) = db.get_by_version(src_bytes, db_version) {
+                            if let Ok(dst_bytes) = db.get(src_bytes) {
                                 if dst_bytes.is_some() {
                                     found_count += 1;
                                 }
@@ -148,6 +148,7 @@ impl TSubGroup<Message> for TProcess {
                     _ => break,
                 }
             }
+
             Ok(())
         })
     }

@@ -20,6 +20,8 @@
 
 //! One to One Set Database.
 
+//! We are using ('little endian') byte ordering.
+
 mod cmn;
 mod db;
 mod head;
@@ -51,19 +53,8 @@ mod tests {
             db.define(&p.0, &p.1)?;
         }
 
-        let (mut a, mut b) = (Vec::new(), Vec::new());
-        for (current_height, p) in packet.iter().enumerate() {
-            if current_height > 1 {
-                let prev_a = db
-                    .get_by_version(&packet[current_height - 1].0, current_height as HHSize)?
-                    .unwrap();
-                let prev_b = db
-                    .get_by_version(&packet[current_height - 1].1, current_height as HHSize)?
-                    .unwrap();
-                assert_eq!(prev_a, a);
-                assert_eq!(prev_b, b);
-            }
-
+        let (mut a, mut b);
+        for p in packet.iter() {
             a = db.get(&p.0)?.unwrap();
             b = db.get(&p.1)?.unwrap();
             assert_eq!(a, p.1.to_vec());

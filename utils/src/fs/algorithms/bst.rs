@@ -21,10 +21,7 @@
 use crate::{
     fs::types::*,
     system::*,
-    types::{
-        bytes::{max_bytes, U512},
-        Lim, MBox, VLim,
-    },
+    types::{bytes::max_bytes, Lim, MBox, VLim},
 };
 
 #[derive(Debug, Clone)]
@@ -141,7 +138,7 @@ impl BST {
             1 => {
                 fm.read_cursoring(buf, start)?;
 
-                forward = target == max_bytes![target, buf]?;
+                forward = target == max_bytes![target, buf];
 
                 m.to(&mut elem.right); // returning previous value (elem.right)
                 if target == buf {
@@ -169,7 +166,7 @@ impl BST {
                 return Ok((true, pos));
             }
 
-            forward = target == max_bytes![target, buf]?;
+            forward = target == max_bytes![target, buf];
 
             if low >= high {
                 break;
@@ -177,7 +174,7 @@ impl BST {
             if forward {
                 low = mid + 1;
             } else {
-                high = mid - if mid == 0 { 0 } else { 1 };
+                high = mid - if mid == low { 0 } else { 1 };
             }
         }
 

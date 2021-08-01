@@ -18,10 +18,10 @@
 
 */
 
-pub use crate::macros::bytes::*;
-pub use primitive_types::U512;
-
 use crate::system::*;
+
+pub use crate::macros::bytes::*;
+pub use primitive_types::U256;
 
 pub trait BytesSer<T>
 where

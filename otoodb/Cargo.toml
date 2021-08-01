@@ -20,4 +20,3 @@ edition = "2018"
 
 [dependencies]
 utils = { path = "../utils" }
-serde = { version = "1.0.126", features = ["derive"] }
