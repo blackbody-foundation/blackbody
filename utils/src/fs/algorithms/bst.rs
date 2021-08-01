@@ -27,7 +27,7 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BST {
     file_lim: Lim<uPS>, // searchable range
     elem_lim: VLim,     // a pair data element had (start, mid, end)

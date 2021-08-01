@@ -21,8 +21,11 @@
 use super::*;
 
 #[derive(Debug)]
-pub struct FM<T> {
-    pub ptr: Box<dyn Ptr>,
+pub struct FM<T>
+where
+    T: HeaderTrait,
+{
+    pub ptr: File,
     pub path: PathBuf,
     pub header: Box<T>,
     pub header_size: uPS,
@@ -32,13 +35,11 @@ pub struct FM<T> {
 
 impl<T: HeaderTrait> FM<T> {
     pub fn new<P: AsRef<Path>>(path: P, mut header: Box<T>) -> Result<Self> {
-        let file = std::fs::OpenOptions::new()
+        let mut ptr = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .read(true)
             .open(path.as_ref())?;
-
-        let mut ptr: Box<dyn Ptr> = Box::new(file);
 
         let path = path.as_ref().to_path_buf();
 
@@ -134,5 +135,18 @@ impl<T: HeaderTrait> FM<T> {
     }
     fn err_tunnel<E>(io_e: std::io::Result<E>) -> Result<E> {
         io_to_err!(io_e)
+    }
+}
+
+impl<T: HeaderTrait> Clone for FM<T> {
+    fn clone(&self) -> Self {
+        Self {
+            ptr: self.ptr.try_clone().unwrap(),
+            path: self.path.clone(),
+            header: self.header.clone(),
+            header_size: self.header_size,
+            file_size: self.file_size,
+            content_lim: self.content_lim.clone(),
+        }
     }
 }

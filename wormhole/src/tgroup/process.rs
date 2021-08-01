@@ -43,19 +43,19 @@
 //                 continue; // collect more
 //             }
 
-//             // get the chunks of source's bytes
-//             for src_bytes in temporary.chunks(src_size) {
-//                 //
-//                 // transform source bytes to target bytes
-//                 if let Some(dst_bytes) = target.transform(src_bytes) {
-//                     //
-//                     // send the target bytes and then break out
-//                     if write_tx.send(dst_bytes).is_err() {
-//                         break 'outer;
-//                     }
-//                     found_count += 1;
-//                 }
-//             }
+// // get the chunks of source's bytes
+// for src_bytes in temporary.chunks(src_size) {
+//     //
+//     // transform source bytes to target bytes
+//     if let Some(dst_bytes) = target.transform(src_bytes) {
+//         //
+//         // send the target bytes and then break out
+//         if write_tx.send(dst_bytes).is_err() {
+//             break 'outer;
+//         }
+//         found_count += 1;
+//     }
+// }
 
 //             // calculates rest of source bytes
 //             rest = (len % src_size) / 8;
@@ -80,6 +80,7 @@ use super::cmn::*;
 derive_substruct! {
     super: Requirement;
     pub struct TProcess {
+        db: DB,
         file_path: PathBuf,
     }
 }
@@ -91,25 +92,58 @@ impl TSubGroup<Message> for TProcess {
         channel: Chan<Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx -> tx
-        let _info = Self::copy_from_super(requirement);
+        let info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
             let header: CCCSHeader;
+            let mut db = info.db;
+            let (db_version, mut db_src_size, mut db_dst_size) = db.get_info();
+            let db_version = db_version as HHSize;
 
             match channel.recv().unwrap() {
-                m if m.kind == Kind::Header => {
+                m if m.kind == Kind::Phase0Header => {
+                    // if target file has a header
                     header = resultcastsend!(m.payload.into_something())?.unwrap();
+                    if header.version > db_version {
+                        // matching our db version
+                        return errbangsend!(err::HigherVersion);
+                    }
+                    // decoding order
+                    std::mem::swap(&mut db_src_size, &mut db_dst_size);
                 }
                 _ => {
                     return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
                 }
             }
 
+            let mut temporary = Vec::<u8>::new();
+            let mut found_count: uPS = 0;
+
             // looping
-            while let Ok(m) = channel.recv() {
+            'outer: while let Ok(m) = channel.recv() {
                 match m.kind {
-                    Kind::Through => {
-                        channel.send(Message::new(Kind::Through, m.payload))?;
+                    Kind::Phase0Forward => {
+                        temporary.extend(m.payload.unwrap().into_iter());
+
+                        if temporary.len() < db_src_size {
+                            continue;
+                        }
+
+                        // get the chunks of source's bytes
+                        for src_bytes in temporary.chunks(db_src_size) {
+                            //
+                            // transform source bytes to target bytes
+                            if let Ok(dst_bytes) = db.get_by_version(src_bytes, db_version) {
+                                if dst_bytes.is_some() {
+                                    found_count += 1;
+                                }
+                                //
+                                // send the target bytes and then break out
+                                if send_message(&channel, Kind::Phase0Forward, dst_bytes).is_err() {
+                                    break 'outer;
+                                }
+                            }
+                        }
                     }
                     _ => break,
                 }

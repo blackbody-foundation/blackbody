@@ -31,7 +31,7 @@ use utils::{
     types::{Lim, VLim},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DB {
     file: File<OtooHeader>,
     bst: BST,
@@ -120,7 +120,7 @@ impl DB {
         fm.set_cursor(0)?;
 
         for (a_bl, b_bl) in [(a_bytes, b_bytes), (b_bytes, a_bytes)] {
-            let mut buf = vec![0_u8; a_bl];
+            let mut buf = vec![0_u8; a_bl]; // HUSize to LS
             let mut prev_buf = vec![0_u8; a_bl];
 
             fm.read(&mut prev_buf)?;

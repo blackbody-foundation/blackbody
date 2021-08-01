@@ -38,6 +38,7 @@
 /// this creates unbounded channels<br><br>
 /// if pipeline is actived,
 /// * TRead, TWrite, ... <- must be ordered by pipechan
+/// * pipeline channels are connected as circular way
 #[macro_export]
 macro_rules! tgroup {
     (@count) => {0usize};

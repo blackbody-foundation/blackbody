@@ -40,8 +40,11 @@ epool! {
 }
 
 /// File\<dyn HeaderTrait\>
-#[derive(Debug)]
-pub struct File<T> {
+#[derive(Debug, Clone)]
+pub struct File<T>
+where
+    T: HeaderTrait,
+{
     pub fm: FM<T>,
 }
 

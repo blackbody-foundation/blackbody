@@ -23,7 +23,10 @@ pub use primitive_types::U512;
 
 use crate::system::*;
 
-pub trait BytesSer<T> {
+pub trait BytesSer<T>
+where
+    T: serde::Serialize,
+{
     fn into_bytes(self) -> Result<T>;
 }
 pub trait BytesDe<T>

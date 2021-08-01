@@ -46,7 +46,7 @@ impl TSubGroup<Message> for TRead {
             let (mut reader, header) = func::get_reader(&info.file_path)?;
 
             let header = resultcastsend!(header.into_bytes())?;
-            send_message(&channel, Kind::Header, header)?; // send header
+            send_message(&channel, Kind::Phase0Header, header)?; // send header
 
             reader.seek(io::SeekFrom::Start(0))?;
 
@@ -58,7 +58,11 @@ impl TSubGroup<Message> for TRead {
                     Ok(0) | Err(_) => break,
                     Ok(v) => v,
                 };
-                send_message(&channel, Kind::Header, Some(Vec::from(&buf[..num_read])))?;
+                send_message(
+                    &channel,
+                    Kind::Phase0Forward,
+                    Some(Vec::from(&buf[..num_read])),
+                )?;
             }
             Ok(())
         })

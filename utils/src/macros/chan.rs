@@ -43,9 +43,11 @@ macro_rules! pipechan {
             );
             let mut pipe = Vec::new();
 
+            let (root_tx, root_rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
+
             let (tx, mut prev_rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
 
-            pipe.push(utils::types::chan::Chan::new(Some(tx), None));
+            pipe.push(utils::types::chan::Chan::new(Some(tx), Some(root_rx)));
 
             for _ in 1..$number { // number of channels = n - 1
                 let (tx, rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
@@ -54,7 +56,7 @@ macro_rules! pipechan {
                 pipe.push(chan);
             }
 
-            pipe.push(utils::types::chan::Chan::new(None, Some(prev_rx)));
+            pipe.push(utils::types::chan::Chan::new(Some(root_tx), Some(prev_rx)));
 
             pipe
         }

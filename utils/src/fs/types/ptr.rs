@@ -21,6 +21,7 @@
 use super::*;
 
 impl Ptr for File {}
+
 pub trait Ptr
 where
     Self: Read + Write + Seek + std::fmt::Debug,

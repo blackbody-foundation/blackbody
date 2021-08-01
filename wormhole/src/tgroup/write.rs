@@ -48,7 +48,7 @@ impl TSubGroup<Message> for TWrite {
             let mut header;
 
             match channel.recv().unwrap() {
-                m if m.kind == Kind::Header && m.payload.is_none() => {
+                m if m.kind == Kind::Phase0Header && m.payload.is_none() => {
                     header = CCCSHeader::default();
                     header.version = info.version;
                     writer.write_all(&resultcastsend!(header.into_bytes())?)?;
@@ -61,8 +61,7 @@ impl TSubGroup<Message> for TWrite {
             // looping
             while let Ok(m) = channel.recv() {
                 match m.kind {
-                    Kind::Through => {}
-                    Kind::Header => {}
+                    Kind::Phase0Forward => {}
                     _ => break,
                 }
             }

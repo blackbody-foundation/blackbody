@@ -42,9 +42,15 @@ utils::message! {
     pub msg,
     M = Vec<u8>,
     K = enum {
-        Header,
-        Through,
-        End,
+
+        Phase0Header,
+        Phase0Through,
+        Phase0Forward,
+
+        Phase1Header,
+        Phase1Through,
+        Phase1Forward,
+        
     }
 }
 
