@@ -31,11 +31,11 @@ use utils::{
     types::{Lim, VLim},
 };
 
+/// default byte order = `little endian` (whenever can change in bst)
 #[derive(Debug, Clone)]
 pub struct DB {
     file: File<OtooHeader>,
-    bst: BST,
-    pub flags: Flags,
+    pub bst: BST,
 }
 
 impl DB {
@@ -49,9 +49,7 @@ impl DB {
         let elem_lim = VLim::new(0, mid, mid + end);
         let bst = BST::new(file_lim, elem_lim)?;
 
-        let flags = Flags::default();
-
-        let db = Self { file, bst, flags };
+        let db = Self { file, bst };
         eprintln!("file successfully opened.");
         Self::validate(db)
     }
@@ -110,6 +108,8 @@ impl DB {
             return Ok(db);
         }
 
+        let max_bytes = max_bytes_closure![db.bst.byte_order, a, b];
+
         let fm = db.file_manager();
 
         fm.set_cursor(0)?;
@@ -124,7 +124,7 @@ impl DB {
             for _ in 1..height {
                 fm.read(&mut buf)?;
 
-                if buf != max_le_bytes![buf.as_slice(), prev_buf.as_slice()] {
+                if buf != max_bytes(buf.as_slice(), prev_buf.as_slice()) {
                     return errbang!(err::ValidationFailed);
                 }
                 fm.set_cursor_relative(b_bl as iPS)?;

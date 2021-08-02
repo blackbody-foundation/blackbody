@@ -18,6 +18,7 @@
 
 */
 
+//! Byte Order = `little endian`
 
 mod cmn;
 use cmn::*;

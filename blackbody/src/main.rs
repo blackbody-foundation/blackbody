@@ -110,6 +110,8 @@ fn get_fx(n: usize) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use utils::types::bytes::ByteOrder;
+
     use super::*;
     #[test]
     fn otoodb() -> Result<()> {
@@ -117,27 +119,28 @@ mod tests {
             std::fs::remove_file(FILE_PATH)?;
         }
         let mut db = DB::open(FILE_PATH, 32, 4)?;
+        db.bst.byte_order = ByteOrder::BigEndian;
 
         let mut p;
         let mut packet = Vec::new();
-        for i in 1..=100u128 {
-            p = (U256::from(i), get_fx(100));
+        for i in 1..=3000u128 {
+            p = (U256::from(i), get_fx(50));
             packet.push(p);
         }
 
         let mut le_bytes = [0_u8; 32];
 
         for p in packet.iter() {
-            p.0.to_little_endian(&mut le_bytes);
-            db.define(&le_bytes, &p.1.to_le_bytes())?;
+            p.0.to_big_endian(&mut le_bytes);
+            db.define(&le_bytes, &p.1.to_be_bytes())?;
         }
 
         let (mut a, mut b);
         for p in packet.iter() {
-            p.0.to_little_endian(&mut le_bytes);
+            p.0.to_big_endian(&mut le_bytes);
             a = db.get(&le_bytes)?.unwrap();
 
-            let le_bytes2 = p.1.to_le_bytes();
+            let le_bytes2 = p.1.to_be_bytes();
             b = db.get(&le_bytes2)?.unwrap();
 
             assert_eq!(a, &le_bytes2);

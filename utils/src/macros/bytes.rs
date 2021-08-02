@@ -79,5 +79,74 @@ macro_rules! max_le_bytes {
     };
 }
 
+/// Picking maximum bytes ('big endian')
+///
+/// ```rust
+/// let max = max_be_bytes![&[0,1,2], &[1,2,3], &[3,2,1]];
+/// assert_eq!(max, &[3,2,1]);
+/// ```
+#[macro_export]
+macro_rules! max_be_bytes {
+    (
+        $bytes0:expr$(, $bytes:expr)+
+    ) => {
+        {
+            {
+                let list = vec![$bytes0, $($bytes),*];
+                let (mut max_len, mut max_i) = (list[0].len(), 0);
+                let mut len;
+
+                for (mut i, bytes) in list.iter().skip(1).enumerate() {
+                    i += 1;
+
+                    len = bytes.len();
+
+                    if max_len < len {
+
+                        max_len = len;
+                        max_i = i;
+
+                    } else if max_len == len {
+                        for j in 0..len {
+
+                            if list[max_i][j] < list[i][j]  {
+                                max_i = i;
+                            } else if list[max_i][j] > list[i][j] {
+                                break;
+                            }
+
+                        }
+                    }
+
+                }
+                list[max_i]
+            }
+        }
+    };
+}
+
+/// Get the closure
+///
+/// ```rust
+/// let max_bytes = max_bytes_closure!(ByteOrder::, a, b, ...);
+/// ```
+#[macro_export]
+macro_rules! max_bytes_closure {
+    (
+        $byte_order: expr,
+        $($var:ident),+
+    ) => {
+        {
+            let __max_bytes__: for<'a> fn($($var:&'a [u8]),+) -> &'a [u8] = match $byte_order {
+                ByteOrder::LittleEndian => |$($var),+| max_le_bytes![$($var),+],
+                ByteOrder::BigEndian => |$($var),+| max_be_bytes![$($var),+]
+            };
+            __max_bytes__
+        }
+    };
+}
+
 pub use is_bytes_len;
+pub use max_be_bytes;
+pub use max_bytes_closure;
 pub use max_le_bytes;

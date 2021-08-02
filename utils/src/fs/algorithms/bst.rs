@@ -21,15 +21,17 @@
 use crate::{
     fs::types::*,
     system::*,
-    types::{bytes::max_le_bytes, Lim, MBox, VLim},
+    types::{bytes::*, Lim, MBox, VLim},
 };
 
+/// default byte order = `little endian` (whenever can change)
 #[derive(Debug, Clone)]
 pub struct BST {
     file_lim: Lim<uPS>, // searchable range
     elem_lim: VLim,     // a pair data element had (start, mid, end)
     buf: Vec<u8>,       // temporary buf vector
     width: uPS,
+    pub byte_order: ByteOrder,
 }
 
 impl BST {
@@ -37,11 +39,13 @@ impl BST {
         if Self::check_lens(&file_lim, &elem_lim) {
             let buf = elem_lim.create::<u8>();
             let width = (file_lim.end - file_lim.start) / elem_lim.width() as uPS;
+            let byte_order = ByteOrder::LittleEndian; // *
             Ok(Self {
                 file_lim,
                 elem_lim,
                 buf,
                 width,
+                byte_order,
             })
         } else {
             errbang!(err::InvalidLenSize)
@@ -130,6 +134,8 @@ impl BST {
 
         let mut forward;
 
+        let max_bytes = max_bytes_closure!(self.byte_order, a, b);
+
         // init
         match self.width {
             0 => {
@@ -138,7 +144,7 @@ impl BST {
             1 => {
                 fm.read_cursoring(buf, start)?;
 
-                forward = target == max_le_bytes![target, buf];
+                forward = target == max_bytes(target, buf);
 
                 m.to(&mut elem.right); // returning previous value (elem.right)
                 if target == buf {
@@ -166,7 +172,7 @@ impl BST {
                 return Ok((true, pos));
             }
 
-            forward = target == max_le_bytes![target, buf];
+            forward = target == max_bytes(target, buf);
 
             if low >= high {
                 break;
@@ -189,11 +195,13 @@ impl Default for BST {
         let elem_lim = VLim::new(0, 0, 1);
         let buf = elem_lim.create::<u8>();
         let width = (file_lim.end - file_lim.start) / elem_lim.width() as uPS;
+        let byte_order = ByteOrder::LittleEndian;
         Self {
             file_lim,
             elem_lim,
             buf,
             width,
+            byte_order,
         }
     }
 }

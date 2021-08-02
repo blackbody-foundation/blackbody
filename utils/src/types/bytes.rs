@@ -23,8 +23,7 @@ use crate::system::*;
 pub use crate::macros::bytes::*;
 pub use primitive_types::U256;
 
-
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ByteOrder {
     LittleEndian,
     BigEndian,
