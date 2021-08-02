@@ -20,6 +20,11 @@
 
 //! common
 
-pub use utils::{system::*, types::bytes::*};
-
 pub use std::borrow::BorrowMut;
+
+pub use utils::{macros::flags::flags, system::*, types::bytes::*};
+
+flags! {
+    pub Flags
+    ByteOrder ByteOrder
+}

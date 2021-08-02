@@ -22,34 +22,25 @@
 ///
 /// ```rust
 /// let len = is_bytes_len![&[0,0,0], 2, 3, 6];
-/// assert_eq!(len, 3);
+/// assert_eq!(len, Some(3));
 /// ```
-///
-/// - if the match is invalid, return Err(err::InvalidLenSize)
-///
 #[macro_export]
 macro_rules! is_bytes_len {
     (
         $bytes:ident, $len0:expr $(, $len:expr)*
     ) => {
-            if $bytes.len() == $len0 {
-                Result::Ok($len0)
-            } $(else if $bytes.len() == $len {
-                Result::Ok($len)
-            })* else {
-                errbang!(err::InvalidLenSize)
-            }
+        vec![$len0:expr $(, $len:expr)*].into_iter().find(|&x| x == $bytes.len())
     };
 }
 
 /// Picking maximum bytes ('little endian')
 ///
 /// ```rust
-/// let max = max_bytes![&[0,1,2], &[1,2,3], &[3,2,1]];
+/// let max = max_le_bytes![&[0,1,2], &[1,2,3], &[3,2,1]];
 /// assert_eq!(max, &[1,2,3]);
 /// ```
 #[macro_export]
-macro_rules! max_bytes {
+macro_rules! max_le_bytes {
     (
         $bytes0:expr$(, $bytes:expr)+
     ) => {
@@ -89,4 +80,4 @@ macro_rules! max_bytes {
 }
 
 pub use is_bytes_len;
-pub use max_bytes;
+pub use max_le_bytes;

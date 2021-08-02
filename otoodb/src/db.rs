@@ -35,6 +35,7 @@ use utils::{
 pub struct DB {
     file: File<OtooHeader>,
     bst: BST,
+    pub flags: Flags,
 }
 
 impl DB {
@@ -48,7 +49,9 @@ impl DB {
         let elem_lim = VLim::new(0, mid, mid + end);
         let bst = BST::new(file_lim, elem_lim)?;
 
-        let db = Self { file, bst };
+        let flags = Flags::default();
+
+        let db = Self { file, bst, flags };
         eprintln!("file successfully opened.");
         Self::validate(db)
     }
@@ -121,7 +124,7 @@ impl DB {
             for _ in 1..height {
                 fm.read(&mut buf)?;
 
-                if buf != max_bytes![buf.as_slice(), prev_buf.as_slice()] {
+                if buf != max_le_bytes![buf.as_slice(), prev_buf.as_slice()] {
                     return errbang!(err::ValidationFailed);
                 }
                 fm.set_cursor_relative(b_bl as iPS)?;

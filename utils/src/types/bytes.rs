@@ -23,6 +23,18 @@ use crate::system::*;
 pub use crate::macros::bytes::*;
 pub use primitive_types::U256;
 
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ByteOrder {
+    LittleEndian,
+    BigEndian,
+}
+impl Default for ByteOrder {
+    fn default() -> Self {
+        Self::LittleEndian
+    }
+}
+
 pub trait BytesSer<T>
 where
     T: serde::Serialize,

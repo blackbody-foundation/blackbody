@@ -25,6 +25,7 @@ pub mod epool;
 pub mod fs;
 pub mod message;
 pub mod tgroup;
+pub mod flags;
 
 pub mod gost;
 

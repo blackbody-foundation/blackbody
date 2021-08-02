@@ -20,8 +20,6 @@
 
 //! One to One Set Database.
 
-//! We are using ('little endian') byte ordering.
-
 mod cmn;
 mod db;
 mod head;

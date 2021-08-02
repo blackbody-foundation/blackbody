@@ -21,6 +21,9 @@
 // blackhole (file) or (file.cccs)
 // cccs = collapsed and compressed core star
 
+//! We are using ('little endian') byte ordering.
+
+
 use utils::system::*;
 use wormhole::Wormhole;
 
