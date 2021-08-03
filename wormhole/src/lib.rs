@@ -18,7 +18,7 @@
 
 */
 
-//! Byte Order = `little endian`
+//! Byte Order `little endian`
 
 mod cmn;
 use cmn::*;
@@ -53,9 +53,10 @@ impl Wormhole {
     }
     /// if infile is empty then excute from io::stdin(), out to io::stdout()
     pub fn transform(&self, infile: PathBuf) -> Result<()> {
+        let file_path = infile;
         let db = self.load_otoodb()?;
         let version = db.version();
-        tg::TransformTG::new(tg::Requirement::new(infile, db, version)).join()?;
+        tg::TransformTG::new(tg::Requirement::new(file_path, db, version)).join()?;
         Ok(())
     }
     fn load_otoodb(&self) -> Result<DB> {

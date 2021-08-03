@@ -1,5 +1,5 @@
 /*
-    .. + message.rs + ..
+    .. + get_reader.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,16 +18,15 @@
 
 */
 
-pub struct Message<K, C> {
-    pub kind: K,
-    pub payload: C,
-}
-impl<K, C> Message<K, C> {
-    pub fn new(kind: K, payload: C) -> Self {
-        Self { kind, payload }
-    }
-}
+use super::*;
 
-impl<K, C> Messages for Message<K, C> {}
-
-pub trait Messages {}
+/// header into bytes and send to the next pipechan with **Kind::Phase0Header**<br>
+/// ## Return
+/// if header is None then header will be ***Vec::new()*** (= empty vector)
+pub fn send_header(chan: &Chan<Message>, header: Option<Box<CCCSHeader>>) -> ResultSend<()> {
+    let header = match header {
+        Some(v) => v.into_bytes_send()?,
+        None => Vec::new(),
+    };
+    send_message(chan, Kind::Phase0Header, header)
+}

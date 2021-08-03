@@ -20,7 +20,7 @@
 
 /// Bytes length match macro
 ///
-/// ```rust
+/// ```no_run
 /// let len = is_bytes_len![&[0,0,0], 2, 3, 6];
 /// assert_eq!(len, Some(3));
 /// ```
@@ -35,7 +35,7 @@ macro_rules! is_bytes_len {
 
 /// Picking maximum bytes ('little endian')
 ///
-/// ```rust
+/// ```no_run
 /// let max = max_le_bytes![&[0,1,2], &[1,2,3], &[3,2,1]];
 /// assert_eq!(max, &[1,2,3]);
 /// ```
@@ -81,7 +81,7 @@ macro_rules! max_le_bytes {
 
 /// Picking maximum bytes ('big endian')
 ///
-/// ```rust
+/// ```no_run
 /// let max = max_be_bytes![&[0,1,2], &[1,2,3], &[3,2,1]];
 /// assert_eq!(max, &[3,2,1]);
 /// ```
@@ -127,7 +127,7 @@ macro_rules! max_be_bytes {
 
 /// Get the closure
 ///
-/// ```rust
+/// ```no_run
 /// let max_bytes = max_bytes_closure!(ByteOrder::, a, b, ...);
 /// ```
 #[macro_export]
@@ -146,7 +146,69 @@ macro_rules! max_bytes_closure {
     };
 }
 
+/// ```no_run
+/// bincode::serialize(t)
+/// ```
+#[macro_export]
+macro_rules! serialize_t {
+    (
+        $t:expr
+    ) => {
+        bincode::serialize($t)
+    };
+}
+/// ```no_run
+/// bincode::deserialize::<T>(t)?
+/// ```
+#[macro_export]
+macro_rules! deserialize_t {
+    (
+        $t:expr
+    ) => {
+        bincode::deserialize::<T>($t)
+    };
+}
+/// ```no_run
+/// match t {
+///     Some(v) => Ok(Some(bincode::serialize(&v)?)),
+///     _ => Ok(None),
+/// }
+/// ```
+#[macro_export]
+macro_rules! serialize_option_t {
+    (
+        $t:expr
+    ) => {
+        match $t {
+            Some(v) => Ok(Some(bincode::serialize(&v)?)),
+            _ => Ok(None),
+        }
+    };
+}
+/// ```no_run
+/// match t {
+///     Some(v) => Ok(Some(bincode::deserialize::<T>(&v)?)),
+///     _ => Ok(None),
+/// }
+/// ```
+#[macro_export]
+macro_rules! deserialize_option_t {
+    (
+        $t:expr
+    ) => {
+        match $t {
+            Some(v) => Ok(Some(bincode::deserialize::<T>(&v)?)),
+            _ => Ok(None),
+        }
+    };
+}
+
 pub use is_bytes_len;
 pub use max_be_bytes;
 pub use max_bytes_closure;
 pub use max_le_bytes;
+
+pub use deserialize_option_t;
+pub use deserialize_t;
+pub use serialize_option_t;
+pub use serialize_t;

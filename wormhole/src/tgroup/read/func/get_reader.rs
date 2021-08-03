@@ -26,7 +26,7 @@ pub type Reader = (Box<dyn ReadPtr>, Option<Box<CCCSHeader>>);
 
 /// ### returns
 ///```no_run
-/// (Box<dyn ReadPtr>, Option<Box<CCCSHeader>>)
+/// (Box<dyn ReadPtr>, Box<CCCSHeader>)
 ///```
 pub fn get_reader(file_path: &Path) -> ResultSend<Reader> {
     let header = CCCSHeader::default();

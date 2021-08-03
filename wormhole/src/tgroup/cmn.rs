@@ -20,7 +20,7 @@
 
 //! common
 
-pub use std::io;
+pub use std::io::SeekFrom;
 
 pub use utils::{
     derive_substruct,
@@ -59,7 +59,7 @@ pub use msg::*;
 pub fn send_message(
     chan: &Chan<Message>,
     kind: Kind,
-    payload: Option<TypePayload>,
+    payload: TypePayload,
 ) -> ResultSend<()> {
     chan.send(Message::new(kind, payload))
 }
@@ -71,3 +71,4 @@ utils::derive_new! {
         pub version: HHSize
     }
 }
+

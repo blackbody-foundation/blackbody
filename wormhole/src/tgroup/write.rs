@@ -42,16 +42,23 @@ impl TSubGroup<Message> for TWrite {
         let mut info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
-            info.file_path.set_extension("cccs_tmp0");
+            let mut file_path = info.file_path;
 
-            let mut writer = func::get_writer(&info.file_path)?;
+            file_path.set_extension("cccs_tmp0");
+
+            let mut writer = func::get_writer(&file_path)?;
             let mut header;
 
+            // preprocess receive
             match channel.recv().unwrap() {
-                m if m.kind == Kind::Phase0Header && m.payload.is_none() => {
-                    header = CCCSHeader::default();
-                    header.version = info.version;
-                    writer.write_all(&resultcastsend!(header.into_bytes())?)?;
+                m if m.kind == Kind::Phase0Header => {
+                    let t: CCCSHeader = m.payload.to_something_send()?;
+                    header = Box::new(t);
+
+                    if !header.cccs_flag {
+                        // binary -> .cccs
+                        writer.write_all(&m.payload)?; // writing default header
+                    }
                 }
                 _ => {
                     return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
@@ -62,7 +69,7 @@ impl TSubGroup<Message> for TWrite {
             while let Ok(m) = channel.recv() {
                 match m.kind {
                     Kind::Phase0Forward => {
-                        writer.write_all(m.payload.unwrap().as_slice())?;
+                        writer.write_all(m.payload.as_slice())?;
                     }
                     _ => break,
                 }

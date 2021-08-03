@@ -95,21 +95,35 @@ impl TSubGroup<Message> for TProcess {
         let info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
-            let header: CCCSHeader;
+            let mut header;
             let mut db = info.db;
             let (db_version, mut db_src_size, mut db_dst_size) = db.get_info();
             let db_version = db_version as HHSize;
 
+            // preprocess receive
             match channel.recv().unwrap() {
+                //
                 m if m.kind == Kind::Phase0Header => {
-                    // if target file has a header
-                    header = resultcastsend!(m.payload.into_something())?.unwrap();
-                    if header.version != db_version {
-                        // *** warning: matching our db version ***
-                        return errbangsend!(err::UnexpectedVersion);
+                    //
+                    if m.payload.is_empty() {
+                        // if target file has no header
+                        header = CCCSHeader::default(); // create processing header
+                        header.version = db_version;
+                    } else {
+                        // has a header
+                        let t: CCCSHeader = m.payload.into_something_send()?;
+                        header = Box::new(t);
+
+                        if header.version != db_version {
+                            // *** warning: matching our db version ***
+                            return errbangsend!(err::UnexpectedVersion);
+                        }
+
+                        // decode order
+                        std::mem::swap(&mut db_src_size, &mut db_dst_size);
                     }
-                    // decoding order
-                    std::mem::swap(&mut db_src_size, &mut db_dst_size);
+                    //
+                    send_message(&channel, Kind::Phase0Header, header.to_bytes_send()?)?;
                 }
                 _ => {
                     return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
@@ -123,7 +137,7 @@ impl TSubGroup<Message> for TProcess {
             'outer: while let Ok(m) = channel.recv() {
                 match m.kind {
                     Kind::Phase0Forward => {
-                        temporary.extend(m.payload.unwrap().into_iter());
+                        temporary.extend(m.payload.into_iter());
 
                         if temporary.len() < db_src_size {
                             continue;
@@ -139,7 +153,13 @@ impl TSubGroup<Message> for TProcess {
                                 }
                                 //
                                 // send the target bytes and then break out
-                                if send_message(&channel, Kind::Phase0Forward, dst_bytes).is_err() {
+                                if send_message(
+                                    &channel,
+                                    Kind::Phase0Forward,
+                                    dst_bytes.unwrap_or_default(),
+                                )
+                                .is_err()
+                                {
                                     break 'outer;
                                 }
                             }
