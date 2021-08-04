@@ -1,5 +1,5 @@
 /*
-    .. + func.rs + ..
+    .. + preprocess_recv.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,12 +18,27 @@
 
 */
 
-//! wormhole/read - functions
-
 use super::*;
 
-mod get_writer;
-pub use get_writer::*;
+/// should be a first receive.
+pub fn preprocess_recv(
+    channel: &Chan<Message>,
+    writer: &mut Writer,
+) -> ResultSend<Box<CCCSHeader>> {
+    let header;
+    match channel.recv().unwrap() {
+        m if m.kind == Kind::Phase0Header => {
+            let t: CCCSHeader = m.payload.to_something_send()?;
+            header = Box::new(t);
 
-mod preprocess_recv;
-pub use preprocess_recv::*;
+            if !header.cccs_flag {
+                // binary -> .cccs
+                writer.write_all(&m.payload)?; // writing default header
+            }
+            Ok(header)
+        }
+        _ => {
+            return errbang!(err::ThreadReceiving, "first sending should be a header.");
+        }
+    }
+}

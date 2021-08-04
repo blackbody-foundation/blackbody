@@ -87,8 +87,18 @@ impl DB {
         self.file.fm.header.current_height
     }
     /// header's
+    /// (height, a_set_bytes, b_set_bytes): (HHSize, HUSize, HUSize)
+    pub fn get_info(&self) -> (HHSize, HUSize, HUSize) {
+        let header = self.file.fm.header.as_ref();
+        (
+            header.current_height,
+            header.a_set_bytes,
+            header.b_set_bytes,
+        )
+    }
+    /// header's
     /// (height, a_set_bytes, b_set_bytes): (LS, LS, LS)
-    pub fn get_info(&self) -> (LS, LS, LS) {
+    pub fn get_info_as_usize(&self) -> (LS, LS, LS) {
         let header = self.file.fm.header.as_ref();
         (
             header.current_height as LS,
@@ -98,7 +108,7 @@ impl DB {
     }
     pub fn close(self) {}
     pub fn validate(mut db: DB) -> Result<DB> {
-        let (height, a_bytes, b_bytes) = db.get_info();
+        let (height, a_bytes, b_bytes) = db.get_info_as_usize();
         eprintln!(
             "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
             height, a_bytes, b_bytes

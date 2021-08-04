@@ -18,12 +18,9 @@
 
 */
 
-//! wormhole/read - functions
+//! wormhole/process - functions
 
 use super::*;
-
-mod get_writer;
-pub use get_writer::*;
 
 mod preprocess_recv;
 pub use preprocess_recv::*;

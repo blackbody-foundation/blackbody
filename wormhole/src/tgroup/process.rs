@@ -18,64 +18,11 @@
 
 */
 
-// use super::cmn::*;
-
-// pub fn process_loop(
-//     read_rx: channel::Receiver<msg::Message>,
-//     write_tx: channel::Sender<Vec<u8>>,
-// ) -> io::Result<()> {
-//     let mut temporary = Vec::<u8>::new();
-//     let mut len;
-//     let mut rest;
-//     let (src_size, dst_size) = target.get_info();
-
-//     let mut found_count: uPS;
-//     'outer: loop {
-//         found_count = 0;
-//         while let Ok(p) = read_rx.recv() {
-//             let r_vec = p.content;
-//             // received vector into the temporary vector
-//             temporary.extend(r_vec.into_iter());
-
-//             len = temporary.len();
-
-//             if len < src_size {
-//                 continue; // collect more
-//             }
-
-// // get the chunks of source's bytes
-// for src_bytes in temporary.chunks(src_size) {
-//     //
-//     // transform source bytes to target bytes
-//     if let Some(dst_bytes) = target.transform(src_bytes) {
-//         //
-//         // send the target bytes and then break out
-//         if write_tx.send(dst_bytes).is_err() {
-//             break 'outer;
-//         }
-//         found_count += 1;
-//     }
-// }
-
-//             // calculates rest of source bytes
-//             rest = (len % src_size) / 8;
-//             // replace whole vector of temporary to the rest of source bytes
-//             temporary = (temporary[len - rest..len]).to_vec();
-//         }
-//         // completed transforming
-//         // flush header,
-//         // temporary.len() <- stopped index
-//         if found_count == 0 {
-//             // if any of transforming process doesn't, just break out
-//             break;
-//         }
-//         // or repeat more
-//     }
-
-//     Ok(())
-// }
+//! transfrom
 
 use super::cmn::*;
+
+mod func;
 
 derive_substruct! {
     super: Requirement;
@@ -95,40 +42,10 @@ impl TSubGroup<Message> for TProcess {
         let info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
-            let mut header;
             let mut db = info.db;
-            let (db_version, mut db_src_size, mut db_dst_size) = db.get_info();
-            let db_version = db_version as HHSize;
 
-            // preprocess receive
-            match channel.recv().unwrap() {
-                //
-                m if m.kind == Kind::Phase0Header => {
-                    //
-                    if m.payload.is_empty() {
-                        // if target file has no header
-                        header = CCCSHeader::default(); // create processing header
-                        header.version = db_version;
-                    } else {
-                        // has a header
-                        let t: CCCSHeader = m.payload.into_something_send()?;
-                        header = Box::new(t);
-
-                        if header.version != db_version {
-                            // *** warning: matching our db version ***
-                            return errbangsend!(err::UnexpectedVersion);
-                        }
-
-                        // decode order
-                        std::mem::swap(&mut db_src_size, &mut db_dst_size);
-                    }
-                    //
-                    send_message(&channel, Kind::Phase0Header, header.to_bytes_send()?)?;
-                }
-                _ => {
-                    return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
-                }
-            }
+            let (mut header, db_version, db_src_size, db_dst_size) =
+                func::preprocess_recv(&channel, &db)?;
 
             let mut temporary = Vec::<u8>::new();
             let mut found_count: uPS = 0;

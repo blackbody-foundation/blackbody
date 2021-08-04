@@ -41,7 +41,7 @@ pub use pathy;
 macro_rules! valid_path {
     ($path_buf:expr) => {
         match $path_buf.to_str() {
-            Some(path) if $path_buf.is_file() => Ok(path),
+            Some(path) if $path_buf.is_file() => Ok::<&str, Box<dyn std::error::Error>>(path),
             Some(path) => errbang!(err::FileNotFound, "cannot access target file: {}", path),
             None => errbang!(err::ValidationFailed, "invalid path."),
         }

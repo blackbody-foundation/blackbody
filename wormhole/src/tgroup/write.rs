@@ -39,7 +39,7 @@ impl TSubGroup<Message> for TWrite {
         channel: Chan<Message>,
     ) -> std::thread::JoinHandle<ResultSend<Self::O>> {
         // -> rx
-        let mut info = Self::copy_from_super(requirement);
+        let info = Self::copy_from_super(requirement);
 
         std::thread::spawn(move || -> ResultSend<Self::O> {
             let mut file_path = info.file_path;
@@ -47,23 +47,8 @@ impl TSubGroup<Message> for TWrite {
             file_path.set_extension("cccs_tmp0");
 
             let mut writer = func::get_writer(&file_path)?;
-            let mut header;
 
-            // preprocess receive
-            match channel.recv().unwrap() {
-                m if m.kind == Kind::Phase0Header => {
-                    let t: CCCSHeader = m.payload.to_something_send()?;
-                    header = Box::new(t);
-
-                    if !header.cccs_flag {
-                        // binary -> .cccs
-                        writer.write_all(&m.payload)?; // writing default header
-                    }
-                }
-                _ => {
-                    return errbangsend!(err::ThreadReceiving, "first sending should be a header.");
-                }
-            }
+            let mut header = func::preprocess_recv(&channel, &mut writer)?;
 
             // looping
             while let Ok(m) = channel.recv() {

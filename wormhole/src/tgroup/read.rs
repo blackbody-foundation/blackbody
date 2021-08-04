@@ -48,7 +48,7 @@ impl TSubGroup<Message> for TRead {
             func::send_header(&channel, header)?;
 
             reader.seek(SeekFrom::Start(0))?;
-
+ 
             let mut buf = [0_u8; CHUNK_SIZE];
             let mut num_read;
             // looping

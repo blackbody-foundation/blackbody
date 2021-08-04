@@ -33,7 +33,7 @@ pub use utils::{
 };
 
 pub use crate::CCCSHeader;
-pub use otoodb::{HHSize, DB};
+pub use otoodb::*;
 
 pub use crossbeam::channel;
 pub const BOUNDED_CAP: usize = 1024;
@@ -50,17 +50,13 @@ utils::message! {
         Phase1Header,
         Phase1Through,
         Phase1Forward,
-        
+
     }
 }
 
 pub use msg::*;
 
-pub fn send_message(
-    chan: &Chan<Message>,
-    kind: Kind,
-    payload: TypePayload,
-) -> ResultSend<()> {
+pub fn send_message(chan: &Chan<Message>, kind: Kind, payload: TypePayload) -> ResultSend<()> {
     chan.send(Message::new(kind, payload))
 }
 
@@ -71,4 +67,3 @@ utils::derive_new! {
         pub version: HHSize
     }
 }
-

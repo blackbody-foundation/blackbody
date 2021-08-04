@@ -110,9 +110,14 @@ fn get_fx(n: usize) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use std::{borrow::Borrow, collections::HashMap};
+
     use utils::types::bytes::ByteOrder;
 
     use super::*;
+
+    use utils::system::err;
+
     #[test]
     fn otoodb() -> Result<()> {
         if std::path::Path::new(FILE_PATH).exists() {
@@ -121,22 +126,23 @@ mod tests {
         let mut db = DB::open(FILE_PATH, 32, 4)?;
         db.bst.byte_order = ByteOrder::BigEndian;
 
-        let mut p;
-        let mut packet = Vec::new();
-        for i in 1..=3000u128 {
-            p = (U256::from(i), get_fx(50));
-            packet.push(p);
+        let mut packet = HashMap::new();
+        for i in 1..=1000000u128 {
+            packet.insert(U256::from(i), get_fx(2));
         }
 
         let mut le_bytes = [0_u8; 32];
 
-        for p in packet.iter() {
+        let vec = packet.clone();
+
+        for p in vec.iter() {
             p.0.to_big_endian(&mut le_bytes);
-            db.define(&le_bytes, &p.1.to_be_bytes())?;
+            errextract!(db.define(&le_bytes, &p.1.to_be_bytes()), err::Interrupted => { packet.remove(p.0); });
         }
+        drop(vec);
 
         let (mut a, mut b);
-        for p in packet.iter() {
+        for p in packet {
             p.0.to_big_endian(&mut le_bytes);
             a = db.get(&le_bytes)?.unwrap();
 
@@ -149,7 +155,7 @@ mod tests {
 
         // db.debug();
         db.close();
-        std::fs::remove_file(FILE_PATH)?;
+        // std::fs::remove_file(FILE_PATH)?;
         Ok(())
     }
 }
