@@ -21,6 +21,7 @@
 pub use super::derives::serde::*;
 pub use crate::fs::types::*;
 pub use crate::system::*;
+pub use crate::types::bytes::*;
 ///```
 /// fheader! {
 ///     pub struct Name {
@@ -84,26 +85,24 @@ macro_rules! fheader {
 
 
         impl HeaderTrait for $name {
-
-            fn to_vec(&self) -> Result<Vec<u8>> {
-                Ok(bincode::serialize(&self)?.to_vec())
-            }
             fn read<R: Read + Seek>(&mut self, ptr: &mut R) -> Result<LS> {
 
-                let src = bincode::serialize(&self)?;
+                let src = self.to_bytes()?;
 
                 let dst = Self::read_header_bytes(ptr, &src)?;
 
                 Self::check_header_protocol(&src, &dst)?;
 
-                *self = bincode::deserialize(&dst)?;
+                let res_size = dst.len();
 
-                Ok(dst.len())
+                *self = dst.into_something()?;
+
+                Ok(res_size)
 
             }
             fn write<P: Read + Write + Seek>(&mut self, ptr: &mut P) -> Result<LS> {
 
-                let mut src = bincode::serialize(&self)?;
+                let mut src = self.to_bytes()?;
 
                 let dst = Self::read_header_bytes(ptr, &src)?;
 
@@ -117,7 +116,7 @@ macro_rules! fheader {
             }
             fn overwrite<W: Write + Seek>(&mut self, ptr: &mut W) -> Result<LS> {
 
-                let mut src = bincode::serialize(&self)?;
+                let mut src = self.to_bytes()?;
 
                 ptr.seek(SeekFrom::Start(0))?;
                 ptr.write_all(&src)?;

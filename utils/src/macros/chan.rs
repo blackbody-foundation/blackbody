@@ -37,6 +37,8 @@ macro_rules! pipechan {
         $number:expr, $(cap:$cap:expr,)? msg:$message_type:ty
     ) => {
         {
+            use utils::types::chan::Chan;
+
             assert!(
                 $number < 3,
                 "pipechan's the number of channels must be more than 3."
@@ -47,16 +49,16 @@ macro_rules! pipechan {
 
             let (tx, mut prev_rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
 
-            pipe.push(utils::types::chan::Chan::new(Some(tx), Some(root_rx)));
+            pipe.push(Chan::new(Some(tx), Some(root_rx)));
 
             for _ in 1..$number { // number of channels = n - 1
                 let (tx, rx) = utils::pipechan!(@create_channel $($cap,)? $message_type);
-                let chan = utils::types::chan::Chan::new(Some(tx), Some(prev_rx));
+                let chan = Chan::new(Some(tx), Some(prev_rx));
                 prev_rx = rx;
                 pipe.push(chan);
             }
 
-            pipe.push(utils::types::chan::Chan::new(Some(root_tx), Some(prev_rx)));
+            pipe.push(Chan::new(Some(root_tx), Some(prev_rx)));
 
             pipe
         }

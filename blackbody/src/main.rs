@@ -110,7 +110,7 @@ fn get_fx(n: usize) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use std::{borrow::Borrow, collections::HashMap};
+    use std::collections::HashMap;
 
     use utils::types::bytes::ByteOrder;
 

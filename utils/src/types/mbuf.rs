@@ -22,18 +22,16 @@
 
 use std::io;
 
-use super::CHUNK_SIZE;
-
 #[derive(Debug, Clone)]
-pub struct MBuf {
-    pub buf: [u8; CHUNK_SIZE],
+pub struct MBuf<const LENGTH: usize> {
+    pub buf: [u8; LENGTH],
     pos: u64,
     len: usize,
 }
-impl MBuf {
+impl<const LENGTH: usize> MBuf<LENGTH> {
     pub fn new(pos: u64) -> Self {
         Self {
-            buf: [0; CHUNK_SIZE],
+            buf: [0; LENGTH],
             pos,
             len: 0,
         }
@@ -44,7 +42,7 @@ impl MBuf {
     }
     pub fn set_buf_from(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         let src_len = buf.len();
-        if src_len > CHUNK_SIZE {
+        if src_len > LENGTH {
             Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "input size overflow.",
@@ -71,7 +69,7 @@ impl MBuf {
         self.len == 0
     }
     pub fn set_len(&mut self, len: usize) {
-        self.len = if len > CHUNK_SIZE { CHUNK_SIZE } else { len };
+        self.len = if len > LENGTH { LENGTH } else { len };
     }
     pub fn get_slice(&self) -> &[u8] {
         &self.buf[..self.len]
@@ -81,10 +79,10 @@ impl MBuf {
     }
 }
 
-impl Default for MBuf {
+impl<const LENGTH: usize> Default for MBuf<LENGTH> {
     fn default() -> Self {
         Self {
-            buf: [0; CHUNK_SIZE],
+            buf: [0; LENGTH],
             pos: 0,
             len: 0,
         }

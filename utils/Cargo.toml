@@ -18,7 +18,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-utils-results = "4.1.0"
+utils-results = "4.2.0"
 serde = { version = "1.0.127", features = ["derive"] }
 bincode = "1.3.3"
 primitive-types = "0.10.1"

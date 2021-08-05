@@ -18,6 +18,7 @@
 
 */
 
+/// simply create `struct`
 ///```rust
 /// flags! {
 ///     pub name
@@ -106,4 +107,3 @@ macro_rules! flags {
 }
 
 pub use flags;
-

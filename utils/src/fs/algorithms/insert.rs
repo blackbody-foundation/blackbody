@@ -76,7 +76,7 @@ pub mod cross_insert {
         Ok(())
     }
 
-    fn read_checking<T: HeaderTrait>(fm: &mut FM<T>, mbuf: &mut MBuf) -> Result<bool> {
+    fn read_checking<T: HeaderTrait>(fm: &mut FM<T>, mbuf: &mut MBuf<CHUNK_SIZE>) -> Result<bool> {
         fm.set_cursor(mbuf.pos())?;
 
         let num_read = fm.read_general(mbuf.get_mut_slice())?;
@@ -84,7 +84,10 @@ pub mod cross_insert {
 
         Ok(num_read == 0)
     }
-    fn write_checking<T: HeaderTrait>(fm: &mut FM<T>, mbuf: &mut MBuf) -> Result<usize> {
+    fn write_checking<T: HeaderTrait>(
+        fm: &mut FM<T>,
+        mbuf: &mut MBuf<CHUNK_SIZE>,
+    ) -> Result<usize> {
         let len = mbuf.len();
 
         fm.write_cursoring(mbuf.get_slice(), mbuf.pos())?;

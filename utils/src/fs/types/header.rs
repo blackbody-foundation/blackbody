@@ -23,8 +23,6 @@ use super::*;
 pub type Header = Box<dyn HeaderTrait>;
 
 pub trait HeaderTrait: std::fmt::Debug + Clone {
-    /// return value is slice of header bytes
-    fn to_vec(&self) -> Result<Vec<u8>>;
     /// return value is length of bytes for header
     fn read<R: Read + Seek>(&mut self, ptr: &mut R) -> Result<LS>;
     /// return value is length of bytes for header
