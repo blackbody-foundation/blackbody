@@ -45,10 +45,12 @@ impl TSubGroup<Message> for TRead {
         std::thread::spawn(move || -> ResultSend<Self::O> {
             let (mut reader, header) = func::get_reader(&info.file_path)?;
 
-            func::send_header(&channel, header)?;
-
+            let mut pos = 0;
             reader.seek(SeekFrom::Start(0))?;
- 
+
+            let last_poses = func::send_header(&channel, header)?;
+            let phase = 0;
+
             let mut buf = [0_u8; CHUNK_SIZE];
             let mut num_read;
             // looping
@@ -57,6 +59,16 @@ impl TSubGroup<Message> for TRead {
                     Ok(0) | Err(_) => break,
                     Ok(v) => v,
                 };
+                pos += num_read as uPS;
+                if !last_poses.is_empty() && last_poses[phase] < pos {
+                    let diff = pos - last_poses[phase];
+                    send_message(
+                        &channel,
+                        Kind::Phase0Forward,
+                        Vec::from(&buf[..num_read - diff as LS]),
+                    )?;
+                    break;
+                }
                 send_message(&channel, Kind::Phase0Forward, Vec::from(&buf[..num_read]))?;
             }
             Ok(())

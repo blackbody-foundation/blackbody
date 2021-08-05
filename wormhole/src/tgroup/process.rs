@@ -54,39 +54,52 @@ impl TSubGroup<Message> for TProcess {
             'outer: while let Ok(m) = channel.recv() {
                 match m.kind {
                     Kind::Phase0Forward => {
-                        temporary.extend(m.payload.into_iter());
+                        temporary.extend(m.payload.into_iter()); // extend receiving temp buf
 
                         if temporary.len() < db_src_size {
+                            // temp buf must be more than otoo src len
                             continue;
                         }
 
-                        // get the chunks of source's bytes
-                        for src_bytes in temporary.chunks(db_src_size) {
-                            //
-                            // transform source bytes to target bytes
+                        let mut chunks = temporary.chunks(db_src_size);
+                        let count = chunks.len() - 1;
+
+                        let mut src_bytes;
+                        // iterate chunks of otoo src len
+                        for _ in 0..count {
+                            src_bytes = chunks.next().unwrap();
+                            // transform src to dst (otoodb pair)
                             if let Ok(dst_bytes) = db.get(src_bytes) {
-                                if dst_bytes.is_some() {
-                                    found_count += 1;
-                                }
-                                //
-                                // send the target bytes and then break out
-                                if send_message(
-                                    &channel,
-                                    Kind::Phase0Forward,
-                                    dst_bytes.unwrap_or_default(),
-                                )
-                                .is_err()
-                                {
+                                let dst_bytes = match dst_bytes {
+                                    Some(v) => {
+                                        found_count += 1;
+                                        eprint!("\rtransform: {}", found_count);
+                                        v
+                                    }
+                                    None => src_bytes.to_vec(),
+                                };
+                                // to writing channel
+                                if send_message(&channel, Kind::Phase0Forward, dst_bytes).is_err() {
                                     break 'outer;
                                 }
                             }
                         }
+                        let last = chunks.next().unwrap().to_vec();
+                        // check remains
+                        temporary = if last.len() == db_src_size {
+                            if send_message(&channel, Kind::Phase0Forward, last).is_err() {
+                                break 'outer;
+                            }
+                            Vec::<u8>::new()
+                        } else {
+                            last
+                        };
                     }
                     _ => break,
                 }
             }
 
-            Ok(())
+            send_message(&channel, Kind::Phase0End, temporary)
         })
     }
 }

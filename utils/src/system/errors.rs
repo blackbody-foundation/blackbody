@@ -21,7 +21,7 @@
 pub use utils_results::*;
 
 err! {
-    ValidationFailed => "invalid ordering sus."
+    ValidationFailed => "validation failed."
     BrokenHeader => "broken header."
     AnotherHeader => "not matched header."
     FileNotFound => "file not found."

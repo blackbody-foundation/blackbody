@@ -21,12 +21,18 @@
 use super::*;
 
 /// header into bytes and send to the next pipechan with **Kind::Phase0Header**<br>
-/// ## Return
 /// if header is None then header will be ***Vec::new()*** (= empty vector)
-pub fn send_header(chan: &Chan<Message>, header: Option<Box<CCCSHeader>>) -> ResultSend<()> {
+/// ## Return
+/// header's `last pos` vector. (if header is None then returning is `emptry vector`)
+pub fn send_header(chan: &Chan<Message>, header: Option<Box<CCCSHeader>>) -> ResultSend<Vec<uPS>> {
+    let mut last_pos = Vec::new();
     let header = match header {
-        Some(v) => v.into_bytes_send()?,
+        Some(v) => {
+            last_pos = v.last_pos.clone();
+            v.into_bytes_send()?
+        }
         None => Vec::new(),
     };
-    send_message(chan, Kind::Phase0Header, header)
+    send_message(chan, Kind::Phase0Header, header)?;
+    Ok(last_pos)
 }

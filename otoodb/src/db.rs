@@ -31,11 +31,11 @@ use utils::{
     types::{Lim, VLim},
 };
 
-/// default byte order = `little endian` (whenever can change in bst)
+/// default byte set order = `little endian`
 #[derive(Debug, Clone)]
 pub struct DB {
     file: File<OtooHeader>,
-    pub bst: BST,
+    bst: BST,
 }
 
 impl DB {
@@ -108,36 +108,39 @@ impl DB {
     }
     pub fn close(self) {}
     pub fn validate(mut db: DB) -> Result<DB> {
-        let (height, a_bytes, b_bytes) = db.get_info_as_usize();
+        let (height, a_bl, b_bl) = db.get_info_as_usize();
+        let total_len = a_bl + b_bl;
         eprintln!(
             "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
-            height, a_bytes, b_bytes
+            height, a_bl, b_bl
         );
         if height < 2 {
             eprintln!("complete.");
             return Ok(db);
         }
 
+        // closures
         let max_bytes = max_bytes_closure![db.bst.byte_order, a, b];
 
-        let fm = db.file_manager();
+        db.file.fm.set_cursor(0)?;
 
-        fm.set_cursor(0)?;
+        for middle in [a_bl, b_bl] {
+            let mut prev_buf = vec![0_u8; total_len];
+            let mut buf = vec![0_u8; total_len];
 
-        for (a_bl, b_bl) in [(a_bytes, b_bytes), (b_bytes, a_bytes)] {
-            let mut buf = vec![0_u8; a_bl]; // HUSize to LS
-            let mut prev_buf = vec![0_u8; a_bl];
-
-            fm.read(&mut prev_buf)?;
-            fm.set_cursor_relative(b_bl as iPS)?; // *** warning b_bl is (usize)LS ***
+            db.file.fm.read(&mut prev_buf)?;
+            db.pairing_test(&prev_buf, middle)?;
 
             for _ in 1..height {
-                fm.read(&mut buf)?;
+                db.file.fm.read(&mut buf)?;
 
-                if buf != max_bytes(buf.as_slice(), prev_buf.as_slice()) {
-                    return errbang!(err::ValidationFailed);
+                if &buf[..middle] != max_bytes(&buf[..middle], &prev_buf[..middle]) {
+                    // odering test
+                    return errbang!(err::ValidationFailed, "opposite ordering.");
                 }
-                fm.set_cursor_relative(b_bl as iPS)?;
+
+                // pairing test
+                db.pairing_test(&buf, middle)?;
 
                 std::mem::swap(&mut buf, &mut prev_buf);
             }
@@ -147,6 +150,26 @@ impl DB {
         Ok(db)
     }
 
+    /// validation test: input\[`a`\] -> output\[`b`\]
+    pub fn pairing_test(&mut self, bytes_line: &[u8], middle: usize) -> Result<()> {
+        let a = &bytes_line[..middle];
+        let b = &bytes_line[middle..];
+        let v = self.get(a)?;
+        match v {
+            Some(v) if v.eq(b) => Ok(()),
+            Some(_) => {
+                return errbang!(err::ValidationFailed, "not matched pair.");
+            }
+            None => {
+                return errbang!(
+                    err::ValidationFailed,
+                    "a. {:?} cannot find -> b. {:?}",
+                    &a,
+                    &b
+                )
+            }
+        }
+    }
     /// if limit_height == 0 then limit_height = fm.header.current_height
     fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
         let fm = &mut self.file.fm;

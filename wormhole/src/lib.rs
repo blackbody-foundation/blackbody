@@ -28,6 +28,7 @@ use tgroup as tg;
 
 mod cccs;
 pub use cccs::head::CCCSHeader;
+use utils::macros::fs::ByteOrder;
 
 ///```no_run
 /// {
@@ -51,12 +52,13 @@ impl Wormhole {
             dst_atom_len,
         }
     }
-    /// if infile is empty then excute from io::stdin(), out to io::stdout()
-    pub fn transform(&self, infile: PathBuf) -> Result<()> {
-        let file_path = infile;
+    pub fn transform<P: Into<PathBuf>>(&self, infile: P) -> Result<()> {
+        let file_path = infile.into();
         let db = self.load_otoodb()?;
         let version = db.version();
+        eprintln!("database successfully opened.\nversion: {}", version);
         tg::TransformTG::new(tg::Requirement::new(file_path, db, version)).join()?;
+        eprintln!("\nend.");
         Ok(())
     }
     fn load_otoodb(&self) -> Result<DB> {

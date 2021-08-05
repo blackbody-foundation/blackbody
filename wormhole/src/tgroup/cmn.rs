@@ -46,10 +46,12 @@ utils::message! {
         Phase0Header,
         Phase0Through,
         Phase0Forward,
+        Phase0End,
 
         Phase1Header,
         Phase1Through,
         Phase1Forward,
+        Phase1End,
 
     }
 }

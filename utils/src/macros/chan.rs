@@ -40,8 +40,8 @@ macro_rules! pipechan {
             use utils::types::chan::Chan;
 
             assert!(
-                $number < 3,
-                "pipechan's the number of channels must be more than 3."
+                $number > 2,
+                "pipechan's the number of channels must be more than 3. get: {}", $number
             );
             let mut pipe = Vec::new();
 

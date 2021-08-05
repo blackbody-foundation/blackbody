@@ -21,12 +21,11 @@
 // blackbody run
 use rand::Rng;
 use rand_chacha::{self, rand_core::SeedableRng};
-use utils::types::bytes::U256;
 // const U32MAX: i64 = u32::MAX as i64;
 // const U16MAX: i64 = u16::MAX as i64;
 
 use utils::system::*;
-const FILE_PATH: &str = "test2";
+const FILE_PATH: &str = "db.hawking";
 use otoodb::*;
 
 fn main() -> Result<()> {
@@ -65,10 +64,13 @@ fn main() -> Result<()> {
 
     // let b: Vec<String> = a.to_le_bytes().iter().map(|x| format!("{:b}", x)).collect();
     // println!("{:b} -> {:?}", a, b);
+
+    let _ = DB::open(FILE_PATH, 32, 4)?;
+    // _otoodb()?;
     Ok(())
 }
 
-fn get_fx(n: usize) -> u32 {
+fn _get_fx(n: usize) -> u32 {
     let mut prev = rand_chacha::ChaCha20Rng::from_entropy().gen::<u32>();
     let mut curr;
     let mut tmp;
@@ -83,6 +85,12 @@ fn get_fx(n: usize) -> u32 {
         prev = curr;
     }
     prev
+}
+fn _rand_bytes32(buf: &mut [u8]) {
+    let rand_u8 = || rand_chacha::ChaCha20Rng::from_entropy().gen::<u8>();
+    for space in buf.iter_mut() {
+        *space = rand_u8();
+    }
 }
 
 // fn decode(x: u32) -> f64 {
@@ -108,54 +116,53 @@ fn get_fx(n: usize) -> u32 {
 //     fx
 // }
 
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
+// #[cfg(test)]
+// mod tests {
+//     use std::collections::HashMap;
 
-    use utils::types::bytes::ByteOrder;
+//     use super::*;
 
-    use super::*;
+//     use utils::system::err;
 
-    use utils::system::err;
-
-    #[test]
-    fn otoodb() -> Result<()> {
-        if std::path::Path::new(FILE_PATH).exists() {
-            std::fs::remove_file(FILE_PATH)?;
-        }
-        let mut db = DB::open(FILE_PATH, 32, 4)?;
-        db.bst.byte_order = ByteOrder::BigEndian;
-
-        let mut packet = HashMap::new();
-        for i in 1..=1000000u128 {
-            packet.insert(U256::from(i), get_fx(2));
-        }
-
-        let mut le_bytes = [0_u8; 32];
-
-        let vec = packet.clone();
-
-        for p in vec.iter() {
-            p.0.to_big_endian(&mut le_bytes);
-            errextract!(db.define(&le_bytes, &p.1.to_be_bytes()), err::Interrupted => { packet.remove(p.0); });
-        }
-        drop(vec);
-
-        let (mut a, mut b);
-        for p in packet {
-            p.0.to_big_endian(&mut le_bytes);
-            a = db.get(&le_bytes)?.unwrap();
-
-            let le_bytes2 = p.1.to_be_bytes();
-            b = db.get(&le_bytes2)?.unwrap();
-
-            assert_eq!(a, &le_bytes2);
-            assert_eq!(b, &le_bytes);
-        }
-
-        // db.debug();
-        db.close();
-        // std::fs::remove_file(FILE_PATH)?;
-        Ok(())
+//     #[test]
+fn _otoodb() -> Result<()> {
+    if std::path::Path::new(FILE_PATH).exists() {
+        std::fs::remove_file(FILE_PATH)?;
     }
+    let mut db = DB::open(FILE_PATH, 32, 4)?;
+
+    let mut packet = Vec::new();
+    let mut bytes32 = [0_u8; 32];
+    let mut bytes4: [u8; 4];
+
+    for i in 1..=100000u128 {
+        loop {
+            _rand_bytes32(&mut bytes32);
+            bytes4 = _get_fx(2).to_le_bytes();
+            // no interrupted
+            errextract!(db.define(&bytes32, &bytes4), err::Interrupted => continue);
+            break;
+        }
+        eprint!("\r{} set pushed.", i);
+        packet.push((bytes32, bytes4));
+    }
+
+    eprintln!();
+
+    // test
+    let (mut a, mut b);
+    for (i, (bytes32, bytes4)) in packet.into_iter().enumerate() {
+        a = db.get(&bytes32)?.unwrap();
+        b = db.get(&bytes4)?.unwrap();
+        assert_eq!(a, &bytes4);
+        assert_eq!(b, &bytes32);
+        eprint!("\rpair found: {}", i + 1);
+    }
+
+    eprintln!();
+    // db.debug();
+    db.close();
+    // std::fs::remove_file(FILE_PATH)?;
+    Ok(())
 }
+// }

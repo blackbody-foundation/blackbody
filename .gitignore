@@ -3,3 +3,6 @@
 Cargo.lock
 *.hawking
 *.cccs
+*.cccs_tmp0
+test
+original

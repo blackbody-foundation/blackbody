@@ -23,11 +23,12 @@
 
 //! We are using ('little endian') byte ordering.
 
-
 use utils::system::*;
 use wormhole::Wormhole;
 
 fn main() -> Result<()> {
-    let _wormhole = Wormhole::new("db.hawking", 4, 32);
+    let wormhole = Wormhole::new("db.hawking", 32, 4);
+    wormhole.transform("test")?;
+
     Ok(())
 }

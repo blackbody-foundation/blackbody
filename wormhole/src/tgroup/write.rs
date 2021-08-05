@@ -56,6 +56,18 @@ impl TSubGroup<Message> for TWrite {
                     Kind::Phase0Forward => {
                         writer.write_all(m.payload.as_slice())?;
                     }
+                    Kind::Phase0End => {
+                        header.last_pos.push(writer.stream_position()?); // save the last position
+
+                        // check last remains
+                        if !m.payload.is_empty() {
+                            writer.write_all(m.payload.as_slice())?;
+                        }
+
+                        let header_bytes = errcast!(header.to_bytes());
+                        writer.write_all(&header_bytes)?; // re-write header
+                        break;
+                    }
                     _ => break,
                 }
             }
