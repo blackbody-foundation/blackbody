@@ -24,7 +24,10 @@ use crate::{cmn::*, head::*};
 
 use utils::{
     fs::{
-        algorithms::{bst::BST, insert},
+        algorithms::{
+            bst::{self, BST},
+            insert,
+        },
         types::*,
         File,
     },
@@ -43,10 +46,12 @@ impl DB {
         let (mid, end) = (a_set_bytes, b_set_bytes);
 
         let header = OtooHeader::new(0, mid as HUSize, end as HUSize);
-        let file = File::open(file_path, header)?;
 
-        let file_lim = Lim::<uPS>::new(0, (mid + end) as uPS); // initial
+        let file = File::open(file_path, header)?;
+        let height = file.fm.header.current_height;
+
         let elem_lim = VLim::new(0, mid, mid + end);
+        let file_lim = Lim::<uPS>::new(0, height * elem_lim.width());
         let bst = BST::new(file_lim, elem_lim)?;
 
         let db = Self { file, bst };
@@ -78,7 +83,8 @@ impl DB {
         insert::cross_insert::insert(fm, packet)?;
 
         self.file.fm.header.current_height += 1;
-        self.file.fm.flush_header()
+        self.file.fm.flush_header()?;
+        self.update_file_lim()
     }
     pub fn get_file_path(&self) -> &Path {
         &self.file.fm.path
@@ -131,7 +137,7 @@ impl DB {
             db.file.fm.read(&mut prev_buf)?;
             db.pairing_test(&prev_buf, middle)?;
 
-            for _ in 1..height {
+            for i in 1..height {
                 db.file.fm.read(&mut buf)?;
 
                 if &buf[..middle] != max_bytes(&buf[..middle], &prev_buf[..middle]) {
@@ -143,10 +149,12 @@ impl DB {
                 db.pairing_test(&buf, middle)?;
 
                 std::mem::swap(&mut buf, &mut prev_buf);
+
+                eprint!("\r{} bytes found: {}", middle, i + 1);
             }
         }
 
-        eprintln!("complete.");
+        eprintln!("\ncomplete.");
         Ok(db)
     }
 
@@ -171,37 +179,55 @@ impl DB {
         }
     }
     /// if limit_height == 0 then limit_height = fm.header.current_height
-    fn binary_search(&mut self, target: &[u8]) -> Result<(Option<Vec<u8>>, uPS)> {
-        let fm = &mut self.file.fm;
-        let height = fm.header.current_height;
-
+    /// ## Return
+    /// (Option<ByteVec>, uPS)
+    fn binary_search(&mut self, target: &[u8]) -> Result<bst::SearchResult> {
+        let (found, res) = self._search(target)?;
+        if !found && self.bst_analyse(target)? {
+            // re- analyse and search
+            let (_, res) = self._search(target)?;
+            return Ok(res);
+        }
+        Ok(res)
+    }
+    /// ## Return
+    /// `has changed` : bool
+    fn bst_analyse(&mut self, target: &[u8]) -> Result<bool> {
+        let changed = self.bst.fit_the_right(target)?;
+        if changed {
+            self.update_file_lim()?;
+        }
+        Ok(changed)
+    }
+    fn update_file_lim(&mut self) -> Result<()> {
         let elem = self.bst.elem_lim();
 
-        let right = elem.is_right_side(target)?;
+        // *** careful mul overflow ***
+        let middle_pos = self.file.fm.header.current_height * elem.width();
 
-        let (start_pos, end_pos) = match right {
-            // careful mul overflow
-            false => (0, height * elem.width() as uPS),
-            true => (
-                height * elem.width() as uPS,
-                (2 * height) * elem.width() as uPS,
-            ),
+        let (start_pos, end_pos) = match elem.right {
+            false => (0, middle_pos),
+            true => (middle_pos, 2 * middle_pos),
         };
 
-        self.bst.change_file_lim(Lim::new(start_pos, end_pos))?;
+        self.bst.change_file_lim(Lim::new(start_pos, end_pos))
+    }
+    /// if limit_height == 0 then limit_height = fm.header.current_height
+    /// ## Return
+    /// (`found`: bool, `ResultData`)
+    fn _search(&mut self, target: &[u8]) -> Result<(bool, bst::SearchResult)> {
+        let fm = &mut self.file.fm;
 
         let (found, pos) = self.bst.search(fm, target)?;
 
         if found {
             fm.read_cursoring(self.bst.buf_mut(), pos)?;
-            let buf = if right {
-                self.bst.buf_reversed_right_limed()
-            } else {
-                self.bst.buf_right_limed()
-            };
-            Ok((Some(buf.to_vec()), pos))
+
+            let buf = self.bst.get_buf_by_right();
+
+            Ok((true, (Some(buf.into()), pos)))
         } else {
-            Ok((None, pos))
+            Ok((false, (None, pos)))
         }
     }
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {

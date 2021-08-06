@@ -27,8 +27,8 @@ use utils::system::*;
 use wormhole::Wormhole;
 
 fn main() -> Result<()> {
-    let wormhole = Wormhole::new("db.hawking", 32, 4);
-    wormhole.transform("test")?;
+    let wormhole = Wormhole::new("db_test.hawking", 32, 4);
+    wormhole.transform("original2")?;
 
     Ok(())
 }

@@ -33,6 +33,7 @@ pub fn preprocess_recv(
 
             if !header.cccs_flag {
                 // binary -> .cccs
+                writer.seek(SeekFrom::Start(0))?;
                 writer.write_all(&m.payload)?; // writing default header
             }
             Ok(header)

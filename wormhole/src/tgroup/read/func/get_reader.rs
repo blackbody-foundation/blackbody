@@ -34,6 +34,7 @@ pub fn get_reader(file_path: &Path) -> ResultSend<Reader> {
     match File::open(file_path, header) {
         Ok(v) => {
             let header = v.fm.header.clone();
+            dbg!(&header);
             Ok((Box::new(v), Some(header)))
         }
         Err(_) => Ok((

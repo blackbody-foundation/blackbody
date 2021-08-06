@@ -25,7 +25,7 @@ use rand_chacha::{self, rand_core::SeedableRng};
 // const U16MAX: i64 = u16::MAX as i64;
 
 use utils::system::*;
-const FILE_PATH: &str = "db.hawking";
+const FILE_PATH: &str = "db_test.hawking";
 use otoodb::*;
 
 fn main() -> Result<()> {
@@ -65,8 +65,8 @@ fn main() -> Result<()> {
     // let b: Vec<String> = a.to_le_bytes().iter().map(|x| format!("{:b}", x)).collect();
     // println!("{:b} -> {:?}", a, b);
 
-    let _ = DB::open(FILE_PATH, 32, 4)?;
-    // _otoodb()?;
+    // let _ = DB::open(FILE_PATH, 32, 4)?;
+    _otoodb()?;
     Ok(())
 }
 

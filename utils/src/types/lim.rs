@@ -20,12 +20,12 @@
 
 use crate::system::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Lim<T> {
     pub start: T,
     pub end: T,
 }
-impl<T: PartialEq + Ord + Clone> Lim<T> {
+impl<T: PartialEq + Ord + Clone + Default> Lim<T> {
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
     }
@@ -42,24 +42,26 @@ impl<T: PartialEq + Ord + Clone> Lim<T> {
 }
 
 #[derive(Debug, Clone)]
-pub struct VLim {
+pub struct VLim<T> {
     pub start: usize,
     pub mid: usize,
     pub end: usize,
     /// *** warning ***
     pub right: bool,
+    phantom: std::marker::PhantomData<T>,
 }
-impl VLim {
+impl<T> VLim<T> {
     pub fn new(start: usize, mid: usize, end: usize) -> Self {
         Self {
             start,
             mid,
             end,
             right: false,
+            phantom: std::marker::PhantomData,
         }
     }
     /// return value is the right (boolean)
-    pub fn is_right_side<T>(&self, v: &[T]) -> Result<bool> {
+    pub fn is_right_side(&self, v: &[T]) -> Result<bool> {
         let v_len = v.len();
         if self.mid == v_len {
             Ok(false)
@@ -69,7 +71,7 @@ impl VLim {
             errbang!(err::InvalidLenSize)
         }
     }
-    pub fn lim<'a, T>(&self, v: &'a [T]) -> Result<&'a [T]> {
+    pub fn lim<'a>(&self, v: &'a [T]) -> Result<&'a [T]> {
         if v.len() < self.end {
             errbang!(err::OutOfBounds)
         } else {
@@ -79,7 +81,7 @@ impl VLim {
             }
         }
     }
-    pub fn mut_lim<'a, T>(&self, v: &'a mut [T]) -> Result<&'a mut [T]> {
+    pub fn lim_mut<'a>(&self, v: &'a mut [T]) -> Result<&'a mut [T]> {
         if v.len() < self.end {
             errbang!(err::OutOfBounds)
         } else {
@@ -89,11 +91,11 @@ impl VLim {
             }
         }
     }
-    pub fn create<T: Default + Clone>(&self) -> Vec<T> {
-        vec![T::default(); self.end]
+    pub fn create<C: Default + Clone>(&self) -> Vec<C> {
+        vec![C::default(); self.end]
     }
-    pub fn width(&self) -> usize {
-        self.end - self.start
+    pub fn width(&self) -> u64 {
+        (self.end - self.start) as u64
     }
     pub fn into_(self) -> (usize, usize, usize) {
         (self.start, self.mid, self.end)

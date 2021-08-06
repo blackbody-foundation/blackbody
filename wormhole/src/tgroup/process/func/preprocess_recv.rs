@@ -47,8 +47,10 @@ pub fn preprocess_recv(
                     return errbang!(err::UnexpectedVersion);
                 }
 
-                // decode order
-                std::mem::swap(&mut db_src_size, &mut db_dst_size);
+                if header.cccs_flag {
+                    // decode order
+                    std::mem::swap(&mut db_src_size, &mut db_dst_size);
+                }
             }
             //
             send_message(channel, Kind::Phase0Header, header.to_bytes_send()?)?;

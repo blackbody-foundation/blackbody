@@ -47,7 +47,7 @@ impl TSubGroup<Message> for TWrite {
             file_path.set_extension("cccs_tmp0");
 
             let mut writer = func::get_writer(&file_path)?;
-
+        
             let mut header = func::preprocess_recv(&channel, &mut writer)?;
 
             // looping

@@ -22,9 +22,4 @@
 
 pub use std::borrow::BorrowMut;
 
-pub use utils::{macros::flags::flags, system::*, types::bytes::*};
-
-flags! {
-    pub Flags
-    ByteOrder ByteOrder
-}
+pub use utils::{system::*, types::bytes::*};
