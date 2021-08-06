@@ -93,7 +93,7 @@ impl BST {
         match Self::check_lens(&file_lim, &self.elem_lim) {
             true => {
                 self.file_lim = file_lim;
-                self.flush_width();
+                self.flash_width();
                 Ok(())
             }
             false => errbang!(err::InvalidLenSize),
@@ -104,7 +104,7 @@ impl BST {
             true => {
                 self.elem_lim = elem_lim;
                 self.buf = self.elem_lim.create::<u8>();
-                self.flush_width();
+                self.flash_width();
                 Ok(())
             }
             false => errbang!(err::InvalidLenSize),
@@ -115,7 +115,7 @@ impl BST {
             self.file_lim = file_lim;
             self.elem_lim = elem_lim;
             self.buf = self.elem_lim.create::<u8>();
-            self.flush_width();
+            self.flash_width();
             Ok(())
         } else {
             errbang!(err::InvalidLenSize)
@@ -137,7 +137,7 @@ impl BST {
         self.elem_lim.right = new_right;
         Ok(true)
     }
-    fn flush_width(&mut self) {
+    fn flash_width(&mut self) {
         self.width = (self.file_lim.end - self.file_lim.start) / self.elem_lim.width() as uPS;
     }
     pub fn validate(&self) -> Result<()> {

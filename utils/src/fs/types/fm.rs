@@ -116,19 +116,19 @@ impl<T: HeaderTrait> FM<T> {
         self.ptr.seek(prev_pos)?;
         Ok(())
     }
-    pub fn content_end_pos(&mut self, flush: bool) -> Result<uPS> {
-        if flush {
-            self.flush_file_size()?;
+    pub fn content_end_pos(&mut self, flash: bool) -> Result<uPS> {
+        if flash {
+            self.flash_file_size()?;
         }
         Ok(self.content_lim.end - self.header_size)
     }
-    pub fn flush_header(&mut self) -> Result<()> {
+    pub fn flash_header(&mut self) -> Result<()> {
         let ptr = &mut self.ptr;
         let header_size = self.header.write(ptr)?;
         self.header_size = header_size as uPS;
-        self.flush_file_size()
+        self.flash_file_size()
     }
-    fn flush_file_size(&mut self) -> Result<()> {
+    fn flash_file_size(&mut self) -> Result<()> {
         self.file_size = io_to_err!(self.ptr.seek(SeekFrom::End(0)))?;
         self.content_lim = Lim::new(self.header_size, self.file_size);
         Ok(())

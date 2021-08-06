@@ -83,7 +83,7 @@ impl DB {
         insert::cross_insert::insert(fm, packet)?;
 
         self.file.fm.header.current_height += 1;
-        self.file.fm.flush_header()?;
+        self.file.fm.flash_header()?;
         self.update_file_lim()
     }
     pub fn get_file_path(&self) -> &Path {
