@@ -1,4 +1,4 @@
-![BlackBody Image](https://i.ibb.co/6YcGPk1/blackbody640.png)
+![BlackBody Image](https://i.im.ge/2021/08/08/0dBW0.png)
 
 # [BlackBody]() &middot; [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://github.com/blackbody-foundation/blackbody/blob/main/LICENSE)
 
