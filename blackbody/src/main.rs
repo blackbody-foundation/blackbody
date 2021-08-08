@@ -25,7 +25,7 @@ use rand_chacha::{self, rand_core::SeedableRng};
 // const U16MAX: i64 = u16::MAX as i64;
 
 use utils::system::*;
-const FILE_PATH: &str = "db_test22.hawking";
+const FILE_PATH: &str = "db_test.hawking";
 use otoodb::*;
 
 fn main() -> Result<()> {
@@ -132,21 +132,46 @@ fn _otoodb() -> Result<()> {
     let mut db = DB::open(FILE_PATH, 32, 4, None)?;
 
     let mut packet = Vec::new();
-    let mut bytes32 = [0_u8; 32];
-    let mut bytes4: [u8; 4];
 
-    for i in 1..=10000u128 {
+    let (tx, rx) = crossbeam::channel::bounded::<([u8; 32], [u8; 4])>(1024);
+    let handle = std::thread::spawn(move || -> ResultSend<()> {
+        let mut bytes32 = [0_u8; 32];
+        let mut bytes4: [u8; 4];
         loop {
             _rand_bytes32(&mut bytes32);
             bytes4 = _get_fx(2).to_le_bytes();
-            // no interrupted
-            errextract!(db.define(&bytes32, &bytes4), err::Interrupted => continue);
-            break;
+            tx.send((bytes32, bytes4))?;
         }
-        eprint!("\r{} set pushed.", i);
-        packet.push((bytes32, bytes4));
+    });
+    let start = Instant::now();
+    let mut timer = Timer::new();
+    timer.period = Duration::from_millis(60);
+
+    'out: for i in 1..=500000u128 {
+        loop {
+            timer.update();
+            if let Ok((bytes32, bytes4)) = rx.recv() {
+                // no interrupted
+                errextract!(db.define(&bytes32, &bytes4), err::Interrupted => continue);
+                packet.push((bytes32, bytes4));
+                break;
+            } else {
+                break 'out;
+            }
+        }
+        let push_per_second = 1.0 / timer.delta.as_secs_f64();
+        if timer.ready {
+            timer.ready = false;
+            eprint!(
+                "\r[{}]  {} set pushed.  ({:.0} p/s) ",
+                start.elapsed().as_secs().as_time(),
+                i,
+                push_per_second,
+            );
+        }
     }
 
+    resultcast!(handle.join().unwrap())?;
     eprintln!();
 
     // test

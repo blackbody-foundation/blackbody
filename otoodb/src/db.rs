@@ -31,15 +31,22 @@ use utils::{
         types::*,
         File,
     },
-    types::{Lim, VLim},
+    macros::flags::flags,
+    types::{hash::*, Lim, VLim},
 };
+
+flags! {
+    pub Flags
+    verbose bool => true
+}
 
 /// default byte set order = `little endian`
 #[derive(Debug, Clone)]
 pub struct DB {
     file: File<OtooHeader>,
     bst: BST,
-    flag: Flag,
+    flags: Flags,
+    closed: bool,
 }
 
 impl DB {
@@ -47,7 +54,7 @@ impl DB {
         file_path: &str,
         a_set_bytes: LS,
         b_set_bytes: LS,
-        flag: Option<Flag>,
+        flags: Option<Flags>,
     ) -> Result<Self> {
         let (mid, end) = (a_set_bytes, b_set_bytes);
 
@@ -62,18 +69,24 @@ impl DB {
         let file_lim = Lim::<uPS>::new(0, height * elem_lim.width());
         let bst = BST::new(file_lim, elem_lim)?;
 
-        let flag = if let Some(f) = flag {
+        let flags = if let Some(f) = flags {
             f
         } else {
-            Flag::default()
+            Flags::default()
         };
-        let verbose = flag.verbose;
+        let verbose = flags.verbose;
 
-        let db = Self { file, bst, flag };
+        let mut db = Self {
+            file,
+            bst,
+            flags,
+            closed: false,
+        };
         if verbose {
             eprintln!("\n\nfile successfully opened.");
         }
-        Self::validate(db, verbose)
+        Self::validate(&mut db, verbose)?;
+        Ok(db)
     }
     pub fn debug(&mut self) {
         self.file.fm.debug().unwrap();
@@ -133,20 +146,28 @@ impl DB {
             header.b_set_bytes as LS,
         )
     }
-    pub fn close(self) -> Result<()> {
+    pub fn close(mut self) -> Result<()> {
+        self.closed = true;
+        if self.flags.verbose {
+            eprintln!("closing..");
+        }
+        self.calc_hash()
+    }
+    fn calc_hash(&mut self) -> Result<()> {
         // something changed
         if self.file.get_header().hash.eq(&[0_u8; 32]) {
-            eprintln!("caculate hash..");
+            if self.flags.verbose {
+                eprintln!("caculate hash..");
+            }
             Self::validate(self, false)?;
         }
-        eprintln!("\n\n");
         Ok(())
     }
 
     /// 1. ordering test
     /// 2. pairing test
     /// 3. rewrite hash - by ordering of B set only(chaining hashing)
-    pub fn validate(mut db: DB, verbose: bool) -> Result<DB> {
+    pub fn validate(db: &mut DB, verbose: bool) -> Result<()> {
         let ((hash, height), a_bl, b_bl) = db.get_info_as_usize();
         let total_len = a_bl + b_bl;
         if verbose {
@@ -168,7 +189,7 @@ impl DB {
             if verbose {
                 eprintln!("complete.");
             }
-            return Ok(db);
+            return Ok(());
         }
 
         // closures
@@ -210,15 +231,18 @@ impl DB {
                     eprint!("\r{} bytes found: {}   ", middle, i + 1);
                 }
             }
+            if verbose {
+                eprintln!();
+            }
         }
 
         db.file.fm.header.hash = hashchain.output();
         db.file.fm.flash_header()?;
 
         if verbose {
-            eprintln!("\ncomplete.");
+            eprintln!("complete.");
         }
-        Ok(db)
+        Ok(())
     }
 
     /// validation test: input\[`a`\] -> output\[`b`\]<br>
@@ -249,7 +273,6 @@ impl DB {
             }
         }
     }
-    /// if limit_height == 0 then limit_height = fm.header.current_height
     /// ## Return
     /// (Option<ByteVec>, uPS)
     fn binary_search(&mut self, target: &[u8]) -> Result<bst::SearchResult> {
@@ -283,7 +306,6 @@ impl DB {
 
         self.bst.change_file_lim(Lim::new(start_pos, end_pos))
     }
-    /// if limit_height == 0 then limit_height = fm.header.current_height
     /// ## Return
     /// (`found`: bool, `ResultData`)
     fn _search(&mut self, target: &[u8]) -> Result<(bool, bst::SearchResult)> {
@@ -303,5 +325,23 @@ impl DB {
     }
     fn file_manager(&mut self) -> &mut FM<OtooHeader> {
         self.file.fm.borrow_mut()
+    }
+}
+
+impl Drop for DB {
+    fn drop(&mut self) {
+        if !self.closed {
+            if self.flags.verbose {
+                eprintln!("closing..")
+            }
+            errcast_panic!(
+                Self::calc_hash(self),
+                err::ValidationFailed,
+                "DB closing error."
+            );
+        }
+        if self.flags.verbose {
+            eprintln!("complete.")
+        }
     }
 }

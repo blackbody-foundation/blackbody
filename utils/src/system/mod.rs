@@ -26,7 +26,7 @@ mod path;
 pub use path::*;
 
 mod timer;
-pub use timer::Timer;
+pub use timer::*;
 
 #[macro_use]
 mod concentric;
