@@ -31,11 +31,16 @@ pub type HUSize = u32;
 use utils::fs::types::HeaderTrait;
 
 fheader! {
+    /// if content has changed, `hash` would be an empty(=all zeros)
     pub struct OtooHeader {
-        pub current_height: HHSize, // free marked
+        pub hash: [u8; 32] => [0_u8; 32],
+        pub current_height: HHSize => 0,
         a_set_bytes: HUSize,
         b_set_bytes: HUSize,
     }
 }
+
+/// (hash, height)
+pub type Version = ([u8; 32], HHSize);
 
 impl OrderedFile for OtooHeader {} // for bst

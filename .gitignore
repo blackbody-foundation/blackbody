@@ -6,3 +6,4 @@ Cargo.lock
 *.cccs_tmp0
 test
 original
+*.http

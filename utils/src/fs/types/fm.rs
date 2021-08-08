@@ -66,6 +66,9 @@ impl<T: HeaderTrait> FM<T> {
             Ok(false)
         }
     }
+    pub fn stream_position(&mut self) -> Result<u64> {
+        Ok(io_to_err!(self.ptr.stream_position())? - self.header_size as uPS)
+    }
     pub fn set_cursor_general(&mut self, pos: uPS) -> Result<uPS> {
         io_to_err!(self.ptr.seek(SeekFrom::Start(pos)))
     }

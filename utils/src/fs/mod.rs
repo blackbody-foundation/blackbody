@@ -54,6 +54,9 @@ impl<T: HeaderTrait> File<T> {
 
         Ok(Self { fm })
     }
+    pub fn get_header(&self) -> &T {
+        self.fm.header.as_ref()
+    }
     pub fn close(self) {}
 }
 
@@ -87,5 +90,8 @@ impl<T: HeaderTrait> Seek for File<T> {
                 err_to_io!(self.fm.set_cursor(pos + v as u64))
             }
         }
+    }
+    fn stream_position(&mut self) -> io::Result<u64> {
+        err_to_io!(self.fm.stream_position())
     }
 }

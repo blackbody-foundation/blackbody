@@ -26,9 +26,13 @@ use super::*;
 pub fn preprocess_recv(
     channel: &Chan<Message>,
     db: &DB,
-) -> ResultSend<(Box<CCCSHeader>, usize, usize, usize)> {
+) -> ResultSend<(Box<CCCSHeader>, Version, usize, usize)> {
     let mut header;
-    let (db_version, mut db_src_size, mut db_dst_size) = db.get_info_as_usize();
+
+    let (db_version, db_src_size, db_dst_size) = db.get_info();
+    let mut db_src_size = db_src_size as LS;
+    let mut db_dst_size = db_dst_size as LS;
+
     match channel.recv().unwrap() {
         //
         m if m.kind == Kind::Phase0Header => {
@@ -36,13 +40,13 @@ pub fn preprocess_recv(
             if m.payload.is_empty() {
                 // if target file has no header
                 header = CCCSHeader::default(); // create processing header
-                header.version = db_version as HHSize;
+                header.version = db_version;
             } else {
                 // has a header
                 let t: CCCSHeader = m.payload.into_something_send()?;
                 header = Box::new(t);
 
-                if header.version != db_version as HHSize {
+                if header.version != db_version {
                     // *** warning: matching our db version ***
                     return errbang!(err::UnexpectedVersion);
                 }

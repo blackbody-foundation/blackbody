@@ -20,13 +20,13 @@
 
 //! Header Configures for .cccs file
 
-use otoodb::HHSize;
+use otoodb::Version;
 use utils::macros::fs::*;
 
 fheader! {
     pub struct CCCSHeader {
         ident: u8 => 0b10101010_u8,
-        pub version: HHSize, // = hawking file height
+        pub version: Version, // = hawking file height
         pub cccs_flag: bool => false, // true == originaly .cccs file
         pub completion: bool => false,
         pub last_pos: Vec<uPS> // last_pos.len() = how many times file is transformed

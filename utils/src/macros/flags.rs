@@ -84,25 +84,44 @@ macro_rules! flags {
         $ty
     };
     (
-        @apply $vis:vis $name:ident ($($var:ident: $t:tt),+)
+        @default_or (), $t:ty
+    ) => {
+        <$t>::default()
+    };
+    (
+        @default_or ($val:expr), $t:ty
+    ) => {
+        $val
+    };
+    (
+        @apply $vis:vis $name:ident ($($var:ident: $t:tt$(=> $default:expr)?),+)
     ) => {
         #[allow(non_snake_case)]
-        #[derive(Debug, Default, Clone)]
+        #[derive(Debug, Clone)]
         $vis struct $name {
             $(
                 $vis $var: flags!(@filter $var $t)
             ),+
         }
+        impl Default for $name {
+            fn default() -> Self {
+                Self {
+                    $(
+                        $var: flags!(@default_or ($($default)?), $t)
+                    ),*
+                }
+            }
+        }
     };
     (
         $vis:vis $name:ident$(,)?
-        $($var:ident $t:tt $({ $($val:ident$(,)? $(:$val_t:ty $(,)? )? )+ })?)*
+        $($var:ident $t:tt $({ $($val:ident$(,)? $(:$val_t:ty $(,)? )? )+ })?$( => $default:expr)?)*
     ) => {
         $(
             #[allow(non_snake_case)]
             flags!(@create $vis $var $t $({ $($val $(:$val_t)? ),+ })?);
         )*
-        flags!(@apply $vis $name ($($var: $t),+));
+        flags!(@apply $vis $name ($($var: $t$(=> $default)?),+));
     };
 }
 

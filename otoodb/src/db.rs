@@ -39,13 +39,21 @@ use utils::{
 pub struct DB {
     file: File<OtooHeader>,
     bst: BST,
+    flag: Flag,
 }
 
 impl DB {
-    pub fn open(file_path: &str, a_set_bytes: LS, b_set_bytes: LS) -> Result<Self> {
+    pub fn open(
+        file_path: &str,
+        a_set_bytes: LS,
+        b_set_bytes: LS,
+        flag: Option<Flag>,
+    ) -> Result<Self> {
         let (mid, end) = (a_set_bytes, b_set_bytes);
 
-        let header = OtooHeader::new(0, mid as HUSize, end as HUSize);
+        let mut header = OtooHeader::default();
+        header.a_set_bytes = mid as HUSize;
+        header.b_set_bytes = end as HUSize;
 
         let file = File::open(file_path, header)?;
         let height = file.fm.header.current_height;
@@ -54,9 +62,18 @@ impl DB {
         let file_lim = Lim::<uPS>::new(0, height * elem_lim.width());
         let bst = BST::new(file_lim, elem_lim)?;
 
-        let db = Self { file, bst };
-        eprintln!("file successfully opened.");
-        Self::validate(db)
+        let flag = if let Some(f) = flag {
+            f
+        } else {
+            Flag::default()
+        };
+        let verbose = flag.verbose;
+
+        let db = Self { file, bst, flag };
+        if verbose {
+            eprintln!("\n\nfile successfully opened.");
+        }
+        Self::validate(db, verbose)
     }
     pub fn debug(&mut self) {
         self.file.fm.debug().unwrap();
@@ -78,50 +95,79 @@ impl DB {
             }
         }
 
+        insert::cross_insert::insert(&mut self.file.fm, packet)?;
+
         let fm = self.file_manager();
 
-        insert::cross_insert::insert(fm, packet)?;
+        fm.header.current_height += 1;
+        fm.header.hash = [0_u8; 32];
+        fm.flash_header()?;
 
-        self.file.fm.header.current_height += 1;
-        self.file.fm.flash_header()?;
         self.update_file_lim()
     }
     pub fn get_file_path(&self) -> &Path {
         &self.file.fm.path
     }
-    pub fn version(&self) -> HHSize {
-        self.file.fm.header.current_height
+    /// (`hash`, `height`) * Copied
+    pub fn version(&self) -> Version {
+        let header = self.file.get_header();
+        (header.hash, header.current_height)
     }
-    /// header's
-    /// (height, a_set_bytes, b_set_bytes): (HHSize, HUSize, HUSize)
-    pub fn get_info(&self) -> (HHSize, HUSize, HUSize) {
-        let header = self.file.fm.header.as_ref();
+    /// header's<br>
+    /// (`version`, `a_set_bytes`, `b_set_bytes`): (Version, HUSize, HUSize)
+    pub fn get_info(&self) -> (Version, HUSize, HUSize) {
+        let header = self.file.get_header();
         (
-            header.current_height,
+            (header.hash, header.current_height),
             header.a_set_bytes,
             header.b_set_bytes,
         )
     }
-    /// header's
-    /// (height, a_set_bytes, b_set_bytes): (LS, LS, LS)
-    pub fn get_info_as_usize(&self) -> (LS, LS, LS) {
-        let header = self.file.fm.header.as_ref();
+    /// header's<br>
+    /// (`version`, `a_set_bytes`, `b_set_bytes`): (((u8; 32), usize), usize, usize)
+    pub fn get_info_as_usize(&self) -> (([u8; 32], usize), usize, usize) {
+        let header = self.file.get_header();
         (
-            header.current_height as LS,
+            (header.hash, header.current_height as LS),
             header.a_set_bytes as LS,
             header.b_set_bytes as LS,
         )
     }
-    pub fn close(self) {}
-    pub fn validate(mut db: DB) -> Result<DB> {
-        let (height, a_bl, b_bl) = db.get_info_as_usize();
+    pub fn close(self) -> Result<()> {
+        // something changed
+        if self.file.get_header().hash.eq(&[0_u8; 32]) {
+            eprintln!("caculate hash..");
+            Self::validate(self, false)?;
+        }
+        eprintln!("\n\n");
+        Ok(())
+    }
+
+    /// 1. ordering test
+    /// 2. pairing test
+    /// 3. rewrite hash - by ordering of B set only(chaining hashing)
+    pub fn validate(mut db: DB, verbose: bool) -> Result<DB> {
+        let ((hash, height), a_bl, b_bl) = db.get_info_as_usize();
         let total_len = a_bl + b_bl;
-        eprintln!(
-            "validating..\nheight: {}\na set bytes: {}\nb set bytes: {}",
-            height, a_bl, b_bl
-        );
+        if verbose {
+            {
+                eprintln!(
+                    "one to one set database\nhash: {}\nheight: {}\na set bytes: {}\nb set bytes: {}\nvalidating..",
+                    if hash.eq(&[0_u8; 32]) {
+                        String::from("broken * needed validating")
+                    } else {
+                        format!("{}", Hex(hash))
+                    },
+                    height,
+                    a_bl,
+                    b_bl
+                );
+            }
+        }
         if height < 2 {
-            eprintln!("complete.");
+            if verbose {
+                eprintln!("complete.");
+            }
             return Ok(db);
         }
 
@@ -130,12 +176,18 @@ impl DB {
 
         db.file.fm.set_cursor(0)?;
 
+        let mut hashchain = HashChain256::new();
+
         for middle in [a_bl, b_bl] {
             let mut prev_buf = vec![0_u8; total_len];
             let mut buf = vec![0_u8; total_len];
 
             db.file.fm.read(&mut prev_buf)?;
             db.pairing_test(&prev_buf, middle)?;
+
+            if middle == b_bl {
+                hashchain.hash_chain(&prev_buf[middle..]);
+            }
 
             for i in 1..height {
                 db.file.fm.read(&mut buf)?;
@@ -148,30 +200,49 @@ impl DB {
                 // pairing test
                 db.pairing_test(&buf, middle)?;
 
+                if middle == b_bl {
+                    hashchain.hash_chain(&buf[middle..]);
+                }
+
                 std::mem::swap(&mut buf, &mut prev_buf);
 
-                eprint!("\r{} bytes found: {}", middle, i + 1);
+                if verbose {
+                    eprint!("\r{} bytes found: {}   ", middle, i + 1);
+                }
             }
         }
 
-        eprintln!("\ncomplete.");
+        db.file.fm.header.hash = hashchain.output();
+        db.file.fm.flash_header()?;
+
+        if verbose {
+            eprintln!("\ncomplete.");
+        }
         Ok(db)
     }
 
-    /// validation test: input\[`a`\] -> output\[`b`\]
+    /// validation test: input\[`a`\] -> output\[`b`\]<br>
     pub fn pairing_test(&mut self, bytes_line: &[u8], middle: usize) -> Result<()> {
         let a = &bytes_line[..middle];
         let b = &bytes_line[middle..];
+        let prev_pos = self.file.fm.stream_position()?;
+
         let v = self.get(a)?;
         match v {
-            Some(v) if v.eq(b) => Ok(()),
+            Some(v) if v.eq(b) => match self.get(b)? {
+                Some(vv) if a.eq(&vv) => {
+                    self.file.fm.set_cursor(prev_pos)?;
+                    Ok(())
+                }
+                _ => return errbang!(err::BrokenContent, "Ok: a => b, but Err: b => a"),
+            },
             Some(_) => {
                 return errbang!(err::ValidationFailed, "not matched pair.");
             }
             None => {
                 return errbang!(
                     err::ValidationFailed,
-                    "a. {:?} cannot find -> b. {:?}",
+                    "\na. {:?} cannot find -> b. {:?}",
                     &a,
                     &b
                 )

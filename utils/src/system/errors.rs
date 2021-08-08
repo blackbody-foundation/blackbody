@@ -24,6 +24,7 @@ err! {
     ValidationFailed => "validation failed."
     BrokenHeader => "broken header."
     AnotherHeader => "not matched header."
+    BrokenContent => "broken content."
     FileNotFound => "file not found."
     InvalidLenSize => "invalid target len."
     EmptyArgument => "empty argument."

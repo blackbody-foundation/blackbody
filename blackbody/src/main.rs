@@ -25,7 +25,7 @@ use rand_chacha::{self, rand_core::SeedableRng};
 // const U16MAX: i64 = u16::MAX as i64;
 
 use utils::system::*;
-const FILE_PATH: &str = "db_test.hawking";
+const FILE_PATH: &str = "db_test22.hawking";
 use otoodb::*;
 
 fn main() -> Result<()> {
@@ -65,8 +65,8 @@ fn main() -> Result<()> {
     // let b: Vec<String> = a.to_le_bytes().iter().map(|x| format!("{:b}", x)).collect();
     // println!("{:b} -> {:?}", a, b);
 
-    // let _ = DB::open(FILE_PATH, 32, 4)?;
     _otoodb()?;
+    let _ = DB::open(FILE_PATH, 32, 4, None)?;
     Ok(())
 }
 
@@ -129,13 +129,13 @@ fn _otoodb() -> Result<()> {
     if std::path::Path::new(FILE_PATH).exists() {
         std::fs::remove_file(FILE_PATH)?;
     }
-    let mut db = DB::open(FILE_PATH, 32, 4)?;
+    let mut db = DB::open(FILE_PATH, 32, 4, None)?;
 
     let mut packet = Vec::new();
     let mut bytes32 = [0_u8; 32];
     let mut bytes4: [u8; 4];
 
-    for i in 1..=100000u128 {
+    for i in 1..=10000u128 {
         loop {
             _rand_bytes32(&mut bytes32);
             bytes4 = _get_fx(2).to_le_bytes();
@@ -161,7 +161,7 @@ fn _otoodb() -> Result<()> {
 
     eprintln!();
     // db.debug();
-    db.close();
+    db.close()?;
     // std::fs::remove_file(FILE_PATH)?;
     Ok(())
 }

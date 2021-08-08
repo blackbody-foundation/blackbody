@@ -28,7 +28,6 @@ use tgroup as tg;
 
 mod cccs;
 pub use cccs::head::CCCSHeader;
-use utils::macros::fs::ByteOrder;
 
 ///```no_run
 /// {
@@ -56,7 +55,11 @@ impl Wormhole {
         let file_path = infile.into();
         let db = self.load_otoodb()?;
         let version = db.version();
-        eprintln!("database successfully opened.\nversion: {}", version);
+        eprintln!(
+            "database successfully opened.\nversion: {}.{}",
+            Hex(version.0),
+            version.1
+        );
         tg::TransformTG::new(tg::Requirement::new(file_path, db, version)).join()?;
         eprintln!("\nend.");
         Ok(())
@@ -66,6 +69,7 @@ impl Wormhole {
             valid_path!(self.db_path)?,
             self.src_atom_len,
             self.dst_atom_len,
+            None,
         )
     }
 }

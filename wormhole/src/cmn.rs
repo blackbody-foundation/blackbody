@@ -19,4 +19,8 @@
 */
 
 pub use otoodb::DB;
-pub use utils::{fs::types::LS, system::*, types::tgroup::*};
+pub use utils::{
+    fs::types::LS,
+    system::*,
+    types::{tgroup::*, Hex},
+};

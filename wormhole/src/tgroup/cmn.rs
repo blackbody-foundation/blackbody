@@ -66,6 +66,6 @@ utils::derive_new! {
     pub struct Requirement {
         pub file_path: PathBuf, // target
         pub db: otoodb::DB,
-        pub version: HHSize
+        pub version: Version
     }
 }

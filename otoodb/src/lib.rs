@@ -40,7 +40,7 @@ mod tests {
         if std::path::Path::new(FILE_PATH).exists() {
             fs::remove_file(FILE_PATH)?;
         }
-        let mut db = DB::open(FILE_PATH, 4, 32)?;
+        let mut db = DB::open(FILE_PATH, 4, 32, None)?;
 
         let mut packet = Vec::new();
         for i in 1..=250_u8 {
@@ -60,7 +60,7 @@ mod tests {
         }
 
         // db.debug();
-        db.close();
+        db.close()?;
         fs::remove_file(FILE_PATH)?;
         Ok(())
     }
