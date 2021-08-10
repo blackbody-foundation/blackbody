@@ -19,13 +19,19 @@
 */
 
 // blackbody run
-use rand::Rng;
-use rand_chacha::{self, rand_core::SeedableRng};
+
+mod api;
+mod cli;
+mod rpc;
+
+// use rand::Rng;
+// use rand_chacha::{self, rand_core::SeedableRng};
 // const U32MAX: i64 = u32::MAX as i64;
 // const U16MAX: i64 = u16::MAX as i64;
 
 use utils::system::*;
-const FILE_PATH: &str = "db_test.hawking";
+use utils::types::hash::*;
+const FILE_PATH: &str = "test.hawking";
 use otoodb::*;
 
 fn main() -> Result<()> {
@@ -70,27 +76,38 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn _get_fx(n: usize) -> u32 {
-    let mut prev = rand_chacha::ChaCha20Rng::from_entropy().gen::<u32>();
-    let mut curr;
-    let mut tmp;
-    for _ in 0..n {
-        loop {
-            tmp = rand_chacha::ChaCha20Rng::from_entropy().gen::<u32>();
-            if tmp != prev && tmp != 0_u32 && tmp != u32::MAX {
-                break;
-            }
-        }
-        curr = prev ^ tmp;
-        prev = curr;
+fn _gen_bytes4(src: &[u8; 32]) -> [[u8; 4]; 8] {
+    // let mut prev = rand_chacha::ChaCha20Rng::from_entropy().gen::<u32>();
+    // let mut curr;
+    // let mut tmp;
+    // for _ in 0..n {
+    //     loop {
+    //         tmp = rand_chacha::ChaCha20Rng::from_entropy().gen::<u32>();
+    //         if tmp != prev && tmp != 0_u32 && tmp != u32::MAX {
+    //             break;
+    //         }
+    //     }
+    //     curr = prev ^ tmp;
+    //     prev = curr;
+    // }
+    // prev
+    let mut buf: [[u8; 4]; 8] = [[0_u8; 4]; 8];
+    for (i, bytes4) in src.chunks(4).enumerate() {
+        buf[i].copy_from_slice(bytes4);
     }
-    prev
+    buf
 }
-fn _rand_bytes32(buf: &mut [u8]) {
-    let rand_u8 = || rand_chacha::ChaCha20Rng::from_entropy().gen::<u8>();
-    for space in buf.iter_mut() {
-        *space = rand_u8();
-    }
+/// hashing by self count n - 1
+fn _gen_bytes32(buf: &[u8], n: usize) -> [u8; 32] {
+    // let rand_u8 = || rand_chacha::ChaCha20Rng::from_entropy().gen::<u8>();
+    // for space in buf.iter_mut() {
+    //     *space = rand_u8();
+    // }
+    HashCoverIter256::new(buf)
+        .into_iter()
+        .take(n)
+        .last()
+        .unwrap()
 }
 
 // fn decode(x: u32) -> f64 {
@@ -125,6 +142,9 @@ fn _rand_bytes32(buf: &mut [u8]) {
 //     use utils::system::err;
 
 //     #[test]
+const NUM_COVERING: usize = 350;
+const NUM_PUSHED: u128 = 500000;
+
 fn _otoodb() -> Result<()> {
     if std::path::Path::new(FILE_PATH).exists() {
         std::fs::remove_file(FILE_PATH)?;
@@ -133,37 +153,47 @@ fn _otoodb() -> Result<()> {
 
     let mut packet = Vec::new();
 
-    let (tx, rx) = crossbeam::channel::bounded::<([u8; 32], [u8; 4])>(1024);
+    let (tx, rx) = crossbeam::channel::bounded::<([u8; 32], [[u8; 4]; 8])>(1024);
     let handle = std::thread::spawn(move || -> ResultSend<()> {
-        let mut bytes32 = [0_u8; 32];
-        let mut bytes4: [u8; 4];
+        let mut bytes32: [u8; 32];
+        let mut bytes4: [[u8; 4]; 8];
+        let mut i: u32 = 0;
         loop {
-            _rand_bytes32(&mut bytes32);
-            bytes4 = _get_fx(2).to_le_bytes();
-            tx.send((bytes32, bytes4))?;
+            bytes32 = _gen_bytes32(&i.to_le_bytes(), NUM_COVERING);
+            bytes4 = _gen_bytes4(&bytes32);
+            if tx.send((bytes32, bytes4)).is_err() {
+                return Ok(());
+            }
+            i += 1;
         }
     });
     let start = Instant::now();
     let mut timer = Timer::new();
     timer.period = Duration::from_millis(60);
 
-    'out: for i in 1..=500000u128 {
-        loop {
+    'out: for i in 1..=NUM_PUSHED {
+        'pushed: loop {
             timer.update();
-            if let Ok((bytes32, bytes4)) = rx.recv() {
+            if let Ok((bytes32, bytes4_list)) = rx.recv() {
                 // no interrupted
-                errextract!(db.define(&bytes32, &bytes4), err::Interrupted => continue);
-                packet.push((bytes32, bytes4));
-                break;
+                for bytes4 in bytes4_list {
+                    errextract!(db.define(&bytes32, &bytes4), err::Interrupted => {
+                        eprintln!("\n\n{}. ip already exists. {}\n\n", i, Hex(bytes4));
+                        continue;
+                    });
+                    packet.push((bytes32, bytes4));
+                    break 'pushed;
+                }
+                continue;
             } else {
                 break 'out;
             }
         }
-        let push_per_second = 1.0 / timer.delta.as_secs_f64();
-        if timer.ready {
+        if timer.ready || i == NUM_PUSHED {
+            let push_per_second = 1.0 / timer.delta.as_secs_f64();
             timer.ready = false;
             eprint!(
-                "\r[{}]  {} set pushed.  ({:.0} p/s) ",
+                "\r[{}]  {} set pushed.  ({:.0} p/s)   ",
                 start.elapsed().as_secs().as_time(),
                 i,
                 push_per_second,
@@ -171,6 +201,7 @@ fn _otoodb() -> Result<()> {
         }
     }
 
+    drop(rx);
     resultcast!(handle.join().unwrap())?;
     eprintln!();
 

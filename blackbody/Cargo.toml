@@ -19,6 +19,11 @@ edition = "2018"
 
 [dependencies]
 utils = { path = "../utils" }
+otoodb = { path = "../otoodb" }
+
+# Generate Randomness
 rand = "0.8.4"
 rand_chacha = "0.3.1"
-otoodb = { path = "../otoodb" }
+
+# API
+actix-web = "3.3.2"

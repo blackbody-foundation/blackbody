@@ -63,3 +63,26 @@ impl<const LENGTH: usize> std::fmt::Display for Hex<LENGTH> {
         Ok(())
     }
 }
+
+pub struct HashCoverIter256 {
+    sha3: Sha3_256,
+    buf: [u8; 32],
+}
+impl HashCoverIter256 {
+    pub fn new(original_src: &[u8]) -> Self {
+        let mut sha3 = Sha3_256::new();
+        let buf = Self::squeeze(&mut sha3, original_src);
+        Self { sha3, buf }
+    }
+    fn squeeze(sha3: &mut Sha3_256, src: &[u8]) -> [u8; 32] {
+        sha3.update(src);
+        sha3.finalize_reset().into()
+    }
+}
+impl Iterator for HashCoverIter256 {
+    type Item = [u8; 32];
+    fn next(&mut self) -> Option<Self::Item> {
+        self.buf = Self::squeeze(&mut self.sha3, &self.buf);
+        Some(self.buf)
+    }
+}

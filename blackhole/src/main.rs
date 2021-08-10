@@ -28,7 +28,7 @@ use wormhole::Wormhole;
 
 fn main() -> Result<()> {
     let wormhole = Wormhole::new("db_test.hawking", 32, 4);
-    wormhole.transform("original2")?;
+    wormhole.transform("original")?;
 
     Ok(())
 }

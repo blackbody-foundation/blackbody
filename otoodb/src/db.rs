@@ -50,8 +50,8 @@ pub struct DB {
 }
 
 impl DB {
-    pub fn open(
-        file_path: &str,
+    pub fn open<P: AsRef<Path>>(
+        file_path: P,
         a_set_bytes: LS,
         b_set_bytes: LS,
         flags: Option<Flags>,
@@ -61,6 +61,8 @@ impl DB {
         let mut header = OtooHeader::default();
         header.a_set_bytes = mid as HUSize;
         header.b_set_bytes = end as HUSize;
+
+        let file_name = file_path.as_ref().file_name().unwrap().to_owned();
 
         let file = File::open(file_path, header)?;
         let height = file.fm.header.current_height;
@@ -82,8 +84,9 @@ impl DB {
             flags,
             closed: false,
         };
+
         if verbose {
-            eprintln!("\n\nfile successfully opened.");
+            eprintln!("\n\n{:?} successfully opened.", file_name);
         }
         Self::validate(&mut db, verbose)?;
         Ok(db)
@@ -157,7 +160,7 @@ impl DB {
         // something changed
         if self.file.get_header().hash.eq(&[0_u8; 32]) {
             if self.flags.verbose {
-                eprintln!("caculate hash..");
+                eprintln!("caculating hash..");
             }
             Self::validate(self, false)?;
         }
@@ -198,6 +201,8 @@ impl DB {
         db.file.fm.set_cursor(0)?;
 
         let mut hashchain = HashChain256::new();
+        let mut timer = Timer::new();
+        timer.period = Duration::from_millis(60);
 
         for middle in [a_bl, b_bl] {
             let mut prev_buf = vec![0_u8; total_len];
@@ -211,6 +216,8 @@ impl DB {
             }
 
             for i in 1..height {
+                timer.update();
+
                 db.file.fm.read(&mut buf)?;
 
                 if &buf[..middle] != max_bytes(&buf[..middle], &prev_buf[..middle]) {
@@ -227,12 +234,13 @@ impl DB {
 
                 std::mem::swap(&mut buf, &mut prev_buf);
 
-                if verbose {
-                    eprint!("\r{} bytes found: {}   ", middle, i + 1);
+                if verbose && timer.ready {
+                    timer.ready = false;
+                    eprint!("\r{} bytes found: {}   ", middle, i);
                 }
             }
             if verbose {
-                eprintln!();
+                eprintln!("\r{} bytes found: {}   ", middle, height);
             }
         }
 
