@@ -5,7 +5,7 @@ authors = ["just-do-halee <just.do.halee@gmail.com>"]
 homepage = "https://github.com/blackbody-foundation/blackbody"
 repository = "https://github.com/blackbody-foundation/blackbody"
 
-description = "Blockchain node for consensus compression algorithm."
+description = "blockchain node for consensus compression algorithm."
 
 readme = "README.md"
 
@@ -35,5 +35,8 @@ otoodb = { path = "../otoodb" }
 rand = "0.8.4"
 rand_chacha = "0.3.1"
 
-# API
+# CLI
+clap = "2.33.3"
+
+# NET
 actix-web = "3.3.2"

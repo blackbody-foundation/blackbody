@@ -1,2 +1,2 @@
-# release version (cli)
-cargo run --release -p blackbody --bin cli
+# release version
+cargo run --release -p blackbody --bin $1 -- ${@:2}
