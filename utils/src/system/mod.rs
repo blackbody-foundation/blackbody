@@ -22,6 +22,10 @@ mod errors;
 pub use errors::*;
 
 #[macro_use]
+mod cmd;
+pub use cmd::*;
+
+#[macro_use]
 mod path;
 pub use path::*;
 

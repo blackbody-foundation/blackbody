@@ -28,20 +28,30 @@
 // const U32MAX: i64 = u32::MAX as i64;
 // const U16MAX: i64 = u16::MAX as i64;
 
-use blackbody::cli::Args;
+mod cli;
+mod net;
 
-fn main() -> Result<()> {
+use cli::Args;
+
+#[actix_web::main]
+async fn main() -> Result<()> {
     let args = Args::new();
     let config = args.value_of("config").unwrap_or("default.conf");
     println!("Value for config: {}", config);
+
     match args.value_of("MODE").unwrap_or("both") {
         "api" => {
             println!("run api.");
+            net::api::run().await?;
         }
         "rpc" => {
             println!("run rpc.");
+            net::rpc::run().await?;
         }
-        _ => {}
+        _ => {
+            net::api::run().await?;
+            net::rpc::run().await?;
+        }
     }
 
     match args.occurrences_of("v") {
