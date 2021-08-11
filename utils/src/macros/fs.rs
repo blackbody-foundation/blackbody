@@ -22,7 +22,7 @@ pub use super::derives::serde::*;
 pub use crate::fs::types::*;
 pub use crate::system::*;
 pub use crate::types::bytes::*;
-///```
+///```no_run
 /// fheader! {
 ///     pub struct Name {
 ///         pub h: u64 => 0, // "pub" is free mark

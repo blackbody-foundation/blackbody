@@ -22,10 +22,11 @@ pub mod bytes;
 pub mod chan;
 pub mod derives;
 pub mod epool;
+pub mod flags;
 pub mod fs;
+pub mod hash;
 pub mod message;
 pub mod tgroup;
-pub mod flags;
 
 pub mod gost;
 

@@ -19,7 +19,7 @@
 */
 
 /// simply create `struct`
-///```rust
+///```no_run
 /// flags! {
 ///     pub name
 ///     Foo enum {

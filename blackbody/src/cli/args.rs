@@ -18,10 +18,11 @@ impl<'a> Default for Args<'a> {
                         .takes_value(true),
                 )
                 .push(
-                    Arg::with_name("INPUT")
-                        .help("Sets the input file to use")
-                        .required(true) // required true => can be unwraped
-                        .index(1),
+                    Arg::with_name("MODE")
+                        .short("m")
+                        .long("mode")
+                        .help("run only `api` mode or `rpc` mode")
+                        .takes_value(true),
                 )
                 .push(
                     Arg::with_name("v")
@@ -33,12 +34,19 @@ impl<'a> Default for Args<'a> {
                 .subcommand(
                     SubCommand::with_name("test")
                         .about("controls testing features")
-                        .version("1.3")
+                        .version("1.0")
                         .author("just-do-halee <just.do.halee@gmail.com>")
                         .arg(
                             Arg::with_name("debug")
                                 .short("d")
+                                .long("debug")
                                 .help("print debug information verbosely"),
+                        )
+                        .arg(
+                            Arg::with_name("otoodb")
+                                .short("o")
+                                .long("otoodb")
+                                .help("test one to one set database"),
                         ),
                 )
                 .get_matches(),

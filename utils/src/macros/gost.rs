@@ -29,7 +29,7 @@
 //! * Super Enum
 //!
 //!
-//! ```
+//! ```no_run
 //! gost! {
 //!     enum Err {
 //!         BrokenHeader : &str => "broken header."
@@ -44,7 +44,7 @@
 //! * Super Struct
 //!
 //!
-//! ```
+//! ```no_run
 //! gost! {
 //!     enum JobKind : &'static str {
 //!         Student => "studying"
@@ -76,7 +76,7 @@
 /// * Super Enum
 ///
 ///
-/// ```
+/// ```no_run
 /// gost! {
 ///     enum Err {
 ///         BrokenHeader : &str => "broken header."
@@ -91,7 +91,7 @@
 /// * Super Struct
 ///
 ///
-/// ```
+/// ```no_run
 /// gost! {
 ///     enum JobKind : &'static str {
 ///         Student => "studying"

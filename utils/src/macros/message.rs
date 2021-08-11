@@ -18,7 +18,7 @@
 
 */
 
-///```rust
+///```no_run
 /// message! {
 ///     pub name,
 ///     M = Vec<u8>,

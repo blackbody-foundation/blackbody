@@ -32,7 +32,10 @@ use utils::{
         File,
     },
     macros::flags::flags,
-    types::{hash::*, Lim, VLim},
+    types::{
+        hash::{sha256::*, Hex},
+        Lim, VLim,
+    },
 };
 
 flags! {
@@ -200,7 +203,7 @@ impl DB {
 
         db.file.fm.set_cursor(0)?;
 
-        let mut hashchain = HashChain256::new();
+        let mut hashchain = HashChain::new(); // sha3-256
         let mut timer = Timer::new();
         timer.period = Duration::from_millis(60);
 

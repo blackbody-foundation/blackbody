@@ -18,7 +18,7 @@
 
 */
 
-///```rust
+///```no_run
 ///tgroup! {
 ///     pub TG,
 ///     R = Requirement,
