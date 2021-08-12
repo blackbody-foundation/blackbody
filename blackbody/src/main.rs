@@ -1,5 +1,5 @@
 /*
-    .. + cli.rs + ..
+    .. + main.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -31,27 +31,29 @@
 mod cli;
 mod net;
 
+use net::cmn::*;
+use std::{thread, time};
+
 use cli::Args;
 
-#[actix_web::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let args = Args::new();
     let config = args.value_of("config").unwrap_or("default.conf");
     println!("Value for config: {}", config);
 
-    match args.value_of("MODE").unwrap_or("both") {
-        "api" => {
-            println!("run api.");
-            net::api::run().await?;
-        }
-        "rpc" => {
-            println!("run rpc.");
-            net::rpc::run().await?;
-        }
-        _ => {
-            net::api::run().await?;
-            net::rpc::run().await?;
-        }
+    let servers: Vec<Net> = match args.value_of("MODE").unwrap_or("") {
+        "api" => vec![net::api::run()],
+        "rpc" => vec![net::rpc::run()],
+        _ => vec![net::api::run(), net::rpc::run()],
+    };
+
+    thread::sleep(time::Duration::from_secs(5));
+
+    println!("STOPPING SERVER");
+
+    // init stop server and wait until server gracefully exit
+    for net in servers.into_iter() {
+        rt::System::new(net.name).block_on(net.server.stop(true));
     }
 
     match args.occurrences_of("v") {
@@ -93,7 +95,6 @@ fn _gen_bytes64(buf: &[u8], n: usize) -> [u8; 64] {
 }
 
 use otoodb::*;
-use utils::system::*;
 use utils::types::hash::*;
 
 const FILE_PATH: &str = "test.hawking";

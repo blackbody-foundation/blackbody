@@ -31,3 +31,4 @@ clap = "2.33.3"
 
 # NET
 actix-web = "3.3.2"
+crossbeam = "0.8.1"

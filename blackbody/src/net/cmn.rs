@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + cmn.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,8 +18,20 @@
 
 */
 
-pub mod cmn;
-use cmn::*;
+//! common
 
-pub mod api;
-pub mod rpc;
+pub use actix_web::{dev::Server, get, rt, web, App, HttpServer, Responder};
+pub use crossbeam::channel::{unbounded, Receiver, Sender};
+pub use std::thread::{self, JoinHandle};
+pub use utils::system::*;
+
+pub struct Net {
+    pub server: Server,
+    pub name: &'static str,
+}
+
+impl Net {
+    pub fn new(name: &'static str, server: Server) -> Self {
+        Self { server, name }
+    }
+}
