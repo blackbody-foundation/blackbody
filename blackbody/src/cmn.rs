@@ -18,23 +18,8 @@
 
 */
 
-//! common
-
-pub use crate::cmn::*;
-
-pub use actix_web::{dev::Server, get, rt, web, App, HttpServer, Responder};
-pub use crossbeam::channel::{unbounded, Receiver, Sender};
-pub use std::ops::Deref;
-pub use std::thread::{self, JoinHandle};
+pub use std::{thread, time};
 pub use utils::system::*;
 
-pub struct Net {
-    pub server: Server,
-    pub name: &'static str,
-}
-
-impl Net {
-    pub fn new(name: &'static str, server: Server) -> Self {
-        Self { server, name }
-    }
-}
+// common in cli
+pub use crate::cli::envs;

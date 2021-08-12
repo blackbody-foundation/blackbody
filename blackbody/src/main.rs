@@ -28,40 +28,22 @@
 // const U32MAX: i64 = u32::MAX as i64;
 // const U16MAX: i64 = u16::MAX as i64;
 
+mod cmn;
+use cmn::*;
+
 mod cli;
 mod net;
 
-use net::cmn::*;
-use std::{thread, time};
-
-use cli::Args;
+use cli::*;
 
 fn main() -> Result<()> {
     let args = Args::new();
-    let config = args.value_of("config").unwrap_or("default.conf");
-    println!("Value for config: {}", config);
 
-    let servers: Vec<Net> = match args.value_of("MODE").unwrap_or("") {
-        "api" => vec![net::api::run()],
-        "rpc" => vec![net::rpc::run()],
-        _ => vec![net::api::run(), net::rpc::run()],
-    };
+    let sl = net::run(args.value_of("mode").unwrap_or_default());
 
     thread::sleep(time::Duration::from_secs(5));
 
-    println!("STOPPING SERVER");
-
-    // init stop server and wait until server gracefully exit
-    for net in servers.into_iter() {
-        rt::System::new(net.name).block_on(net.server.stop(true));
-    }
-
-    match args.occurrences_of("v") {
-        0 => println!("No verbose info"),
-        1 => println!("Some verbose info"),
-        2 => println!("Tons of verbose info"),
-        _ => println!("Don't be crazy"),
-    }
+    net::stop(sl);
 
     if let Some(args) = args.subcommand_matches("test") {
         if args.is_present("otoodb") {

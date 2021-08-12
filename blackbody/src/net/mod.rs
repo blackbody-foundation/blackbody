@@ -23,3 +23,26 @@ use cmn::*;
 
 pub mod api;
 pub mod rpc;
+
+pub struct ServerList(pub Vec<Net>);
+
+#[inline(always)]
+pub fn run(mode: &str) -> ServerList {
+    ServerList(match mode {
+        "rpc" => vec![rpc::run()],
+        "api" => vec![api::run()],
+        _ => vec![rpc::run(), api::run()], /* start RPC -> API */
+    })
+}
+
+#[inline(always)]
+pub fn stop(servers: ServerList) {
+    let v = envs::init_verbose!("verbose");
+
+    for net in servers.0.into_iter().rev() {
+        envs::verbose!(v;1: "stop {} server.", net.name); /* stop API -> RPC */
+
+        rt::System::new(net.name).block_on(net.server.stop(true));
+        // wait until server gracefully exit
+    }
+}

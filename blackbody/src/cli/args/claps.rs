@@ -20,6 +20,9 @@
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 
+const VERBOSE_DEFAULT: &str = "1";
+const VERBOSE_HELP: &str = "Sets the level of verbosity 0 to 3";
+
 /// ## Custom Clap App
 pub struct CApp<'a, 'b>(App<'a, 'b>);
 
@@ -30,6 +33,18 @@ impl<'a, 'b> CApp<'a, 'b> {
                 .version(crate_version!())
                 .author(crate_authors!())
                 .about(crate_description!()),
+        )
+    }
+    /// you can change some of default values as this const variables. (claps.rs)
+    pub fn set_verbose(self, env_name: &'static str) -> Self {
+        self.push(
+            Arg::with_name(env_name)
+                .short("v")
+                .long(env_name)
+                .default_value(VERBOSE_DEFAULT)
+                .global(true)
+                .takes_value(true)
+                .help(VERBOSE_HELP),
         )
     }
     pub fn push(self, arg: Arg<'a, 'b>) -> Self {

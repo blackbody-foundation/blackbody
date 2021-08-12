@@ -21,7 +21,7 @@
 use super::*;
 
 const SERVER_IP: &str = "127.0.0.1:4000";
-const SERVER_NAME: &str = "api";
+const SERVER_NAME: &str = "API";
 
 #[get("/{id}/{name}/index.html")]
 pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Responder {
@@ -30,8 +30,10 @@ pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Resp
 
 pub fn run() -> Net {
     let (tx, rx) = unbounded();
+    let v = envs::init_verbose!("verbose");
 
-    println!("START SERVER");
+    envs::verbose!(v;1: "start {} server.", SERVER_NAME);
+
     thread::spawn(move || -> ResultSend<()> {
         let mut sys = rt::System::new(SERVER_NAME);
 
