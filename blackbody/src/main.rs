@@ -29,6 +29,8 @@
 // const U16MAX: i64 = u16::MAX as i64;
 
 mod cmn;
+use std::io::Write;
+
 use cmn::*;
 
 mod cli;
@@ -37,25 +39,48 @@ mod net;
 use cli::*;
 
 fn main() -> Result<()> {
-    let args = Args::new();
+    let args_outter = args::outter::new();
 
-    let sl = net::run(args.value_of("mode").unwrap_or_default());
+    let sl = net::run(args_outter.value_of("mode").unwrap_or_default());
 
-    thread::sleep(time::Duration::from_secs(5));
+    let mut args_inner = args::inner::new();
+    loop {
+        let mut input = String::new();
 
-    net::stop(sl);
+        print!("{} $ ", args_inner.name);
+        std::io::stdout().flush().expect("Failed to flush std out.");
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line.");
 
-    if let Some(args) = args.subcommand_matches("test") {
-        if args.is_present("otoodb") {
-            // otoodb(true)?;
-            otoodb(false)?;
-        }
-        if args.is_present("debug") {
-            println!("Printing debug info...");
-        } else {
-            println!("Printing normally...");
+        input = format!("{} {}", args_inner.name, input);
+
+        let arguments = input.split_whitespace().collect();
+
+        let matches = args_inner.matches(arguments);
+        match matches {
+            Ok(args) => match args.subcommand() {
+                ("clear", Some(_)) => eprint!("\r\x1b[2J\r\x1b[H"),
+                ("quit", Some(_)) => break,
+                ("test", Some(sub_m)) => {
+                    if sub_m.is_present("otoodb") {
+                        otoodb(true, sub_m.occurrences_of("v") as u8)?;
+                    }
+                }
+                ("echo", Some(sub_m)) => {
+                    let env_name = sub_m.value_of("$env").unwrap_or("");
+                    eprintln!(
+                        "{}",
+                        std::env::var(env_name).unwrap_or_else(|_| "[None]".to_string())
+                    );
+                }
+                _ => eprintln!("* Invalid command"),
+            },
+            Err(e) => eprintln!("{}\n", e),
         }
     }
+
+    net::stop(sl);
 
     Ok(())
 }
@@ -83,12 +108,12 @@ const FILE_PATH: &str = "test.hawking";
 const NUM_COVERING: usize = 32;
 const NUM_PUSHED: u128 = 5000;
 
-fn otoodb(test: bool) -> Result<()> {
+fn otoodb(test: bool, verbose: u8) -> Result<()> {
     if test && std::path::Path::new(FILE_PATH).exists() {
         std::fs::remove_file(FILE_PATH)?;
     }
 
-    let mut db = DB::open(FILE_PATH, 64, 8, None)?;
+    let mut db = DB::open(FILE_PATH, 64, 8, Some(Flags { verbose }))?;
 
     if test {
         let mut packet = Vec::new();

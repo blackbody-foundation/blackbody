@@ -18,12 +18,12 @@
 
 */
 
-use super::Args;
+use clap::ArgMatches;
 
-pub fn arg_to_env(args: &Args, arg_names: &[&str]) {
+pub fn arg_to_env(args: &ArgMatches, env_prefix: &str, arg_names: &[&str]) {
     for &key in arg_names.iter() {
         std::env::set_var(
-            format!("envs_{}", &key),
+            format!("{}_{}", env_prefix, &key),
             args.value_of(&key).unwrap_or_default(),
         );
     }

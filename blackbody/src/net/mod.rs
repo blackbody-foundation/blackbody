@@ -37,7 +37,7 @@ pub fn run(mode: &str) -> ServerList {
 
 #[inline(always)]
 pub fn stop(servers: ServerList) {
-    let v = verbose::init!("verbose");
+    let v = verbose::init!("outter", "verbose");
 
     for net in servers.0.into_iter().rev() {
         verbose::einfo!(v;1: "stop {} server.", net.name); /* stop API -> RPC */

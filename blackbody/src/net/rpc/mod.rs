@@ -30,7 +30,7 @@ pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Resp
 
 pub fn run() -> Net {
     let (tx, rx) = unbounded();
-    let v = verbose::init!("verbose");
+    let v = verbose::init!("outter", "verbose");
 
     verbose::einfo!(v;1: "start {} server.", SERVER_NAME);
 

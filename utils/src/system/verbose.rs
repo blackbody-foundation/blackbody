@@ -19,12 +19,12 @@
 */
 
 ///```no_run
-/// let v = init!("verbose"); // "clap_env_name"
+/// let v = init!("envs", "verbose"); // ("env_prefix", "rest_of_name")
 ///```
 #[macro_export]
 macro_rules! init {
-    ($v:expr) => {
-        std::env::var(format!("envs_{}", $v))
+    ($e:expr, $v:expr) => {
+        std::env::var(format!("{}_{}", $e, $v))
             .unwrap_or_default()
             .parse::<u8>()
             .expect("couldn't parse verbose env var.")
@@ -33,7 +33,7 @@ macro_rules! init {
 pub use init;
 
 ///```no_run
-/// let v = init!("verbose");
+/// let v = init!("envs", "verbose");
 /// einfo!(v;1:f "this is level{} verbose.", 1); // no line
 /// einfo!(v;1: "this is level{} verbose.", 1); // line
 ///```
@@ -53,7 +53,7 @@ macro_rules! einfo {
 pub use einfo;
 
 ///```no_run
-/// let v = init_verbose!("verbose");
+/// let v = init!("envs", "verbose");
 /// info!(v;1:f "this is level{} verbose.", 1); // no line
 /// info!(v;1: "this is level{} verbose.", 1); // line
 ///```

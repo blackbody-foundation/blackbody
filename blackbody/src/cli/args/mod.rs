@@ -20,61 +20,8 @@
 
 mod claps;
 
-use std::ops::Deref;
+mod args_inner;
+mod args_outter;
 
-use clap::{Arg, ArgMatches, SubCommand};
-use claps::CApp;
-
-impl<'a> Default for Args<'a> {
-    fn default() -> Self {
-        let args = Self {
-            matches: CApp::new()
-                .push(
-                    Arg::with_name("mode")
-                        .short("m")
-                        .long("mode")
-                        .value_name("API/RPC")
-                        .help("run only `api` mode or `rpc` mode")
-                        .takes_value(true),
-                )
-                .set_verbose("verbose")
-                .sink()
-                .subcommand(
-                    SubCommand::with_name("test")
-                        .about("controls testing features")
-                        .version("1.0")
-                        .author("just-do-halee <just.do.halee@gmail.com>")
-                        .arg(
-                            Arg::with_name("debug")
-                                .short("d")
-                                .long("debug")
-                                .help("print debug information verbosely"),
-                        )
-                        .arg(
-                            Arg::with_name("otoodb")
-                                .short("o")
-                                .long("otoodb")
-                                .help("test one to one set database"),
-                        ),
-                )
-                .get_matches(),
-        };
-        super::envs::arg_to_env(&args, &["verbose"]); // send verbose to env
-        args
-    }
-}
-
-pub struct Args<'a> {
-    matches: ArgMatches<'a>,
-}
-impl<'a> Args<'a> {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-impl<'a> Deref for Args<'a> {
-    type Target = ArgMatches<'a>;
-    fn deref(&self) -> &Self::Target {
-        &self.matches
-    }
-}
+pub use args_inner::Args as inner;
+pub use args_outter::Args as outter;

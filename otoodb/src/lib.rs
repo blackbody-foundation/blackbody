@@ -24,7 +24,7 @@ mod cmn;
 mod db;
 mod head;
 
-pub use db::DB;
+pub use db::{Flags, DB};
 pub use head::*;
 
 #[cfg(test)]

@@ -18,7 +18,10 @@
 
 */
 
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
+pub use clap::{Arg, ArgMatches, SubCommand};
+pub use std::ops::Deref;
+
+use clap::{crate_authors, crate_description, crate_name, crate_version, App};
 
 const VERBOSE_DEFAULT: &str = "1";
 const VERBOSE_HELP: &str = "Sets the level of verbosity 0 to 3";
@@ -40,9 +43,7 @@ impl<'a, 'b> CApp<'a, 'b> {
         self.push(
             Arg::with_name(env_name)
                 .short("v")
-                .long(env_name)
                 .default_value(VERBOSE_DEFAULT)
-                .global(true)
                 .takes_value(true)
                 .help(VERBOSE_HELP),
         )

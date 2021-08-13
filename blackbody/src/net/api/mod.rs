@@ -23,14 +23,25 @@ use super::*;
 const SERVER_IP: &str = "127.0.0.1:4000";
 const SERVER_NAME: &str = "API";
 
-#[get("/{id}/{name}/index.html")]
+serialize! {
+    struct Test {
+        name: String,
+    }
+}
+
+#[post("/{id}/{name}")]
 pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Responder {
-    format!("Hello {}! id:{}", name, id)
+    HttpResponse::Ok().content_type("application/json").body(
+        serde_json::to_string(&Test {
+            name: format!("{}:{}", id, name),
+        })
+        .unwrap(),
+    )
 }
 
 pub fn run() -> Net {
     let (tx, rx) = unbounded();
-    let v = verbose::init!("verbose");
+    let v = verbose::init!("outter", "verbose");
 
     verbose::einfo!(v;1: "start {} server.", SERVER_NAME);
 

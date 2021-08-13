@@ -40,7 +40,7 @@ use utils::{
 
 flags! {
     pub Flags
-    verbose bool => true
+    verbose u8 => 1
 }
 
 /// default byte set order = `little endian`
@@ -79,6 +79,7 @@ impl DB {
         } else {
             Flags::default()
         };
+
         let verbose = flags.verbose;
 
         let mut db = Self {
@@ -88,7 +89,7 @@ impl DB {
             closed: false,
         };
 
-        if verbose {
+        if verbose > 0 {
             eprintln!("\n\n{:?} successfully opened.", file_name);
         }
         Self::validate(&mut db, verbose)?;
@@ -154,7 +155,7 @@ impl DB {
     }
     pub fn close(mut self) -> Result<()> {
         self.closed = true;
-        if self.flags.verbose {
+        if self.flags.verbose > 0 {
             eprintln!("closing..");
         }
         self.calc_hash()
@@ -162,10 +163,10 @@ impl DB {
     fn calc_hash(&mut self) -> Result<()> {
         // something changed
         if self.file.get_header().hash.eq(&[0_u8; 32]) {
-            if self.flags.verbose {
+            if self.flags.verbose > 0 {
                 eprintln!("caculating hash..");
             }
-            Self::validate(self, false)?;
+            Self::validate(self, 0)?;
         }
         Ok(())
     }
@@ -173,10 +174,13 @@ impl DB {
     /// 1. ordering test
     /// 2. pairing test
     /// 3. rewrite hash - by ordering of B set only(chaining hashing)
-    pub fn validate(db: &mut DB, verbose: bool) -> Result<()> {
+    pub fn validate(db: &mut DB, verbose: u8) -> Result<()> {
         let ((hash, height), a_bl, b_bl) = db.get_info_as_usize();
         let total_len = a_bl + b_bl;
-        if verbose {
+
+        eprint!("\x1b[?25l"); // hide cursor
+
+        if verbose > 0 {
             {
                 eprintln!(
                     "one to one set database\nhash: {}\nheight: {}\na set bytes: {}\nb set bytes: {}\nvalidating..",
@@ -192,7 +196,7 @@ impl DB {
             }
         }
         if height < 2 {
-            if verbose {
+            if verbose > 0 {
                 eprintln!("complete.");
             }
             return Ok(());
@@ -237,12 +241,12 @@ impl DB {
 
                 std::mem::swap(&mut buf, &mut prev_buf);
 
-                if verbose && timer.ready {
+                if (verbose > 0) && timer.ready {
                     timer.ready = false;
                     eprint!("\r{} bytes found: {}   ", middle, i);
                 }
             }
-            if verbose {
+            if verbose > 0 {
                 eprintln!("\r{} bytes found: {}   ", middle, height);
             }
         }
@@ -250,9 +254,12 @@ impl DB {
         db.file.fm.header.hash = hashchain.output();
         db.file.fm.flash_header()?;
 
-        if verbose {
+        if verbose > 0 {
             eprintln!("complete.");
         }
+
+        eprint!("\x1b[?25h"); // show cursor
+
         Ok(())
     }
 
@@ -342,7 +349,7 @@ impl DB {
 impl Drop for DB {
     fn drop(&mut self) {
         if !self.closed {
-            if self.flags.verbose {
+            if self.flags.verbose > 0 {
                 eprintln!("closing..")
             }
             errcast_panic!(
@@ -351,8 +358,9 @@ impl Drop for DB {
                 "DB closing error."
             );
         }
-        if self.flags.verbose {
+        if self.flags.verbose > 0 {
             eprintln!("complete.")
         }
+        eprint!("\x1b[?25h"); // show cursor
     }
 }
