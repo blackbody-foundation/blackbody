@@ -37,10 +37,10 @@ pub fn run(mode: &str) -> ServerList {
 
 #[inline(always)]
 pub fn stop(servers: ServerList) {
-    let v = envs::init_verbose!("verbose");
+    let v = verbose::init!("verbose");
 
     for net in servers.0.into_iter().rev() {
-        envs::verbose!(v;1: "stop {} server.", net.name); /* stop API -> RPC */
+        verbose::einfo!(v;1: "stop {} server.", net.name); /* stop API -> RPC */
 
         rt::System::new(net.name).block_on(net.server.stop(true));
         // wait until server gracefully exit

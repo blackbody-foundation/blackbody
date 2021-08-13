@@ -21,5 +21,5 @@
 mod args;
 pub use args::Args;
 
-#[macro_use]
 pub mod envs;
+pub use envs::verbose;

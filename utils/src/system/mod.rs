@@ -26,6 +26,9 @@ mod cmd;
 pub use cmd::*;
 
 #[macro_use]
+pub mod verbose;
+
+#[macro_use]
 mod path;
 pub use path::*;
 

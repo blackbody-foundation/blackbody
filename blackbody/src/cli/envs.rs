@@ -29,39 +29,4 @@ pub fn arg_to_env(args: &Args, arg_names: &[&str]) {
     }
 }
 
-pub fn get_env(key: &str) -> String {
-    std::env::var(format!("envs_{}", key)).unwrap_or_default()
-}
-
-///```no_run
-/// let v = init_verbose!("verbose"); // "clap_env_name"
-///```
-#[macro_export]
-macro_rules! init_verbose {
-    ($v:expr) => {
-        envs::get_env($v)
-            .parse::<u8>()
-            .expect("couldn't parse verbose env var.")
-    };
-}
-pub use init_verbose;
-
-///```no_run
-/// let v = init_verbose!("verbose");
-/// verbose!(v;1:f "this is level{} verbose.", 1); // no line
-/// verbose!(v;1: "this is level{} verbose.", 1); // line
-///```
-#[macro_export]
-macro_rules! verbose {
-    ($env:expr;$lvl:tt:f $($exp:expr),*) => {
-        if $env >= $lvl {
-            print!($($exp),*);
-        }
-    };
-    ($env:expr;$lvl:tt: $($exp:expr),*) => {
-        if $env >= $lvl {
-            println!($($exp),*);
-        }
-    };
-}
-pub use verbose;
+pub use utils::system::verbose;

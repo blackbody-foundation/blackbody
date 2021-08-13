@@ -30,9 +30,9 @@ pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Resp
 
 pub fn run() -> Net {
     let (tx, rx) = unbounded();
-    let v = envs::init_verbose!("verbose");
+    let v = verbose::init!("verbose");
 
-    envs::verbose!(v;1: "start {} server.", SERVER_NAME);
+    verbose::einfo!(v;1: "start {} server.", SERVER_NAME);
 
     thread::spawn(move || -> ResultSend<()> {
         let mut sys = rt::System::new(SERVER_NAME);
