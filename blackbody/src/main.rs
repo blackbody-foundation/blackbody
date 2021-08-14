@@ -44,11 +44,17 @@ fn main() -> Result<()> {
     let sl = net::run(args_outter.value_of("mode").unwrap_or_default());
 
     let mut args_inner = args::inner::new();
+
     loop {
         let mut input = String::new();
-
-        print!("{} $ ", args_inner.name);
-        std::io::stdout().flush().expect("Failed to flush std out.");
+        print!(
+            "{} {} ",
+            term::style(args_inner.name).blue().italic().bold(),
+            term::style("✗").dim().bold()
+        );
+        std::io::stdout()
+            .flush()
+            .unwrap_or_else(|e| eprintln!("{}", e));
         std::io::stdin()
             .read_line(&mut input)
             .expect("Failed to read line.");

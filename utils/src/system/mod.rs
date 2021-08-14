@@ -42,5 +42,8 @@ pub use concentric::*;
 mod console;
 pub use console::Console;
 
+#[macro_use]
+pub mod style;
+
 //
 pub use crossbeam;

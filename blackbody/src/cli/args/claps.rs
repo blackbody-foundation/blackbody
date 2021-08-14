@@ -18,7 +18,7 @@
 
 */
 
-pub use clap::{Arg, ArgMatches, SubCommand};
+pub use clap::{Arg, ArgMatches, SubCommand, AppSettings};
 pub use std::ops::Deref;
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, App};
@@ -35,7 +35,9 @@ impl<'a, 'b> CApp<'a, 'b> {
             App::new(crate_name!())
                 .version(crate_version!())
                 .author(crate_authors!())
-                .about(crate_description!()),
+                .about(crate_description!())
+                .help_message("")
+                .version_message(""),
         )
     }
     /// you can change some of default values as this const variables. (claps.rs)

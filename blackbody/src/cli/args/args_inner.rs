@@ -1,5 +1,5 @@
 use super::claps::*;
-use crate::envs;
+// use crate::envs;
 pub struct Args<'a, 'b> {
     saved: clap::App<'a, 'b>,
     pub name: &'static str,
@@ -9,6 +9,7 @@ impl<'a, 'b> Args<'a, 'b> {
         Self {
             saved: CApp::new()
                 .sink()
+                .setting(AppSettings::DisableHelpSubcommand)
                 .subcommand(SubCommand::with_name("clear").about("clear screen"))
                 .subcommand(
                     SubCommand::with_name("echo")
@@ -39,7 +40,7 @@ impl<'a, 'b> Args<'a, 'b> {
     pub fn matches(&mut self, arguments: Vec<&str>) -> crate::Result<ArgMatches<'a>> {
         Ok(self.saved.get_matches_from_safe_borrow(arguments)?)
     }
-    pub fn arg_to_env(&self, args: &ArgMatches<'a>, arg_names: &[&str]) {
-        envs::arg_to_env(args, "inner", arg_names); // send verbose to env
-    }
+    // pub fn arg_to_env(&self, args: &ArgMatches<'a>, arg_names: &[&str]) {
+    //     envs::arg_to_env(args, "inner", arg_names); // send verbose to env
+    // }
 }

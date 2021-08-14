@@ -18,7 +18,9 @@
 
 */
 
+#[cfg(feature = "fs")]
 pub mod fs;
+
 pub mod system;
 pub mod types;
 
