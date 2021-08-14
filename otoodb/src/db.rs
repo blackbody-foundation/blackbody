@@ -32,10 +32,7 @@ use utils::{
         File,
     },
     macros::flags::flags,
-    types::{
-        hash::{sha256::*, Hex},
-        Lim, VLim,
-    },
+    types::{hash::Hex, Lim, VLim},
 };
 
 flags! {
@@ -90,7 +87,7 @@ impl DB {
         };
 
         if verbose > 0 {
-            eprintln!("\n\n{:?} successfully opened.", file_name);
+            eprintln!("\n{:?} successfully opened.", file_name);
         }
         Self::validate(&mut db, verbose)?;
         Ok(db)
@@ -207,10 +204,13 @@ impl DB {
 
         db.file.fm.set_cursor(0)?;
 
-        let mut hashchain = HashChain::new(); // sha3-256
+        // let mut hashchain = HashChain::new(); // sha3-256
+        let mut hashed = blake3::hash(&[0_u8; 32]); // blake3-256
+
         let mut timer = Timer::new();
         timer.period = Duration::from_millis(60);
 
+        let start = Instant::now();
         for middle in [a_bl, b_bl] {
             let mut prev_buf = vec![0_u8; total_len];
             let mut buf = vec![0_u8; total_len];
@@ -219,7 +219,8 @@ impl DB {
             db.pairing_test(&prev_buf, middle)?;
 
             if middle == b_bl {
-                hashchain.hash_chain(&prev_buf[middle..]);
+                hashed = blake3::hash(&[hashed.as_bytes(), &prev_buf[middle..]].concat());
+                // hashchain.hash_chain(&prev_buf[middle..]);
             }
 
             for i in 1..height {
@@ -236,7 +237,8 @@ impl DB {
                 db.pairing_test(&buf, middle)?;
 
                 if middle == b_bl {
-                    hashchain.hash_chain(&buf[middle..]);
+                    hashed = blake3::hash(&[hashed.as_bytes(), &buf[middle..]].concat());
+                    // hashchain.hash_chain(&buf[middle..]);
                 }
 
                 std::mem::swap(&mut buf, &mut prev_buf);
@@ -251,11 +253,12 @@ impl DB {
             }
         }
 
-        db.file.fm.header.hash = hashchain.output();
+        // db.file.fm.header.hash = hashchain.output();
+        db.file.fm.header.hash = hashed.into();
         db.file.fm.flash_header()?;
 
         if verbose > 0 {
-            eprintln!("complete.");
+            eprintln!("[{}] complete.", start.elapsed().as_secs().as_time());
         }
 
         eprint!("\x1b[?25h"); // show cursor

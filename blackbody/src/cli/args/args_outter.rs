@@ -16,16 +16,12 @@ impl<'a> Default for Args<'a> {
                 .set_verbose("verbose")
                 .sink()
                 .subcommand(
-                    SubCommand::with_name("test")
-                        .about("controls testing features")
-                        .version("1.0")
-                        .author("just-do-halee <just.do.halee@gmail.com>")
-                        .arg(
-                            Arg::with_name("debug")
-                                .short("d")
-                                .long("debug")
-                                .help("print debug information verbosely"),
-                        ),
+                    CSubCommand::new("test", "testing features", "1.0").arg(
+                        Arg::with_name("debug")
+                            .short("d")
+                            .long("debug")
+                            .help("print debug information verbosely"),
+                    ),
                 )
                 .get_matches(),
         };

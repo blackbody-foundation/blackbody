@@ -18,7 +18,7 @@
 
 */
 
-pub use clap::{Arg, ArgMatches, SubCommand, AppSettings};
+pub use clap::{AppSettings, Arg, ArgMatches, SubCommand};
 pub use std::ops::Deref;
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, App};
@@ -37,7 +37,8 @@ impl<'a, 'b> CApp<'a, 'b> {
                 .author(crate_authors!())
                 .about(crate_description!())
                 .help_message("")
-                .version_message(""),
+                .version_message("")
+                .setting(AppSettings::DisableHelpSubcommand),
         )
     }
     /// you can change some of default values as this const variables. (claps.rs)
@@ -55,5 +56,19 @@ impl<'a, 'b> CApp<'a, 'b> {
     }
     pub fn sink(self) -> App<'a, 'b> {
         self.0
+    }
+}
+
+#[allow(non_snake_case)]
+pub mod CSubCommand {
+    use super::*;
+    pub fn new<'a, 'b>(name: &'a str, about: &'a str, version: &'a str) -> App<'a, 'b> {
+        SubCommand::with_name(name)
+            .setting(AppSettings::DisableHelpSubcommand)
+            .about(about)
+            .version(version)
+            .author(crate_authors!())
+            .help_message("")
+            .version_message("")
     }
 }

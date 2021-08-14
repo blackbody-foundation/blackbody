@@ -20,3 +20,4 @@ edition = "2018"
 
 [dependencies]
 utils = { path = "../utils", features = ["fs"] }
+blake3 = "1.0.0"

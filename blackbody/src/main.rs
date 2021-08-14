@@ -68,13 +68,14 @@ fn main() -> Result<()> {
             Ok(args) => match args.subcommand() {
                 ("clear", Some(_)) => eprint!("\r\x1b[2J\r\x1b[H"),
                 ("quit", Some(_)) => break,
-                ("test", Some(sub_m)) => {
-                    if sub_m.is_present("otoodb") {
-                        otoodb(true, sub_m.occurrences_of("v") as u8)?;
+                ("test", Some(m)) => {
+                    if let Some(mm) = m.subcommand_matches("otoodb") {
+                        let test_mode = mm.is_present("delete");
+                        otoodb(test_mode, m.occurrences_of("v") as u8)?;
                     }
                 }
-                ("echo", Some(sub_m)) => {
-                    let env_name = sub_m.value_of("$env").unwrap_or("");
+                ("echo", Some(m)) => {
+                    let env_name = m.value_of("$env").unwrap_or("");
                     eprintln!(
                         "{}",
                         std::env::var(env_name).unwrap_or_else(|_| "[None]".to_string())
@@ -112,16 +113,19 @@ use utils::types::hash::*;
 
 const FILE_PATH: &str = "test.hawking";
 const NUM_COVERING: usize = 32;
-const NUM_PUSHED: u128 = 5000;
+const NUM_PUSHED: u128 = 50000;
 
-fn otoodb(test: bool, verbose: u8) -> Result<()> {
-    if test && std::path::Path::new(FILE_PATH).exists() {
-        std::fs::remove_file(FILE_PATH)?;
+fn otoodb(delete: bool, verbose: u8) -> Result<()> {
+    let path = if delete { "./__null__" } else { FILE_PATH };
+
+    let exist = std::path::Path::new(path).exists();
+    if delete && exist {
+        std::fs::remove_file(path)?;
     }
 
-    let mut db = DB::open(FILE_PATH, 64, 8, Some(Flags { verbose }))?;
+    let mut db = DB::open(path, 64, 8, Some(Flags { verbose }))?;
 
-    if test {
+    if !exist {
         let mut packet = Vec::new();
 
         let (tx, rx) = crossbeam::channel::bounded::<([u8; 64], [[u8; 8]; 8])>(1024);
@@ -138,9 +142,10 @@ fn otoodb(test: bool, verbose: u8) -> Result<()> {
                 i += 1;
             }
         });
-        let start = Instant::now();
         let mut timer = Timer::new();
         timer.period = Duration::from_millis(60);
+
+        let start = Instant::now();
 
         'out: for i in 1..=NUM_PUSHED {
             'pushed: loop {
@@ -189,6 +194,8 @@ fn otoodb(test: bool, verbose: u8) -> Result<()> {
     }
     // db.debug();
     db.close()?;
-    // std::fs::remove_file(FILE_PATH)?;
+    if delete {
+        std::fs::remove_file(path)?;
+    }
     Ok(())
 }

@@ -24,6 +24,9 @@ use cmn::*;
 pub mod api;
 pub mod rpc;
 
+/// for verify
+mod verify;
+
 pub struct ServerList(pub Vec<Net>);
 
 #[inline(always)]

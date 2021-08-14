@@ -9,7 +9,6 @@ impl<'a, 'b> Args<'a, 'b> {
         Self {
             saved: CApp::new()
                 .sink()
-                .setting(AppSettings::DisableHelpSubcommand)
                 .subcommand(SubCommand::with_name("clear").about("clear screen"))
                 .subcommand(
                     SubCommand::with_name("echo")
@@ -18,10 +17,7 @@ impl<'a, 'b> Args<'a, 'b> {
                 )
                 .subcommand(SubCommand::with_name("quit").about("quit program"))
                 .subcommand(
-                    SubCommand::with_name("test")
-                        .about("controls testing features")
-                        .version("1.0")
-                        .author("just-do-halee <just.do.halee@gmail.com>")
+                    CSubCommand::new("test", "testing features", "1.0")
                         .arg(
                             Arg::with_name("v")
                                 .short("v")
@@ -29,9 +25,11 @@ impl<'a, 'b> Args<'a, 'b> {
                                 .help("Sets the level of verbosity"),
                         )
                         .subcommand(
-                            SubCommand::with_name("otoodb")
-                                .version("1.0")
-                                .about("test one to one set database"),
+                            CSubCommand::new("otoodb", "test one to one set database", "1.0").arg(
+                                Arg::with_name("delete")
+                                    .short("d")
+                                    .help("| (reset and delete mode)"),
+                            ),
                         ),
                 ),
             name: clap::crate_name!(),
