@@ -23,8 +23,10 @@ pub use std::ops::Deref;
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, App};
 
-const VERBOSE_DEFAULT: &str = "1";
-const VERBOSE_HELP: &str = "Sets the level of verbosity 0 to 3";
+pub const VERBOSE_DEFAULT: &str = "1";
+pub const VERBOSE_HELP: &str = "Sets the level of verbosity 0 to 3";
+
+pub const ADMIN_NAME: &str = crate_name!();
 
 /// ## Custom Clap App
 pub struct CApp<'a, 'b>(App<'a, 'b>);
@@ -32,7 +34,7 @@ pub struct CApp<'a, 'b>(App<'a, 'b>);
 impl<'a, 'b> CApp<'a, 'b> {
     pub fn new() -> Self {
         Self(
-            App::new(crate_name!())
+            App::new(ADMIN_NAME)
                 .version(crate_version!())
                 .author(crate_authors!())
                 .about(crate_description!())
@@ -70,5 +72,15 @@ pub mod CSubCommand {
             .author(crate_authors!())
             .help_message("")
             .version_message("")
+    }
+    pub fn plain<'a, 'b>(name: &'a str, about: &'a str) -> App<'a, 'b> {
+        SubCommand::with_name(name)
+            .settings(&[
+                AppSettings::DisableHelpFlags,
+                AppSettings::DisableVersion,
+                AppSettings::DisableHelpSubcommand,
+            ])
+            .help_message(about)
+            .about(about)
     }
 }

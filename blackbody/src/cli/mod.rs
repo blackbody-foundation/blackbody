@@ -24,3 +24,6 @@ pub mod envs;
 pub use envs::verbose;
 
 pub mod term;
+pub use term::style;
+
+

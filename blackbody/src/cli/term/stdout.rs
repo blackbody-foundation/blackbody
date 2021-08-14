@@ -1,5 +1,5 @@
 /*
-    .. + cmn.rs + ..
+    .. + stdout.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,9 +18,48 @@
 
 */
 
-pub use crossbeam::channel::TryRecvError;
-pub use std::{thread, time};
-pub use utils::system::{style::style, *};
+use std::io::Write;
 
-// common in cli
-pub use crate::cli::envs;
+#[inline]
+pub fn flush() {
+    std::io::stdout()
+        .flush()
+        .unwrap_or_else(|e| eprintln!("{}", e));
+}
+
+#[macro_export]
+macro_rules! prints {
+    ($($arg:tt)*) => (
+        print!($($arg)*);
+        term::flush()
+    );
+}
+
+#[macro_export]
+macro_rules! printsln {
+    ($($arg:tt)*) => (
+        println!($($arg)*);
+        term::flush()
+    );
+}
+
+#[macro_export]
+macro_rules! eprints {
+    ($($arg:tt)*) => (
+        eprint!($($arg)*);
+        term::flush()
+    );
+}
+
+#[macro_export]
+macro_rules! eprintsln {
+    ($($arg:tt)*) => (
+        eprintln!($($arg)*);
+        term::flush()
+    );
+}
+
+pub use eprints;
+pub use eprintsln;
+pub use prints;
+pub use printsln;

@@ -1,5 +1,5 @@
 use super::claps::*;
-// use crate::envs;
+
 pub struct Args<'a, 'b> {
     saved: clap::App<'a, 'b>,
     pub name: &'static str,
@@ -9,13 +9,13 @@ impl<'a, 'b> Args<'a, 'b> {
         Self {
             saved: CApp::new()
                 .sink()
-                .subcommand(SubCommand::with_name("clear").about("clear screen"))
                 .subcommand(
-                    SubCommand::with_name("echo")
-                        .about("echo $env")
+                    CSubCommand::plain("echo", "echo $env")
                         .arg(Arg::with_name("$env").help("INPUT").required(true).index(1)),
                 )
-                .subcommand(SubCommand::with_name("quit").about("quit program"))
+                .subcommand(CSubCommand::plain("clear", "clear screen"))
+                .subcommand(CSubCommand::plain("quit", "quit program"))
+                .subcommand(CSubCommand::plain("p", "break process"))
                 .subcommand(
                     CSubCommand::new("test", "testing features", "1.0")
                         .arg(
@@ -38,7 +38,4 @@ impl<'a, 'b> Args<'a, 'b> {
     pub fn matches(&mut self, arguments: Vec<&str>) -> crate::Result<ArgMatches<'a>> {
         Ok(self.saved.get_matches_from_safe_borrow(arguments)?)
     }
-    // pub fn arg_to_env(&self, args: &ArgMatches<'a>, arg_names: &[&str]) {
-    //     envs::arg_to_env(args, "inner", arg_names); // send verbose to env
-    // }
 }

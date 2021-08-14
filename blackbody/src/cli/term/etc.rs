@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + etc.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -17,12 +17,36 @@
     along with BlackBody. If not, see <http://www.gnu.org/licenses/>.
 
 */
+use super::*;
 
-mod claps;
-pub use claps::ADMIN_NAME;
+#[allow(dead_code)]
+#[inline]
+pub fn hide_cursor() {
+    print!("\x1b[?25l"); // hide cursor
+    flush();
+}
+#[inline]
+pub fn show_cursor() {
+    print!("\x1b[?25h"); // hide cursor
+    flush();
+}
+#[inline]
+pub fn clear() {
+    print!("\r\x1b[2J\r\x1b[H"); // hide cursor
+    flush();
+}
 
-mod args_inner;
-mod args_outter;
-
-pub use args_inner::Args as inner;
-pub use args_outter::Args as outter;
+///```no_run
+/// if let Ok(_) = $rx.try_recv() {
+///     return Ok(());
+/// }
+///```
+#[macro_export]
+macro_rules! check_rx_return {
+    ($rx:expr) => {
+        if let Ok(_) = $rx.try_recv() {
+            return Ok(());
+        }
+    };
+}
+pub use check_rx_return;

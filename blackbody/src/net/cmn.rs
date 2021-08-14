@@ -25,7 +25,7 @@ pub use crate::cmn::*;
 pub use actix_web::{
     self as actix, dev::Server, get, post, rt, web, App, HttpResponse, HttpServer, Responder,
 };
-pub use crossbeam::channel::{unbounded, Receiver, Sender};
+pub use crossbeam::channel::{unbounded, Receiver, Sender, TryRecvError};
 pub use serde_json;
 pub use std::ops::Deref;
 pub use std::thread::{self, JoinHandle};

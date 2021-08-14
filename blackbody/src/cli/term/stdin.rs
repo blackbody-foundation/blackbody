@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + stdin.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,11 +18,11 @@
 
 */
 
-mod claps;
-pub use claps::ADMIN_NAME;
+use std::io::BufRead;
 
-mod args_inner;
-mod args_outter;
-
-pub use args_inner::Args as inner;
-pub use args_outter::Args as outter;
+pub fn readln(buf: &mut String) {
+    std::io::stdin()
+        .lock()
+        .read_line(buf)
+        .expect("Failed to read line.");
+}
