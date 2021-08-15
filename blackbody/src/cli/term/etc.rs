@@ -17,24 +17,14 @@
     along with BlackBody. If not, see <http://www.gnu.org/licenses/>.
 
 */
-use super::*;
 
-#[allow(dead_code)]
-#[inline]
-pub fn hide_cursor() {
-    print!("\x1b[?25l"); // hide cursor
-    flush();
+#[macro_export]
+macro_rules! cat {
+    ($($s:expr),*) => {
+        &format!($($s),*)
+    };
 }
-#[inline]
-pub fn show_cursor() {
-    print!("\x1b[?25h"); // hide cursor
-    flush();
-}
-#[inline]
-pub fn clear() {
-    print!("\r\x1b[2J\r\x1b[H"); // hide cursor
-    flush();
-}
+pub use cat;
 
 ///```no_run
 /// if let Ok(_) = $rx.try_recv() {

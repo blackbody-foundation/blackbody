@@ -27,25 +27,49 @@ pub mod rpc;
 /// for verify
 mod verify;
 
-pub struct ServerList(pub Vec<Net>);
-
-#[inline(always)]
+#[inline]
 pub fn run(mode: &str) -> ServerList {
     ServerList(match mode {
-        "rpc" => vec![rpc::run()],
-        "api" => vec![api::run()],
+        rpc::SERVER_NAME => vec![rpc::run()],
+        api::SERVER_NAME => vec![api::run()],
         _ => vec![rpc::run(), api::run()], /* start RPC -> API */
     })
 }
 
-#[inline(always)]
-pub fn stop(servers: ServerList) {
+#[inline]
+pub fn stop(servers: &mut ServerList) {
     let v = verbose::init!("outter", "verbose");
 
-    for net in servers.0.into_iter().rev() {
+    for net in servers.iter().rev() {
         verbose::einfo!(v;1: "stop {} server.", net.name); /* stop API -> RPC */
 
-        rt::System::new(net.name).block_on(net.server.stop(true));
+        rt::System::new(rand::random::<char>()).block_on(net.server.stop(true));
         // wait until server gracefully exit
     }
+    thread::sleep(Duration::from_millis(100));
+}
+
+pub fn restart(servers: &mut ServerList, mode: &str) {
+    match mode {
+        api::SERVER_NAME => {}
+        rpc::SERVER_NAME => {}
+        name!(BOTH) => {
+            stop(servers);
+            *servers = run(mode);
+            return;
+        }
+        _ => something_wrong!("* Failed to restart invalid mode name")(),
+    }
+
+    let mut i = 0;
+    for net in servers.iter() {
+        if net.name == mode {
+            break;
+        }
+        i += 1;
+    }
+    stop(&mut ServerList(vec![(servers.0[i]).clone()]));
+    servers.remove(i);
+    let net = run(mode);
+    servers.extend(net);
 }

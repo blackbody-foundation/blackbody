@@ -38,57 +38,73 @@ mod net;
 use cli::*;
 
 fn main() -> Result<()> {
-    term::show_cursor();
+    let mut term = Term::new();
+
+    term.clear_all();
 
     let args_outter = args::outter::new();
 
     // run network thread
-    let sl = net::run(args_outter.value_of("mode").unwrap_or_default());
+    let mut sl = net::run(args_outter.value_of("mode").unwrap_or_default());
 
     let mut args_inner = args::inner::new();
 
     let (tx, _rx) = unbounded::<()>(); // for cli sub thread
 
     loop {
-        term::print_domain();
+        term.print_domain();
 
-        let mut prefix = String::from(ADMIN_NAME);
+        let command = term.read_command();
 
-        let arguments = term::read_command(&mut prefix);
+        let arguments = command.split_whitespace().collect();
 
         match args_inner.matches(arguments) {
+            Ok(args) if args.is_present(name!(server: l)) => {
+                for s in sl.iter() {
+                    let a = term.style(name!(SERVER));
+                    let b = term.style(name!(ITALIC_ALERT));
+                    term.println(cat!("{} {}", a.apply_to(s.name), b.apply_to("ON")));
+                }
+            }
             Ok(args) => match args.subcommand() {
-                ("clear", Some(_)) => term::clear(),
+                (name!(clear), Some(_)) => term.clear_all(),
 
-                ("p", Some(_)) => tx.try_send(()).unwrap_or_default(),
+                (name!(p), Some(_)) => tx.try_send(()).unwrap_or_default(),
 
-                ("quit", Some(_)) => break,
+                (name!(quit), Some(_)) => break,
 
-                ("test", Some(m)) => match m.subcommand() {
-                    ("otoodb", Some(mm)) => {
-                        let test_mode = mm.is_present("delete");
-                        let v = m.occurrences_of("v") as u8;
-                        otoodb(test_mode, v)?;
-                    }
-                    _ => eprintln!("test --help"),
+                (name!(restart), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
+                    name!(API) => net::restart(&mut sl, name!(API)),
+                    name!(RPC) => net::restart(&mut sl, name!(RPC)),
+                    name!(BOTH) => net::restart(&mut sl, name!(BOTH)),
+                    _ => eprintln!(target_help!(name!(restart))),
                 },
 
-                ("echo", Some(m)) => {
-                    let env_name = m.value_of("$env").unwrap_or("");
-                    eprintln!(
+                (name!(test: l), Some(m)) => match m.subcommand() {
+                    ("otoodb", Some(mm)) => {
+                        let test_mode = mm.is_present("delete");
+                        let v = m.occurrences_of(name!(verbose: s)) as u8;
+                        otoodb(&mut term, test_mode, v)?;
+                    }
+                    _ => term.eprintln(target_help!(name!(test: l))),
+                },
+
+                (name!(echo), Some(m)) => {
+                    let env_name = m.value_of(name!(env)).unwrap_or("");
+                    term.eprintln(cat!(
                         "{}",
                         std::env::var(env_name).unwrap_or_else(|_| "[None]".to_string())
-                    );
+                    ));
                 }
 
-                _ => eprintln!("* Invalid command"),
+                _ => term.eprintln("* Invalid command"),
             },
 
-            Err(e) => eprintln!("{}\n", e),
+            Err(e) => term.eprintln(cat!("{}\n", e)),
         }
     }
 
-    net::stop(sl);
+    net::stop(&mut sl);
 
     Ok(())
 }
@@ -113,13 +129,11 @@ use crossbeam::channel::unbounded;
 use otoodb::*;
 use utils::types::hash::*;
 
-use crate::cli::args::ADMIN_NAME;
-
 const FILE_PATH: &str = "test.hawking";
 const NUM_COVERING: usize = 32;
 const NUM_PUSHED: u128 = 50000;
 
-fn otoodb(delete: bool, verbose: u8) -> Result<()> {
+fn otoodb(term: &mut Term, delete: bool, verbose: u8) -> Result<()> {
     let path = if delete { "./__null__" } else { FILE_PATH };
 
     let exist = std::path::Path::new(path).exists();
@@ -158,7 +172,7 @@ fn otoodb(delete: bool, verbose: u8) -> Result<()> {
                     // no interrupted
                     for bytes8 in bytes8_list {
                         errextract!(db.define(&bytes64, &bytes8), err::Interrupted => {
-                            term::eprintsln!("\n\n{}. ip already exists. {}\n\n", i, Hex(bytes8));
+                            term.eprintln(cat!("\n\n{}. ip already exists. {}\n\n", i, Hex(bytes8)));
                             continue;
                         });
                         packet.push((bytes64, bytes8));
@@ -172,18 +186,18 @@ fn otoodb(delete: bool, verbose: u8) -> Result<()> {
             if timer.ready || i == NUM_PUSHED {
                 let push_per_second = 1.0 / timer.delta.as_secs_f64();
                 timer.ready = false;
-                term::eprints!(
+                term.eprint(cat!(
                     "\r[{}]  {} set pushed.  ({:.0} p/s)   ",
                     start.elapsed().as_secs().as_time(),
                     i,
-                    push_per_second,
-                );
+                    push_per_second
+                ));
             }
         }
 
         drop(rx);
         resultcast!(handle.join().unwrap())?;
-        term::eprintsln!();
+        term.eprintln("");
 
         // test
         let (mut a, mut b);
@@ -192,16 +206,16 @@ fn otoodb(delete: bool, verbose: u8) -> Result<()> {
             b = db.get(&bytes8)?.unwrap();
             assert_eq!(a, &bytes8);
             assert_eq!(b, &bytes64);
-            term::eprints!("\rpair found: {}", i + 1);
+            term.eprint(cat!("\rpair found: {}", i + 1));
         }
     }
     db.close()?;
     if delete {
         std::fs::remove_file(path)?;
         if exist {
-            term::eprints!("{}", style("* It already existed.").red());
+            term.eprint(cat!("{}", style("* It already existed.").red()));
         }
     }
-    term::eprintsln!();
+    term.eprintln("");
     Ok(())
 }

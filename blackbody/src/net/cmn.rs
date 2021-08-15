@@ -22,22 +22,8 @@
 
 pub use crate::cmn::*;
 
-pub use actix_web::{
-    self as actix, dev::Server, get, post, rt, web, App, HttpResponse, HttpServer, Responder,
-};
+pub use actix_web::{self as actix, get, post, rt, web, App, HttpResponse, HttpServer, Responder};
 pub use crossbeam::channel::{unbounded, Receiver, Sender, TryRecvError};
 pub use serde_json;
-pub use std::ops::Deref;
 pub use std::thread::{self, JoinHandle};
 pub use utils::{macros::derives::serde::*, system::*};
-
-pub struct Net {
-    pub server: Server,
-    pub name: &'static str,
-}
-
-impl Net {
-    pub fn new(name: &'static str, server: Server) -> Self {
-        Self { server, name }
-    }
-}

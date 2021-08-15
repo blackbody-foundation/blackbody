@@ -6,26 +6,33 @@ impl<'a> Default for Args<'a> {
         let args = Self {
             matches: CApp::new()
                 .push(
-                    Arg::with_name("mode")
-                        .short("m")
-                        .long("mode")
-                        .value_name("API/RPC")
-                        .help("run only `api` mode or `rpc` mode")
+                    Arg::with_name(name!(mode: l))
+                        .short(name!(mode: s))
+                        .long(name!(mode: l))
+                        .value_name(concat!(name!(API), " | ", name!(RPC)))
+                        .help(concat!(
+                            "run only `",
+                            name!(API),
+                            "` mode or `",
+                            name!(RPC),
+                            "` mode"
+                        ))
+                        .validator(match_validator!([ name!(mode: l) ] name!(API), name!(RPC)))
                         .takes_value(true),
                 )
-                .set_verbose("verbose")
+                .set_verbose(name!(verbose: l))
                 .sink()
                 .subcommand(
-                    CSubCommand::new("test", "testing features", "1.0").arg(
-                        Arg::with_name("debug")
-                            .short("d")
-                            .long("debug")
+                    CSubCommand::new(name!(test: l), "testing features", "1.0").arg(
+                        Arg::with_name(name!(debug: l))
+                            .short(name!(debug: s))
+                            .long(name!(debug: l))
                             .help("print debug information verbosely"),
                     ),
                 )
                 .get_matches(),
         };
-        envs::arg_to_env(&args, "outter", &["verbose"]); // send verbose to env
+        envs::arg_to_env(&args, name!(outter), &[name!(verbose: l)]); // send verbose to env
         args
     }
 }

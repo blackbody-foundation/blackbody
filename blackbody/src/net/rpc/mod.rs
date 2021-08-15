@@ -20,8 +20,8 @@
 
 use super::*;
 
-const SERVER_IP: &str = "127.0.0.1:4200";
-const SERVER_NAME: &str = "RPC";
+pub const SERVER_IP: &str = "127.0.0.1:4200";
+pub const SERVER_NAME: &str = name!(RPC);
 
 #[get("/{id}/{name}/index.html")]
 pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Responder {
@@ -30,12 +30,12 @@ pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Resp
 
 pub fn run() -> Net {
     let (tx, rx) = unbounded();
-    let v = verbose::init!("outter", "verbose");
+    let v = verbose::init!(name!(outter), name!(verbose: l));
 
     verbose::einfo!(v;1: "start {} server.", SERVER_NAME);
 
     thread::spawn(move || -> ResultSend<()> {
-        let mut sys = rt::System::new(SERVER_NAME);
+        let mut sys = rt::System::new(rand::random::<char>());
 
         let srv = HttpServer::new(|| App::new().service(index))
             .bind(SERVER_IP)?
@@ -49,5 +49,5 @@ pub fn run() -> Net {
         Ok(())
     });
 
-    Net::new(SERVER_NAME, rx.recv().unwrap_or_else(|_| panic!("{}", style("Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads").red().bold())))
+    Net::new(SERVER_NAME, rx.recv().unwrap_or_else(something_wrong!("Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads", _)))
 }

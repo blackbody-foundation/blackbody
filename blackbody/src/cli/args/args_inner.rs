@@ -8,19 +8,45 @@ impl<'a, 'b> Args<'a, 'b> {
     pub fn new() -> Self {
         Self {
             saved: CApp::new()
+                .push(
+                    Arg::with_name(name!(server: l))
+                        .short(name!(server: s))
+                        .long(name!(server: l))
+                )
                 .sink()
                 .subcommand(
-                    CSubCommand::plain("echo", "echo $env")
-                        .arg(Arg::with_name("$env").help("INPUT").required(true).index(1)),
+                    CSubCommand::plain(name!(echo), concat!(name!(echo), " ", name!(env))).arg(
+                        Arg::with_name(name!(env))
+                            .help(name!(INPUT))
+                            .required(true)
+                            .index(1),
+                    ),
                 )
-                .subcommand(CSubCommand::plain("clear", "clear screen"))
-                .subcommand(CSubCommand::plain("quit", "quit program"))
-                .subcommand(CSubCommand::plain("p", "break process"))
+                .subcommand(CSubCommand::plain(name!(clear), "clear screen"))
+                .subcommand(CSubCommand::plain(name!(quit), "quit program"))
+                .subcommand(CSubCommand::plain(name!(p), "break process"))
                 .subcommand(
-                    CSubCommand::new("test", "testing features", "1.0")
+                    CSubCommand::new(name!(restart), "restart network", "")
+                        .setting(AppSettings::DisableVersion)
                         .arg(
-                            Arg::with_name("v")
-                                .short("v")
+                            Arg::with_name(name!(verbose: s))
+                                .short(name!(verbose: s))
+                                .multiple(true)
+                                .help("Sets the level of verbosity"),
+                        )
+                        .arg(
+                            Arg::with_name(name!(TARGET))
+                                .help(concat!(name!(API), " | ", name!(RPC), " | ", name!(BOTH)))
+                                .required(true)
+                                .index(1)
+                                .validator(match_validator!([ name!(TARGET) ] name!(API), name!(RPC), name!(BOTH))),
+                        ),
+                )
+                .subcommand(
+                    CSubCommand::new(name!(test: l), "testing features", "1.0")
+                        .arg(
+                            Arg::with_name(name!(verbose: s))
+                                .short(name!(verbose: s))
                                 .multiple(true)
                                 .help("Sets the level of verbosity"),
                         )

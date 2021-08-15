@@ -18,15 +18,17 @@
 
 */
 
+pub use crate::name;
+
 pub use clap::{AppSettings, Arg, ArgMatches, SubCommand};
 pub use std::ops::Deref;
 
-use clap::{crate_authors, crate_description, crate_name, crate_version, App};
+use clap::{crate_authors, crate_description, crate_version, App};
 
 pub const VERBOSE_DEFAULT: &str = "1";
 pub const VERBOSE_HELP: &str = "Sets the level of verbosity 0 to 3";
 
-pub const ADMIN_NAME: &str = crate_name!();
+pub const ADMIN_NAME: &str = name!(ADMIN);
 
 /// ## Custom Clap App
 pub struct CApp<'a, 'b>(App<'a, 'b>);
@@ -47,9 +49,10 @@ impl<'a, 'b> CApp<'a, 'b> {
     pub fn set_verbose(self, env_name: &'static str) -> Self {
         self.push(
             Arg::with_name(env_name)
-                .short("v")
+                .short(name!(verbose: s))
                 .default_value(VERBOSE_DEFAULT)
                 .takes_value(true)
+                .validator(match_validator!([ name!(verbose: s) ] "0", "1", "2", "3"))
                 .help(VERBOSE_HELP),
         )
     }
@@ -84,3 +87,19 @@ pub mod CSubCommand {
             .about(about)
     }
 }
+
+#[macro_export]
+macro_rules! match_validator {
+    ([$name:expr] $($val:pat),+) => {
+        |v: String| -> Result<(), String> {
+            match v.as_ref() {
+                $(
+                    $val => return Ok(()),
+                )+
+                _ => Err(format!("{} --help", $name))
+            }
+        }
+
+    };
+}
+pub use match_validator;
