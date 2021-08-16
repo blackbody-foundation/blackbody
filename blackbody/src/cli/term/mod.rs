@@ -20,18 +20,24 @@
 
 use crate::cmn::*;
 
-pub use console::style;
+pub use console::{style, Key};
 use console::{Style as Se, Term as Tm};
 
 #[macro_use]
 mod etc;
 pub use etc::*;
 
+const STACK_SIZE: usize = 16;
+
 pub struct Term {
+    locked: bool,
     pub stdout: Tm,
     pub stderr: Tm,
     styles: HashMap<&'static str, Se>,
+    pub stack: CommandStack,
 }
+
+#[allow(dead_code)]
 impl Term {
     pub fn new() -> Term {
         let mut styles = HashMap::new();
@@ -39,11 +45,29 @@ impl Term {
         styles.insert(name!(ICON), Se::new().dim().bold());
         styles.insert(name!(SERVER), Se::new().cyan().underlined().italic());
         styles.insert(name!(ITALIC_ALERT), Se::new().red().italic().bold());
+        let stack = CommandStack::new(STACK_SIZE);
         Self {
             stdout: Tm::stdout(),
             stderr: Tm::stderr(),
             styles,
+            stack,
+            locked: false,
         }
+    }
+    pub fn init(&mut self) {
+        self.stdout.set_title(name!(TITLE));
+        self.clear_all();
+        self.println("");
+        println_center!(self.stdout, name!(WELCOME1));
+        println_center!(self.stdout, name!(WELCOME2));
+        println_center!(self.stdout, name!(WELCOME3));
+        self.println("");
+    }
+    pub fn lock(&mut self) {
+        self.locked = true;
+    }
+    pub fn unlock(&mut self) {
+        self.locked = false;
     }
     pub fn style(&self, name: &str) -> &Se {
         self.styles
@@ -67,10 +91,25 @@ impl Term {
             String::new()
         })
     }
-    pub fn read_command(&self) -> String {
-        let mut command = String::from(name!(COMMAND));
+    /// stacked
+    pub fn read_command(&mut self, command_stack: &str) -> String {
+        let mut command = String::from(command_stack);
         command.push_str(&self.stdout.read_line().unwrap_or_default());
-        command
+        self.stack.push(&command);
+
+        let mut admin = String::from(name!(COMMAND));
+        admin.push_str(&command);
+        admin
+    }
+    pub fn move_cursor_left(&self, n: usize) {
+        self.stdout
+            .move_cursor_left(n)
+            .unwrap_or_else(else_error!());
+    }
+    pub fn move_cursor_right(&self, n: usize) {
+        self.stdout
+            .move_cursor_right(n)
+            .unwrap_or_else(else_error!());
     }
     pub fn print(&self, s: &str) {
         self.stdout.write_str(s).unwrap_or_else(else_error!());
@@ -87,5 +126,65 @@ impl Term {
     pub fn clear_all(&self) {
         self.stderr.clear_screen().unwrap_or_else(else_error!());
         self.stdout.clear_screen().unwrap_or_else(else_error!());
+    }
+    pub fn clear_line(&self) {
+        self.stdout.clear_line().unwrap_or_else(else_error!());
+    }
+    pub fn clear_chars(&self, n: usize) {
+        self.stdout.clear_chars(n).unwrap_or_else(else_error!());
+    }
+    pub fn read_key(&self) -> Key {
+        self.stdout.read_key().unwrap_or(Key::Unknown)
+    }
+    /// basic terminal implement.<br>
+    /// domain_name must be "name " <- one whitespace added.
+    pub fn base_loop(&mut self, domain_name: &str) -> String {
+        let mut command_stack = String::new();
+        let command: String;
+        self.stack.reset_ptr();
+        loop {
+            if self.locked {
+                continue;
+            }
+            match self.read_key() {
+                Key::ArrowUp => {
+                    let traverse = self.stack.traverse_up();
+                    if let Some(prev_command) = traverse {
+                        self.clear_chars(command_stack.len());
+                        self.print(&prev_command);
+                        command_stack = prev_command;
+                    }
+                }
+                Key::ArrowDown => match self.stack.traverse_down() {
+                    Some(next_command) => {
+                        self.clear_chars(command_stack.len());
+                        self.print(&next_command);
+                        command_stack = next_command;
+                    }
+                    None => {
+                        self.clear_chars(command_stack.len());
+                        command_stack.clear();
+                    }
+                },
+                Key::Char(c) => {
+                    self.print(&c.to_string());
+                    command_stack.push(c);
+                }
+                Key::Backspace if !command_stack.is_empty() => {
+                    self.clear_chars(1);
+                    command_stack.pop();
+                }
+                Key::Enter => {
+                    let mut admin = String::from(domain_name);
+                    admin.push_str(&command_stack);
+                    command = admin;
+                    self.println("");
+                    self.stack.push(&command_stack);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        command
     }
 }

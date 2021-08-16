@@ -40,11 +40,14 @@ use cli::*;
 fn main() -> Result<()> {
     let mut term = Term::new();
 
-    term.clear_all();
+    term.init();
+
+    if true {
+        let _ = term.read_password();
+    }
 
     let args_outter = args::outter::new();
 
-    // run network thread
     let mut sl = net::run(args_outter.value_of("mode").unwrap_or_default());
 
     let mut args_inner = args::inner::new();
@@ -54,11 +57,12 @@ fn main() -> Result<()> {
     loop {
         term.print_domain();
 
-        let command = term.read_command();
+        let command = term.base_loop(name!(COMMAND));
 
         let arguments = command.split_whitespace().collect();
 
         match args_inner.matches(arguments) {
+            // -s or --server | print servers statement
             Ok(args) if args.is_present(name!(server: l)) => {
                 for s in sl.iter() {
                     let a = term.style(name!(SERVER));
@@ -66,13 +70,18 @@ fn main() -> Result<()> {
                     term.println(cat!("{} {}", a.apply_to(s.name), b.apply_to("ON")));
                 }
             }
+
             Ok(args) => match args.subcommand() {
+                // clear | clear screen of stdout & stderr
                 (name!(clear), Some(_)) => term.clear_all(),
 
+                // p | break current specific process
                 (name!(p), Some(_)) => tx.try_send(()).unwrap_or_default(),
 
+                // quit | terminate program
                 (name!(quit), Some(_)) => break,
 
+                // restart <API/RPC/BOTH> | restart servers
                 (name!(restart), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
                     name!(API) => net::restart(&mut sl, name!(API)),
                     name!(RPC) => net::restart(&mut sl, name!(RPC)),
@@ -80,15 +89,21 @@ fn main() -> Result<()> {
                     _ => eprintln!(target_help!(name!(restart))),
                 },
 
-                (name!(test: l), Some(m)) => match m.subcommand() {
-                    ("otoodb", Some(mm)) => {
-                        let test_mode = mm.is_present("delete");
-                        let v = m.occurrences_of(name!(verbose: s)) as u8;
-                        otoodb(&mut term, test_mode, v)?;
+                // test | testing features
+                (name!(test: l), Some(m)) => {
+                    term.lock();
+                    match m.subcommand() {
+                        ("otoodb", Some(mm)) => {
+                            let test_mode = mm.is_present("delete");
+                            let v = m.occurrences_of(name!(verbose: s)) as u8;
+                            otoodb(&mut term, test_mode, v)?;
+                        }
+                        _ => term.eprintln(target_help!(name!(test: l))),
                     }
-                    _ => term.eprintln(target_help!(name!(test: l))),
-                },
+                    term.unlock();
+                }
 
+                // echo | echo <env_name>
                 (name!(echo), Some(m)) => {
                     let env_name = m.value_of(name!(env)).unwrap_or("");
                     term.eprintln(cat!(

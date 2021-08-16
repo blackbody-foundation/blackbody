@@ -18,12 +18,58 @@
 
 */
 
+use std::collections::VecDeque;
+
+pub struct CommandStack {
+    pub max_len: usize,
+    stack: VecDeque<String>,
+    ptr: usize,
+}
+impl CommandStack {
+    pub fn new(max_len: usize) -> Self {
+        Self {
+            max_len,
+            stack: VecDeque::new(),
+            ptr: 0,
+        }
+    }
+    pub fn push(&mut self, command: &str) {
+        self.stack.push_back(command.to_owned());
+        if self.stack.len() > self.max_len {
+            self.stack.pop_front();
+        }
+    }
+    pub fn reset_ptr(&mut self) {
+        self.ptr = self.stack.len();
+    }
+    pub fn traverse_up(&mut self) -> Option<String> {
+        if self.ptr > 0 {
+            self.ptr -= 1;
+            self.traverse_current()
+        } else {
+            None
+        }
+    }
+    pub fn traverse_down(&mut self) -> Option<String> {
+        if self.ptr < self.stack.len() {
+            self.ptr += 1;
+            self.traverse_current()
+        } else {
+            None
+        }
+    }
+    pub fn traverse_current(&mut self) -> Option<String> {
+        self.stack.get(self.ptr).map(|v| v.to_owned())
+    }
+}
+
 #[macro_export]
 macro_rules! cat {
     ($($s:expr),*) => {
         &format!($($s),*)
     };
 }
+
 pub use cat;
 
 ///```no_run

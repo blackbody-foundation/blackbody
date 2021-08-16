@@ -29,7 +29,7 @@ pub use crossbeam::channel::TryRecvError;
 pub use utils::system::*;
 
 // common in cli
-pub use crate::cli::{cat, envs, style};
+pub use crate::cli::{cat, envs, style, Key};
 
 #[derive(Debug, Clone)]
 pub struct Net {
@@ -102,9 +102,43 @@ mod cf {
     }
     pub use target_help;
 
+    /// ```no_run
+    /// println_center!(term.stdout, "text")
+    /// println_center!(term.stderr, "text")
+    /// ```
+    #[macro_export]
+    macro_rules! println_center {
+        ($term:expr, $s:expr) => {{
+            let s = console::pad_str(
+                $s,
+                $term.size().1 as usize,
+                console::Alignment::Center,
+                None,
+            );
+            $term.write_line(s.as_ref()).unwrap_or_else(else_error!());
+        }};
+    }
+    pub use println_center;
+
     /// static string
     #[macro_export]
     macro_rules! name {
+        (UnexpectedRuntime) => {
+            "Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads
+            [example]: in linux, command `top` and get the PID, command `kill -9 <PID>`"
+        };
+        (TITLE) => {
+            "BlackBody Node"
+        };
+        (WELCOME1) => {
+            "/*************************************/"
+        };
+        (WELCOME2) => {
+            "/- W e l c o m e   B l a c k B o d y -/"
+        };
+        (WELCOME3) => {
+            "/*************************************/"
+        };
         (COMMAND) => {
             "blackbody "
         };

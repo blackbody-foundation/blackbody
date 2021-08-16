@@ -59,5 +59,9 @@ pub fn run() -> Net {
         Ok(())
     });
 
-    Net::new(SERVER_NAME, rx.recv().unwrap_or_else(something_wrong!("Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads", _)))
+    Net::new(
+        SERVER_NAME,
+        rx.recv()
+            .unwrap_or_else(something_wrong!(name!(UnexpectedRuntime), _)),
+    )
 }
