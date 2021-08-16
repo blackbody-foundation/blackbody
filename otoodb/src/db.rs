@@ -32,7 +32,10 @@ use utils::{
         File,
     },
     macros::flags::flags,
-    types::{hash::Hex, Lim, VLim},
+    types::{
+        hash::{Hex, HexSlice},
+        Lim, VLim,
+    },
 };
 
 flags! {
@@ -98,6 +101,42 @@ impl DB {
     pub fn get(&mut self, bytes_a_or_b: &[u8]) -> Result<Option<Vec<u8>>> {
         Ok(self.binary_search(bytes_a_or_b)?.0)
     }
+    pub fn undefine(&mut self, bytes_a_or_b: &[u8]) -> Result<()> {
+        let packet = match self.binary_search(bytes_a_or_b)? {
+            (Some(b), pos_b) => match self.binary_search(&b)? {
+                (Some(a), pos_a) => {
+                    if bytes_a_or_b == a {
+                        let empty_sized = b" ".repeat(a.len() + b.len());
+                        vec![(empty_sized.clone(), pos_a), (empty_sized, pos_b)]
+                    } else {
+                        return errbang!(
+                            err::ValidationFailed,
+                            "not matched pair. {} != {}",
+                            HexSlice(bytes_a_or_b),
+                            HexSlice(&a)
+                        );
+                    }
+                }
+                _ => return errbang!(err::BrokenContent, "undefined item: {}", HexSlice(&b)),
+            },
+            _ => {
+                return errbang!(
+                    err::ItemNotFound,
+                    "already undefined item: {}",
+                    HexSlice(bytes_a_or_b)
+                )
+            }
+        };
+        insert::cross_insert::insert(&mut self.file.fm, packet, true)?;
+
+        let fm = self.file_manager();
+
+        fm.header.current_height -= 1;
+        fm.header.hash = [0_u8; 32];
+        fm.flash_header()?;
+
+        self.update_file_lim()
+    }
     pub fn define(&mut self, bytes_a: &[u8], bytes_b: &[u8]) -> Result<()> {
         let mut packet = Packet::new();
 
@@ -112,7 +151,7 @@ impl DB {
             }
         }
 
-        insert::cross_insert::insert(&mut self.file.fm, packet)?;
+        insert::cross_insert::insert(&mut self.file.fm, packet, false)?;
 
         let fm = self.file_manager();
 
@@ -355,11 +394,8 @@ impl Drop for DB {
             if self.flags.verbose > 0 {
                 eprintln!("closing..")
             }
-            errcast_panic!(
-                Self::calc_hash(self),
-                err::ValidationFailed,
-                "DB closing error."
-            );
+            Self::calc_hash(self)
+                .unwrap_or_else(|e| eprintln!("DB closing error. ValidationFailed: {}", e));
         }
         if self.flags.verbose > 0 {
             eprintln!("complete.")

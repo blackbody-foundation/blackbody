@@ -33,8 +33,17 @@ hashchains! {
     output [u8; 32]
 }
 
-
 pub struct Hex<const LENGTH: usize>(pub [u8; LENGTH]);
+pub struct HexSlice<'a>(pub &'a [u8]);
+
+impl<'a> std::fmt::Display for HexSlice<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for byte in self.0 {
+            write!(f, "{:02x}", byte)?;
+        }
+        Ok(())
+    }
+}
 
 impl<const LENGTH: usize> std::fmt::Display for Hex<LENGTH> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

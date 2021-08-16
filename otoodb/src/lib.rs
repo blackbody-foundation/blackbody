@@ -40,27 +40,53 @@ mod tests {
         if std::path::Path::new(FILE_PATH).exists() {
             fs::remove_file(FILE_PATH)?;
         }
-        let mut db = DB::open(FILE_PATH, 4, 32, None)?;
 
         let mut packet = Vec::new();
         for i in 1..=250_u8 {
             packet.push((vec![i + 1, i + 2, i + 3, i + 4], vec![i + 5; 32]));
         }
 
-        for p in packet.iter() {
-            db.define(&p.0, &p.1)?;
+        // test: define
+        {
+            let mut db = DB::open(FILE_PATH, 4, 32, None)?;
+
+            for p in packet.iter() {
+                db.define(&p.0, &p.1)?;
+            }
+
+            let (mut a, mut b);
+            for p in packet.iter() {
+                a = db.get(&p.0)?.unwrap();
+                b = db.get(&p.1)?.unwrap();
+                assert_eq!(a, p.1.to_vec());
+                assert_eq!(b, p.0.to_vec());
+            }
+            db.close()?;
         }
 
-        let (mut a, mut b);
-        for p in packet.iter() {
-            a = db.get(&p.0)?.unwrap();
-            b = db.get(&p.1)?.unwrap();
-            assert_eq!(a, p.1.to_vec());
-            assert_eq!(b, p.0.to_vec());
+        // test: undefine
+        {
+            let mut db = DB::open(FILE_PATH, 4, 32, None)?;
+            let (mut a, mut b);
+            let (mut a_, mut b_);
+            for (i, p) in packet.iter().enumerate() {
+                if i >= 10 {
+                    break;
+                }
+                a = db.get(&p.0)?.unwrap();
+                b = db.get(&p.1)?.unwrap();
+                assert_eq!(a, p.1.to_vec());
+                assert_eq!(b, p.0.to_vec());
+                db.undefine(&p.0)?;
+                a_ = db.get(&p.0)?;
+                b_ = db.get(&p.1)?;
+                assert_eq!(a_, None);
+                assert_eq!(b_, None);
+            }
+            db.close()?;
         }
-
+        let _ = DB::open(FILE_PATH, 4, 32, None)?;
         // db.debug();
-        db.close()?;
         fs::remove_file(FILE_PATH)?;
         Ok(())
     }

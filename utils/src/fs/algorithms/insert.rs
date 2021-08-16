@@ -28,7 +28,11 @@ pub mod cross_insert {
 
     use super::*;
 
-    pub fn insert<T: HeaderTrait>(fm: &mut FM<T>, mut packet: Packet) -> Result<()> {
+    pub fn insert<T: HeaderTrait>(
+        fm: &mut FM<T>,
+        mut packet: Packet,
+        remove_mode: bool,
+    ) -> Result<()> {
         packet.sort_by_key(|k| k.1); // sort by position in the file
 
         let mut read_buf = MBuf::default();
@@ -41,15 +45,20 @@ pub mod cross_insert {
         for (bytes, pos) in packet.iter() {
             end_pos = fm.content_end_pos(true)?;
 
-            let mut pos = *pos + added_pos;
+            let mut pos = if remove_mode {
+                *pos - added_pos
+            } else {
+                *pos + added_pos
+            };
             if pos > end_pos {
                 pos = end_pos;
             }
+            let bytes_len = bytes.len() as uPS;
 
-            read_buf.reset(pos);
             write_buf.reset(pos);
+            read_buf.reset(if remove_mode { pos + bytes_len } else { pos });
 
-            write_buf.set_buf_from(bytes.as_slice())?;
+            write_buf.set_buf_from(if remove_mode { &[] } else { bytes.as_slice() })?;
 
             if bytes.len() >= CHUNK_SIZE {
                 return errbang!(
@@ -71,11 +80,12 @@ pub mod cross_insert {
                 write_buf.set_len(read_buf.len());
             }
 
-            added_pos += bytes.len() as uPS;
+            added_pos += bytes_len;
         }
         Ok(())
     }
 
+    #[inline]
     fn read_checking<T: HeaderTrait>(fm: &mut FM<T>, mbuf: &mut MBuf<CHUNK_SIZE>) -> Result<bool> {
         fm.set_cursor(mbuf.pos())?;
 
@@ -84,6 +94,8 @@ pub mod cross_insert {
 
         Ok(num_read == 0)
     }
+
+    #[inline]
     fn write_checking<T: HeaderTrait>(
         fm: &mut FM<T>,
         mbuf: &mut MBuf<CHUNK_SIZE>,

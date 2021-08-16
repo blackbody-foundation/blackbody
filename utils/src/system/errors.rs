@@ -25,6 +25,7 @@ err! {
     BrokenHeader => "broken header."
     AnotherHeader => "not matched header."
     BrokenContent => "broken content."
+    ItemNotFound => "item not found."
     FileNotFound => "file not found."
     InvalidLenSize => "invalid target len."
     EmptyArgument => "empty argument."
