@@ -38,7 +38,7 @@ macro_rules! hashchains {
 
                 pub struct HashChain {
                     hash: $algo,
-                    latest_output: [u8; $output],
+                    latest_output: Vec<u8>,
                 }
 
                 impl HashChain {
@@ -46,17 +46,18 @@ macro_rules! hashchains {
                         Self::default()
                     }
                     pub fn reset(&mut self, initial: &[u8; $output]) {
+                        self.latest_output.clear();
                         self.latest_output.copy_from_slice(initial);
                     }
                     pub fn hash_chain(&mut self, payload: &[u8]) {
-                        let mut mix = self.latest_output.to_vec();
-                        mix.extend_from_slice(payload);
-
-                        self.hash.update(mix);
-                        self.latest_output.copy_from_slice(&self.hash.finalize_reset());
+                        self.latest_output.extend_from_slice(payload);
+                        self.hash.update(&self.latest_output);
+                        self.latest_output = self.hash.finalize_reset().to_vec();
                     }
                     pub fn output(&self) -> [u8; $output] {
-                        self.latest_output
+                        let mut array = [0u8; $output];
+                        array.copy_from_slice(&self.latest_output);
+                        array
                     }
                 }
 
@@ -64,7 +65,7 @@ macro_rules! hashchains {
                     fn default() -> Self {
                         Self {
                             hash: <$algo>::new(),
-                            latest_output: [0_u8; $output],
+                            latest_output: Vec::new(),
                         }
                     }
                 }

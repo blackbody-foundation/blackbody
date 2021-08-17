@@ -92,14 +92,10 @@ impl Term {
         })
     }
     /// stacked
-    pub fn read_command(&mut self, command_stack: &str) -> String {
-        let mut command = String::from(command_stack);
-        command.push_str(&self.stdout.read_line().unwrap_or_default());
+    pub fn read_command(&mut self) -> String {
+        let command = self.stdout.read_line().unwrap_or_default();
         self.stack.push(&command);
-
-        let mut admin = String::from(name!(COMMAND));
-        admin.push_str(&command);
-        admin
+        command
     }
     pub fn move_cursor_left(&self, n: usize) {
         self.stdout

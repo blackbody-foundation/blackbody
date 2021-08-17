@@ -19,3 +19,8 @@ edition = "2018"
 
 [dependencies]
 tiny-bip39 = "0.8.0"
+blake3 = "1.0.0"
+sha3 = "0.9.1"
+rand = "0.8.4"
+hex = "0.4.3"
+aes-gcm = "0.9.3"
