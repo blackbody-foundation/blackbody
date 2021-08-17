@@ -90,13 +90,13 @@ pub mod CSubCommand {
 
 #[macro_export]
 macro_rules! match_validator {
-    ([$name:expr] $($val:pat),+) => {
+    ([$name:expr] $($val:expr),+) => {
         |v: String| -> Result<(), String> {
             match v.as_ref() {
                 $(
                     $val => return Ok(()),
                 )+
-                _ => Err(format!("{} --help", $name))
+                _ => Err(String::from(concat!(" | ", $($val, " | "),+)))
             }
         }
 

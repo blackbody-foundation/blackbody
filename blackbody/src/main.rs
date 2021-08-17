@@ -86,7 +86,19 @@ fn main() -> Result<()> {
                     name!(API) => net::restart(&mut sl, name!(API)),
                     name!(RPC) => net::restart(&mut sl, name!(RPC)),
                     name!(BOTH) => net::restart(&mut sl, name!(BOTH)),
-                    _ => eprintln!(target_help!(name!(restart))),
+                    _ => {}
+                },
+
+                // stop <API/RPC/BOTH> | stop servers
+                (name!(stop), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
+                    name!(API) => {
+                        net::find_and_stop(&mut sl, name!(API)).unwrap_or_else(else_error!())
+                    }
+                    name!(RPC) => {
+                        net::find_and_stop(&mut sl, name!(RPC)).unwrap_or_else(else_error!())
+                    }
+                    name!(BOTH) => net::stop(&mut sl),
+                    _ => {}
                 },
 
                 // test | testing features
@@ -98,7 +110,8 @@ fn main() -> Result<()> {
                             let v = m.occurrences_of(name!(verbose: s)) as u8;
                             otoodb(&mut term, test_mode, v)?;
                         }
-                        _ => term.eprintln(target_help!(name!(test: l))),
+                        ("wallet", Some(_)) => {}
+                        _ => {}
                     }
                     term.unlock();
                 }

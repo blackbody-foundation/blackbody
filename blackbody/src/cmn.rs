@@ -46,6 +46,11 @@ impl Net {
 #[derive(Debug, Clone)]
 pub struct ServerList(pub Vec<Net>);
 
+impl ServerList {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+}
 impl IntoIterator for ServerList {
     type Item = Net;
     type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -158,6 +163,9 @@ mod cf {
 
         (restart) => {
             "restart"
+        };
+        (stop) => {
+            "stop"
         };
         (clear) => {
             "clear"

@@ -43,6 +43,23 @@ impl<'a, 'b> Args<'a, 'b> {
                         ),
                 )
                 .subcommand(
+                    CSubCommand::new(name!(stop), "stop network", "")
+                        .setting(AppSettings::DisableVersion)
+                        .arg(
+                            Arg::with_name(name!(verbose: s))
+                                .short(name!(verbose: s))
+                                .multiple(true)
+                                .help("Sets the level of verbosity"),
+                        )
+                        .arg(
+                            Arg::with_name(name!(TARGET))
+                                .help(concat!(name!(API), " | ", name!(RPC), " | ", name!(BOTH)))
+                                .required(true)
+                                .index(1)
+                                .validator(match_validator!([ name!(TARGET) ] name!(API), name!(RPC), name!(BOTH))),
+                        ),
+                )
+                .subcommand(
                     CSubCommand::new(name!(test: l), "testing features", "1.0")
                         .arg(
                             Arg::with_name(name!(verbose: s))

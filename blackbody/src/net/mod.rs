@@ -61,15 +61,31 @@ pub fn restart(servers: &mut ServerList, mode: &str) {
         _ => something_wrong!("* Failed to restart invalid mode name")(),
     }
 
-    let mut i = 0;
-    for net in servers.iter() {
-        if net.name == mode {
-            break;
-        }
-        i += 1;
-    }
-    stop(&mut ServerList(vec![(servers.0[i]).clone()]));
-    servers.remove(i);
+    let _ = find_and_stop(servers, mode);
     let net = run(mode);
     servers.extend(net);
+}
+
+pub fn find_and_stop(servers: &mut ServerList, mode: &str) -> Result<()> {
+    if mode == name!(BOTH) {
+        stop(servers);
+        *servers = ServerList::new();
+        Ok(())
+    } else {
+        let mut i = 0;
+        let mut found = false;
+        for net in servers.iter() {
+            if net.name == mode {
+                found = true;
+                break;
+            }
+            i += 1;
+        }
+        if !found {
+            return Err("* item not found".into());
+        }
+        stop(&mut ServerList(vec![(servers.0[i]).clone()]));
+        servers.remove(i);
+        Ok(())
+    }
 }
