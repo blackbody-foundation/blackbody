@@ -192,7 +192,7 @@ impl DB {
     pub fn close(mut self) -> Result<()> {
         self.closed = true;
         if self.flags.verbose > 0 {
-            eprintln!("closing..");
+            eprintln!("\nclosing..");
         }
         self.calc_hash()
     }
@@ -392,7 +392,7 @@ impl Drop for DB {
     fn drop(&mut self) {
         if !self.closed {
             if self.flags.verbose > 0 {
-                eprintln!("closing..")
+                eprintln!("\nclosing..")
             }
             Self::calc_hash(self)
                 .unwrap_or_else(|e| eprintln!("DB closing error. ValidationFailed: {}", e));

@@ -5,7 +5,7 @@ authors = ["just-do-halee <just.do.halee@gmail.com>"]
 homepage = "https://github.com/blackbody-foundation/blackbody"
 repository = "https://github.com/blackbody-foundation/blackbody"
 
-description = "The Blackbody distributed deterministic data compressor/decompressor."
+description = "the blackbody distributed deterministic data compressor/decompressor."
 
 readme = "README.md"
 

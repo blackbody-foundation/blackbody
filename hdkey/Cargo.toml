@@ -1,23 +1,21 @@
 [package]
-name = "otoodb"
+name = "hdkey"
 version = "0.1.0"
 authors = ["just-do-halee <just.do.halee@gmail.com>"]
 homepage = "https://github.com/blackbody-foundation/blackbody"
 repository = "https://github.com/blackbody-foundation/blackbody"
 
-description = "one to one set database."
+description = "hd key generator for blackbody."
 
 readme = "README.md"
 
-keywords = ["blockchain", "blackbody", "database"]
-categories = ["cryptography", "compression"]
+keywords = ["blockchain", "blackbody", "crypto", "wallet"]
+categories = ["cryptography"]
 
 license = "LGPL-3.0-or-later"
 edition = "2018"
 
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-utils = { path = "../utils", features = ["fs"] }
-blake3 = "1.0.0"
+tiny-bip39 = "0.8.0"
