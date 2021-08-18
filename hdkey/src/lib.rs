@@ -28,35 +28,37 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
-    const TARGET_DIR: &str = "/Users/hwakyeom/programs/blackchain/hdkey/";
-    const NUM_DIRS: usize = 16;
+    const TARGET_DIR: &str = "/Users/hwakyeom/programs/blackchain/hdkey";
+    const NUM_DIRS: usize = 2;
     #[test]
     fn it_works() {
         let mut dirs = Vec::new();
         for i in 0..NUM_DIRS {
-            dirs.push(PathBuf::from(format!("{}/{}", TARGET_DIR, i)));
+            dirs.push(PathBuf::from(format!("/{}/{}", TARGET_DIR, i)));
         }
+        dirs.push(PathBuf::from("/Volumes/programs/codes/hdkey/0"));
 
-        let ident1 = Ident::new("test", Language::English);
+        let ident1 = Ident::new("test1234", Language::Korean).unwrap();
         let seed1 = ident1.into_seed().unwrap();
         let phrase: &str = seed1.0.phrase();
         println!("m:{} seed:{:?}", &seed1.0, &seed1.1);
         println!();
 
-        shield::thrust_mnemonic_phrase(phrase, &dirs, "test", 12).unwrap();
+        shield::thrust_mnemonic_phrase(phrase, &dirs, "testtest", 2).unwrap();
         println!("successed save.");
         println!();
-        let phrase_out = shield::extract_mnemonic_phrase(&dirs, "test", 12).unwrap();
+        let phrase_out = shield::extract_mnemonic_phrase(&dirs, "testtest", 2).unwrap();
         println!("recovered: {}", phrase_out);
         println!();
 
-        let ident2 = Ident::from("test", Language::English, &phrase_out).unwrap();
+        let ident2 = Ident::from("test1234", Language::Korean, &phrase_out).unwrap();
         let seed2 = ident2.into_seed().unwrap();
         println!("m2:{} seed2:{:?}", &seed2.0, &seed2.1);
         println!();
 
         assert_eq!(phrase, phrase_out);
         assert_eq!(format!("{:?}", seed1), format!("{:?}", seed2));
+
         // let ident2 = Ident::from("test", Language::English, phrase).unwrap();
         // let seed2 = ident2.into_seed().unwrap();
         // println!("m:{} seed:{:?}", &seed2.0, &seed2.1);

@@ -1,3 +1,5 @@
+# export RUSTFLAGS="-Ctarget-cpu=sandybridge -Ctarget-feature=+aes,+sse2,+sse4.1,+ssse3" # for 32bits
+
 
 endpath=$(basename "$(pwd)")
 

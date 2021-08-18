@@ -41,16 +41,37 @@ pub use init;
 macro_rules! einfo {
     ($env:expr;$lvl:tt:f $($exp:expr),*) => {
         if $env >= $lvl {
-            eprint!($($exp),*);
+            eprint!("{}", format!($($exp),*));
         }
     };
     ($env:expr;$lvl:tt: $($exp:expr),*) => {
         if $env >= $lvl {
-            eprintln!($($exp),*);
+            eprintln!("{}", format!($($exp),*));
         }
     };
 }
 pub use einfo;
+
+///```no_run
+/// let v = init!("envs", "verbose");
+/// let style = Style::new().dim();
+/// einfo_styled!(v;1:f: style => "this is level{} verbose.", 1); // no line
+/// einfo_styled!(v;1: style => "this is level{} verbose.", 1); // line
+///```
+#[macro_export]
+macro_rules! einfo_styled {
+    ($env:expr;$lvl:tt:f:$style:expr => $($exp:expr),*) => {
+        if $env >= $lvl {
+            eprint!("{}", $style.apply_to(format!($($exp),*)));
+        }
+    };
+    ($env:expr;$lvl:tt:$style:expr => $($exp:expr),*) => {
+        if $env >= $lvl {
+            eprintln!("{}", $style.apply_to(format!($($exp),*)));
+        }
+    };
+}
+pub use einfo_styled;
 
 ///```no_run
 /// let v = init!("envs", "verbose");
@@ -71,3 +92,24 @@ macro_rules! info {
     };
 }
 pub use info;
+
+///```no_run
+/// let v = init!("envs", "verbose");
+/// let style = Style::new().dim();
+/// info_styled!(v;1:f: style => "this is level{} verbose.", 1); // no line
+/// info_styled!(v;1: style => "this is level{} verbose.", 1); // line
+///```
+#[macro_export]
+macro_rules! info_styled {
+    ($env:expr;$lvl:tt:f:$style:expr => $($exp:expr),*) => {
+        if $env >= $lvl {
+            print!("{}", $style.apply_to(format!($($exp),*)));
+        }
+    };
+    ($env:expr;$lvl:tt:$style:expr => $($exp:expr),*) => {
+        if $env >= $lvl {
+            println!("{}", $style.apply_to(format!($($exp),*)));
+        }
+    };
+}
+pub use info_styled;

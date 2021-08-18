@@ -20,6 +20,7 @@ edition = "2018"
 
 [dependencies]
 utils = { path = "../utils" }
+hdkey = { path = "../hdkey" }
 otoodb = { path = "../otoodb" }
 
 # Generate Randomness

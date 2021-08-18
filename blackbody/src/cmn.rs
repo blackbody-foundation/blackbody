@@ -29,7 +29,7 @@ pub use crossbeam::channel::TryRecvError;
 pub use utils::system::*;
 
 // common in cli
-pub use crate::cli::{cat, envs, style, Key};
+pub use crate::cli::{cat, envs, style, Key, Style};
 
 #[derive(Debug, Clone)]
 pub struct Net {
@@ -108,22 +108,21 @@ mod cf {
     pub use target_help;
 
     /// ```no_run
-    /// println_center!(term.stdout, "text")
-    /// println_center!(term.stderr, "text")
+    /// let padded = align_center!(term.stdout, "text");
+    /// let padded = align_center!(term.stderr, "text");
     /// ```
     #[macro_export]
-    macro_rules! println_center {
+    macro_rules! align_center {
         ($term:expr, $s:expr) => {{
-            let s = console::pad_str(
+            console::pad_str(
                 $s,
                 $term.size().1 as usize,
                 console::Alignment::Center,
                 None,
-            );
-            $term.write_line(s.as_ref()).unwrap_or_else(else_error!());
+            )
         }};
     }
-    pub use println_center;
+    pub use align_center;
 
     /// static string
     #[macro_export]
@@ -139,7 +138,7 @@ mod cf {
             "/*************************************/"
         };
         (WELCOME2) => {
-            "/- W e l c o m e   B l a c k B o d y -/"
+            "   W e l c o m e   B l a c k B o d y   "
         };
         (WELCOME3) => {
             "/*************************************/"
@@ -242,6 +241,9 @@ mod cf {
         };
         (ITALIC_ALERT) => {
             "italic_alert"
+        };
+        (DIM) => {
+            "icon"
         };
     }
     pub use name;

@@ -35,15 +35,17 @@ pub struct Ident {
     language: Language,
 }
 impl Ident {
-    pub fn new(words: &str, language: Language) -> Self {
+    pub fn new(words: &str, language: Language) -> Result<Self, Box<dyn Error>> {
+        validate_words(words)?;
         let password = get_entropy_password(words);
-        Self {
+        Ok(Self {
             entropy: get_entropy256_from_computer(),
             password,
             language,
-        }
+        })
     }
     pub fn from(words: &str, language: Language, phrase: &str) -> Result<Self, Box<dyn Error>> {
+        validate_words(words)?;
         let mut entropy = [0u8; ORIGINAL_ENTROPY_SIZE];
         let password = get_entropy_password(words);
         entropy.copy_from_slice(Mnemonic::from_phrase(phrase, language)?.entropy());
@@ -58,6 +60,18 @@ impl Ident {
         let seed = Seed::new(&mnemonic, &self.password);
         Ok((mnemonic, seed))
     }
+}
+
+#[inline]
+fn validate_words(words: &str) -> Result<(), Box<dyn Error>> {
+    if words.len() < 8 {
+        return Err(format!(
+            "password must be more than 8 length bytes. you are {}",
+            words.len()
+        )
+        .into());
+    }
+    Ok(())
 }
 
 fn get_entropy_password(words: &str) -> String {

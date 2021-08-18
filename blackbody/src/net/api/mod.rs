@@ -43,7 +43,7 @@ pub fn run() -> Net {
     let (tx, rx) = unbounded();
     let v = verbose::init!("outter", "verbose");
 
-    verbose::einfo!(v;1: "start {} server.", SERVER_NAME);
+    verbose::einfo_styled!(v;1: Style::new().dim() => "start {} server.", SERVER_NAME);
 
     thread::spawn(move || -> ResultSend<()> {
         let mut sys = rt::System::new(rand::random::<char>());

@@ -20,7 +20,7 @@
 
 use crate::cmn::*;
 
-pub use console::{style, Key};
+pub use console::{style, Key, Style};
 use console::{Style as Se, Term as Tm};
 
 #[macro_use]
@@ -45,6 +45,7 @@ impl Term {
         styles.insert(name!(ICON), Se::new().dim().bold());
         styles.insert(name!(SERVER), Se::new().cyan().underlined().italic());
         styles.insert(name!(ITALIC_ALERT), Se::new().red().italic().bold());
+        styles.insert(name!(DIM), Se::new().dim());
         let stack = CommandStack::new(STACK_SIZE);
         Self {
             stdout: Tm::stdout(),
@@ -58,9 +59,21 @@ impl Term {
         self.stdout.set_title(name!(TITLE));
         self.clear_all();
         self.println("");
-        println_center!(self.stdout, name!(WELCOME1));
-        println_center!(self.stdout, name!(WELCOME2));
-        println_center!(self.stdout, name!(WELCOME3));
+        let color = self.style(name!(DIM));
+        self.println(cat!(
+            "{}",
+            color.apply_to(align_center!(self.stdout, name!(WELCOME1)))
+        ));
+        self.println(cat!(
+            "{}",
+            style(align_center!(self.stdout, name!(WELCOME2)))
+                .bright()
+                .bold()
+        ));
+        self.println(cat!(
+            "{}",
+            color.apply_to(align_center!(self.stdout, name!(WELCOME3)))
+        ));
         self.println("");
     }
     pub fn lock(&mut self) {

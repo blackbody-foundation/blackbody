@@ -41,7 +41,7 @@ pub fn stop(servers: &mut ServerList) {
     let v = verbose::init!("outter", "verbose");
 
     for net in servers.iter().rev() {
-        verbose::einfo!(v;1: "stop {} server.", net.name); /* stop API -> RPC */
+        verbose::einfo_styled!(v;1: Style::new().dim() => "stop {} server.", net.name); /* stop API -> RPC */
 
         rt::System::new(rand::random::<char>()).block_on(net.server.stop(true));
         // wait until server gracefully exit
