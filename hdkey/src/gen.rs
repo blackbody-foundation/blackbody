@@ -24,12 +24,36 @@ use bip39::{Mnemonic, Seed};
 use blake3::{hash, keyed_hash, Hash};
 use rand::{thread_rng, Rng};
 use sha3::{Digest, Sha3_256 as sha256};
-use std::{error::Error, time::Instant};
+use std::{error::Error, path::Path, time::Instant};
 
 const SYSTEM_ENTROPY_SIZE: usize = 32;
 const OUTPUT_ENTROPY_SIZE: usize = 32;
 
-// use super::keypair::*;
+use super::*;
+
+pub fn new_master_key<T: AsRef<Path>>(
+    words: &str,
+    salt: usize,
+    lang: Language,
+    login_password: &str,
+    target_directories: &[T],
+) -> Result<Keypair, Box<dyn Error>> {
+    let (phrase, seed) = new_seed(words, lang)?;
+    shield::thrust_mnemonic_phrase(&phrase, target_directories, login_password, salt)?;
+    Keypair::new(&seed)
+}
+
+pub fn master_key_from_directories<T: AsRef<Path>>(
+    words: &str,
+    salt: usize,
+    lang: Language,
+    login_password: &str,
+    target_directories: &[T],
+) -> Result<Keypair, Box<dyn Error>> {
+    let phrase = shield::extract_mnemonic_phrase(target_directories, login_password, salt)?;
+    let seed = seed_from_phrase(words, lang, &phrase)?;
+    Keypair::new(&seed)
+}
 
 pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>), Box<dyn Error>> {
     validate_words(words)?;
@@ -44,7 +68,7 @@ pub fn seed_from_phrase(
     words: &str,
     lang: Language,
     phrase: &str,
-) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+) -> Result<Vec<u8>, Box<dyn Error>> {
     validate_words(words)?;
     let password = get_entropy256_from_password(words);
     let mut buf = [0u8; OUTPUT_ENTROPY_SIZE];
@@ -52,7 +76,7 @@ pub fn seed_from_phrase(
     let entropy = Hash::from(buf);
     let mnemonic = Mnemonic::from_entropy(entropy.as_bytes(), lang)?;
     let seed = Seed::new(&mnemonic, &password);
-    Ok((mnemonic.into_phrase(), seed.as_bytes().to_vec()))
+    Ok(seed.as_bytes().to_vec())
 }
 
 #[inline]
