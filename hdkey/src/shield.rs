@@ -27,8 +27,9 @@ use std::{
 
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
-use sha3::{Digest, Sha3_256 as sha256}; // Or `Aes128Gcm`
+use sha3::{Digest, Sha3_256 as sha256};
 
+/// *** directories list's order is very important. ***
 pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
     phrase: &str,
     target_directories: &[T],
@@ -78,7 +79,7 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
         // open <../target_dir/'Cn'> file
         let mut file = OpenOptions::new().create(true).write(true).open(path)?;
 
-        let h_h_xor_h = {
+        let mut h_h_xor_h = {
             // H(RotL( H(pw) , n ))
             let mut h_rot_l_h_pw = h_rot_l(&h_pw, n);
             // H(RotR( H(pw) , salt ))
@@ -94,8 +95,9 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
         let secret_key = Key::from_slice(&h_h_xor_h);
         let cipher = Aes256Gcm::new(secret_key);
 
-        // Nonce = h(pw)
-        let nonce = Nonce::from_slice(&h_pw[..12]); // 96-bits;
+        // Nonce = H(RotL ( H(RotR( H( (H xor H) ) , n )) ) ))[..12]
+        h_h_xor_h = h_rot_l(&h_rot_r(&h_h_xor_h, n), salt);
+        let nonce = Nonce::from_slice(&h_h_xor_h[..12]); // 96-bits;
 
         if let Ok(v) = cipher.encrypt(nonce, piece_of_phrase.next().unwrap_or_default()) {
             // write piece of mnemonic
@@ -108,6 +110,7 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
     Ok(())
 }
 
+/// *** directories list's order is very important. ***
 pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     target_directories: &[T],
     password: &str,
@@ -142,7 +145,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
         // open <../target_dir/'Cn'> file
         let mut file = OpenOptions::new().read(true).open(path)?;
 
-        let h_h_xor_h = {
+        let mut h_h_xor_h = {
             // H(RotL( H(pw) , n ))
             let mut h_rot_l_h_pw = h_rot_l(&h_pw, n);
             // H(RotR( H(pw) , salt ))
@@ -159,8 +162,9 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
         let secret_key = Key::from_slice(&h_h_xor_h);
         let cipher = Aes256Gcm::new(secret_key);
 
-        // Nonce = h(pw)
-        let nonce = Nonce::from_slice(&h_pw[..12]); // 96 bits;
+        // Nonce = H(RotL ( H(RotR( H( (H xor H) ) , n )) ) ))[..12]
+        h_h_xor_h = h_rot_l(&h_rot_r(&h_h_xor_h, n), salt);
+        let nonce = Nonce::from_slice(&h_h_xor_h[..12]); // 96 bits;
 
         // read piece of mnemonic
         let mut mnemonic_buf = Vec::new();
@@ -204,14 +208,29 @@ fn normal_hash256(input: &[u8]) -> Vec<u8> {
 
 fn h_rot_l(src: &[u8], k: usize) -> Vec<u8> {
     let mut v = src.to_vec();
-    v.rotate_left(k);
+    v.rotate_left(absolute_rem(src.len(), k));
     normal_hash256(&v)
 }
 
 fn h_rot_r(src: &[u8], k: usize) -> Vec<u8> {
     let mut v = src.to_vec();
-    v.rotate_right(k);
+    v.rotate_right(absolute_rem(src.len(), k));
     normal_hash256(&v)
+}
+
+#[inline]
+fn absolute_rem(a: usize, b: usize) -> usize {
+    if a > b {
+        if b == 0 {
+            return a;
+        }
+        a % b
+    } else {
+        if a == 0 {
+            return b;
+        }
+        b % a
+    }
 }
 
 fn mkdir<T: AsRef<Path>>(dirs: &[T]) -> Result<(), Box<dyn Error>> {

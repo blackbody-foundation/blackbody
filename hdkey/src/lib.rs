@@ -18,10 +18,36 @@
 
 */
 
-mod gen;
-pub use gen::*;
+pub mod gen;
+pub use gen::Language;
 
 pub mod shield;
+
+mod keypair;
+
+// a b c e / f g h k / n p s t / u x y z = 16
+// HCS(How to Count Stars HCS) notation
+/*
+const WORDS: [char;16] = [
+ 'a', 'b', 'c', 'e',
+ 'f', 'g', 'h', 'k',
+ 'n', 'p', 's', 't',
+ 'u', 'x', 'y', 'z',
+];
+
+fn main() {
+    let a: [u128; 12] = [1,112421423423423426,3,13,223,243,211,41,3,64,12,0];
+    for &x in a.iter() {
+        let x = x as usize;
+        let n: usize = x / 16;
+        let r: usize = x % 16;
+        print!("{}{}", WORDS[r], n);
+    }
+    println!();
+
+}
+
+*/
 
 #[cfg(test)]
 mod tests {
@@ -32,39 +58,36 @@ mod tests {
     const NUM_DIRS: usize = 2;
     #[test]
     fn it_works() {
+        // crate paths
         let mut dirs = Vec::new();
         for i in 0..NUM_DIRS {
             dirs.push(PathBuf::from(format!("/{}/{}", TARGET_DIR, i)));
         }
         dirs.push(PathBuf::from("/Volumes/programs/codes/hdkey/0"));
-
-        let ident1 = Ident::new("test1234", Language::Korean).unwrap();
-        let seed1 = ident1.into_seed().unwrap();
-        let phrase: &str = seed1.0.phrase();
-        println!("m:{} seed:{:?}", &seed1.0, &seed1.1);
         println!();
 
-        shield::thrust_mnemonic_phrase(phrase, &dirs, "testtest", 2).unwrap();
-        println!("successed save.");
-        println!();
-        let phrase_out = shield::extract_mnemonic_phrase(&dirs, "testtest", 2).unwrap();
-        println!("recovered: {}", phrase_out);
-        println!();
+        // gen phrase & seed
+        let (phrase1, seed1) = gen::new_seed("test1234", Language::English).unwrap();
+        println!("* phrase1: {}\n* seed1: {:?}\n", &phrase1, &seed1);
 
-        let ident2 = Ident::from("test1234", Language::Korean, &phrase_out).unwrap();
-        let seed2 = ident2.into_seed().unwrap();
-        println!("m2:{} seed2:{:?}", &seed2.0, &seed2.1);
-        println!();
+        // distribute phrase into paths
+        shield::thrust_mnemonic_phrase(&phrase1, &dirs, "testtest", 2).unwrap();
+        println!("save successed.");
 
-        assert_eq!(phrase, phrase_out);
+        // reload phrase
+        let phrase_reload = shield::extract_mnemonic_phrase(&dirs, "testtest", 2).unwrap();
+        println!("recovered: {}\n", phrase_reload);
+
+        // gen second phrase & seed
+        let (phrase2, seed2) =
+            gen::seed_from_phrase("test1234", Language::English, &phrase_reload).unwrap();
+        println!("* phrase2: {}\n* seed2: {:?}\n", &phrase2, &seed2);
+
+        // eq!
+        assert_eq!(phrase1, phrase2);
         assert_eq!(format!("{:?}", seed1), format!("{:?}", seed2));
 
-        // let ident2 = Ident::from("test", Language::English, phrase).unwrap();
-        // let seed2 = ident2.into_seed().unwrap();
-        // println!("m:{} seed:{:?}", &seed2.0, &seed2.1);
-        // assert_eq!(seed.0.phrase(), seed2.0.phrase());
-        // assert_eq!(seed.1.as_bytes(), seed2.1.as_bytes());
-
+        // remove paths
         for dir in dirs.iter() {
             if dir.exists() {
                 std::fs::remove_dir_all(dir).unwrap();

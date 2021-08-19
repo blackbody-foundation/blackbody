@@ -18,48 +18,41 @@
 
 */
 
-pub use bip39::{Language, Mnemonic, Seed};
+pub use bip39::Language;
+use bip39::{Mnemonic, Seed};
 
-use blake3::{keyed_hash, Hash};
+use blake3::{hash, keyed_hash, Hash};
 use rand::{thread_rng, Rng};
 use sha3::{Digest, Sha3_256 as sha256};
 use std::{error::Error, time::Instant};
 
-const ENTROPY1_SIZE: usize = 32;
-const ORIGINAL_ENTROPY_SIZE: usize = 32;
+const SYSTEM_ENTROPY_SIZE: usize = 32;
+const OUTPUT_ENTROPY_SIZE: usize = 32;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Ident {
-    entropy: Hash,
-    password: String,
-    language: Language,
+// use super::keypair::*;
+
+pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+    validate_words(words)?;
+    let password = get_entropy256_from_password(words);
+    let entropy = get_entropy256_from_computer(hash(words.as_bytes()).as_bytes()[0]);
+    let mnemonic = Mnemonic::from_entropy(entropy.as_bytes(), lang)?;
+    let seed = Seed::new(&mnemonic, &password);
+    Ok((mnemonic.into_phrase(), seed.as_bytes().to_vec()))
 }
-impl Ident {
-    pub fn new(words: &str, language: Language) -> Result<Self, Box<dyn Error>> {
-        validate_words(words)?;
-        let password = get_entropy_password(words);
-        Ok(Self {
-            entropy: get_entropy256_from_computer(),
-            password,
-            language,
-        })
-    }
-    pub fn from(words: &str, language: Language, phrase: &str) -> Result<Self, Box<dyn Error>> {
-        validate_words(words)?;
-        let mut entropy = [0u8; ORIGINAL_ENTROPY_SIZE];
-        let password = get_entropy_password(words);
-        entropy.copy_from_slice(Mnemonic::from_phrase(phrase, language)?.entropy());
-        Ok(Self {
-            entropy: blake3::Hash::from(entropy),
-            password,
-            language,
-        })
-    }
-    pub fn into_seed(self) -> Result<(Mnemonic, Seed), Box<dyn Error>> {
-        let mnemonic = Mnemonic::from_entropy(self.entropy.as_bytes(), self.language)?;
-        let seed = Seed::new(&mnemonic, &self.password);
-        Ok((mnemonic, seed))
-    }
+
+pub fn seed_from_phrase(
+    words: &str,
+    lang: Language,
+    phrase: &str,
+) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+    validate_words(words)?;
+    let password = get_entropy256_from_password(words);
+    let mut buf = [0u8; OUTPUT_ENTROPY_SIZE];
+    buf.copy_from_slice(Mnemonic::from_phrase(phrase, lang)?.entropy());
+    let entropy = Hash::from(buf);
+    let mnemonic = Mnemonic::from_entropy(entropy.as_bytes(), lang)?;
+    let seed = Seed::new(&mnemonic, &password);
+    Ok((mnemonic.into_phrase(), seed.as_bytes().to_vec()))
 }
 
 #[inline]
@@ -74,27 +67,46 @@ fn validate_words(words: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_entropy_password(words: &str) -> String {
-    let mut s = sha256::default();
+fn get_entropy256_from_password(words: &str) -> String {
     let bytes = words.as_bytes();
-    s.update(bytes.repeat(bytes[1].into()));
-    format!("{:02x}", s.finalize())
+    let mut sha = sha256::new();
+    sha.update(bytes.repeat(bytes[1].into()));
+    // let blaked = hash(&sha.finalize_reset().to_vec());
+    // sha.update(blaked.as_bytes());
+    format!("{:02x}", sha.finalize())
 }
 
-fn get_entropy256_from_computer() -> Hash {
+fn get_entropy256_from_computer(salt: u8) -> Hash {
     let mut rng = thread_rng();
     let start = Instant::now();
-    let input = rng.gen::<[u8; ENTROPY1_SIZE]>();
+    let mut input = rng.gen::<[u8; SYSTEM_ENTROPY_SIZE]>();
     let duration: f32 = rng.gen_range(0.42..1.142);
     let min_count: usize = rng.gen_range(0..14);
     let mut hash;
     let mut i = 0;
+    let input_len = input.len();
+    input.rotate_left(absolute_rem(salt as usize, input_len));
     loop {
-        hash = keyed_hash(&rng.gen::<[u8; ENTROPY1_SIZE]>(), &input);
+        hash = keyed_hash(&rng.gen::<[u8; SYSTEM_ENTROPY_SIZE]>(), &input);
         if i > min_count && start.elapsed().as_secs_f32() > duration {
             break;
         }
         i += 1;
     }
     hash
+}
+
+#[inline]
+fn absolute_rem(a: usize, b: usize) -> usize {
+    if a > b {
+        if b == 0 {
+            return a;
+        }
+        a % b
+    } else {
+        if a == 0 {
+            return b;
+        }
+        b % a
+    }
 }
