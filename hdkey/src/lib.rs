@@ -68,22 +68,22 @@ mod tests {
         println!();
 
         // gen phrase & seed
-        let (phrase1, seed1) = gen::new_seed("test1234", Language::English).unwrap();
+        let (phrase1, seed1) = gen::new_seed("test12345", Language::English).unwrap();
         println!("* phrase1: {}\n* seed1: {:?}", &phrase1, &seed1);
         let keypair1 = Keypair::new(&seed1).unwrap();
         println!("-- keypair1:\n{:?}\n", keypair1);
 
         // distribute phrase into paths
-        shield::thrust_mnemonic_phrase(&phrase1, &dirs, "testtest", 24213421321).unwrap();
+        shield::thrust_mnemonic_phrase(&phrase1, &dirs, "testtest5", 2421342132).unwrap();
         println!("save successed.");
 
         // reload phrase
         let phrase_reload =
-            shield::extract_mnemonic_phrase(&dirs, "testtest", 24213421321).unwrap();
+            shield::extract_mnemonic_phrase(&dirs, "testtest5", 2421342132).unwrap();
         println!("recovered: {}\n", phrase_reload);
 
         // gen second phrase & seed
-        let seed2 = gen::seed_from_phrase("test1234", Language::English, &phrase_reload).unwrap();
+        let seed2 = gen::seed_from_phrase("test12345", Language::English, &phrase_reload).unwrap();
         println!("* phrase2: {}\n* seed2: {:?}", &phrase_reload, &seed2);
         let keypair2 = Keypair::new(&seed2).unwrap();
         println!("-- keypair2:\n{:?}\n", keypair2);

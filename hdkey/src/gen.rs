@@ -92,12 +92,25 @@ fn validate_words(words: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn get_entropy256_from_password(words: &str) -> String {
+    if words.is_empty() {
+        panic!("words are empty");
+    }
     let bytes = words.as_bytes();
+    let bytes_len = bytes.len();
+    let bytes_avg = bytes
+        .iter()
+        .fold(0, move |acc, &x| (acc as usize + x as usize) / bytes_len) as u8;
+    let bytes_hash = hash(bytes); // blake3
+    let nonce = 255usize + bytes_avg as usize + bytes_hash.as_bytes()[0] as usize;
     let mut sha = sha256::new();
-    sha.update(bytes.repeat(bytes[1].into()));
-    // let blaked = hash(&sha.finalize_reset().to_vec());
-    // sha.update(blaked.as_bytes());
-    format!("{:02x}", sha.finalize())
+    sha.update(bytes); // sha3
+    let mut hash = sha.finalize_reset();
+    for _ in 0..nonce {
+        sha.update(hash);
+        sha.update(&[bytes_hash.as_bytes()[1]]); // salt by blake3
+        hash = sha.finalize_reset();
+    }
+    format!("{:02x}", hash) // into hex
 }
 
 fn get_entropy256_from_computer(salt: u8) -> Hash {

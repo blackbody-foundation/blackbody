@@ -18,39 +18,27 @@
 
 */
 
-// blackbody run
-
-// use blackbody::cli;
-// use blackbody::net;
-
-// use rand::Rng;
-// use rand_chacha::{self, rand_core::SeedableRng};
-// const U32MAX: i64 = u32::MAX as i64;
-// const U16MAX: i64 = u16::MAX as i64;
-
 mod cmn;
-
 use cmn::*;
 
 mod cli;
-mod net;
-
 use cli::*;
 
-fn main() -> Result<()> {
-    let mut term = Term::new();
+mod net;
 
+fn main() -> Result<()> {
+    let args_outter = args::outter::new();
+
+    let mut term = Term::new();
     term.init();
 
     if true {
         let _ = term.read_password();
     }
 
-    let args_outter = args::outter::new();
+    let sl = &mut net::run(args_outter.value_of("mode").unwrap_or_default());
 
-    let mut sl = net::run(args_outter.value_of("mode").unwrap_or_default());
-
-    let mut args_inner = args::inner::new();
+    let args_inner = &mut args::inner::new();
 
     let (tx, _rx) = unbounded::<()>(); // for cli sub thread
 
@@ -83,21 +71,17 @@ fn main() -> Result<()> {
 
                 // restart <API/RPC/BOTH> | restart servers
                 (name!(restart), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
-                    name!(API) => net::restart(&mut sl, name!(API)),
-                    name!(RPC) => net::restart(&mut sl, name!(RPC)),
-                    name!(BOTH) => net::restart(&mut sl, name!(BOTH)),
+                    name!(API) => net::restart(sl, name!(API)),
+                    name!(RPC) => net::restart(sl, name!(RPC)),
+                    name!(BOTH) => net::restart(sl, name!(BOTH)),
                     _ => {}
                 },
 
                 // stop <API/RPC/BOTH> | stop servers
                 (name!(stop), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
-                    name!(API) => {
-                        net::find_and_stop(&mut sl, name!(API)).unwrap_or_else(else_error!())
-                    }
-                    name!(RPC) => {
-                        net::find_and_stop(&mut sl, name!(RPC)).unwrap_or_else(else_error!())
-                    }
-                    name!(BOTH) => net::stop(&mut sl),
+                    name!(API) => net::find_and_stop(sl, name!(API)).unwrap_or_else(else_error!()),
+                    name!(RPC) => net::find_and_stop(sl, name!(RPC)).unwrap_or_else(else_error!()),
+                    name!(BOTH) => net::stop(sl),
                     _ => {}
                 },
 
@@ -132,7 +116,7 @@ fn main() -> Result<()> {
         }
     }
 
-    net::stop(&mut sl);
+    net::stop(sl);
 
     Ok(())
 }

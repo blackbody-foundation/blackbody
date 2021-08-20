@@ -25,9 +25,8 @@ rand = "0.8.4"
 hex = "0.4.3"
 aes-gcm = "0.9.3"
 
-bs58 = "0.4.0"
+bs58 = { version= "0.4.0", features = ["check"] }
 
 curve25519-dalek = "3.2.0"
 ed25519-dalek = "1.0.1"
 ed25519-dalek-bip32 = "0.1.1"
-

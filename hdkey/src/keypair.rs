@@ -27,11 +27,15 @@ impl Keypair {
 
 impl fmt::Debug for Keypair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let sk = self.0.secret.as_bytes();
+        let pk = self.0.public.as_bytes();
         write!(
             f,
-            "secret: {}\npublic: {}\n",
-            hex::encode(self.0.secret.as_bytes()),
-            hex::encode(self.0.public.as_bytes())
+            "hex (\nsecret: {}\npublic: {}\n)\nbase58[(0/127)checksum] (\nsecret: {}\npublic: {}\n)\n",
+            hex::encode(sk),
+            hex::encode(pk),
+            bs58::encode(sk).with_check_version(0).into_string(),
+            bs58::encode(pk).with_check_version(127).into_string()
         )
     }
 }

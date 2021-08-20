@@ -119,7 +119,6 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     let password = password.as_bytes();
     validate_ps(password.len(), salt)?;
 
-    mkdir(target_directories)?;
     let num_dirs = target_directories.len();
 
     let h_pw = password_to_hash(password, salt); // H(pw)
