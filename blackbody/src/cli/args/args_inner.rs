@@ -11,7 +11,7 @@ impl<'a, 'b> Args<'a, 'b> {
                 .push(
                     Arg::with_name(name!(server: l))
                         .short(name!(server: s))
-                        .long(name!(server: l))
+                        .long(name!(server: l)),
                 )
                 .sink()
                 .subcommand(
@@ -39,7 +39,7 @@ impl<'a, 'b> Args<'a, 'b> {
                                 .help(concat!(name!(API), " | ", name!(RPC), " | ", name!(BOTH)))
                                 .required(true)
                                 .index(1)
-                                .validator(match_validator!([ name!(TARGET) ] name!(API), name!(RPC), name!(BOTH))),
+                                .possible_values(&[name!(API), name!(RPC), name!(BOTH)]),
                         ),
                 )
                 .subcommand(
@@ -56,7 +56,7 @@ impl<'a, 'b> Args<'a, 'b> {
                                 .help(concat!(name!(API), " | ", name!(RPC), " | ", name!(BOTH)))
                                 .required(true)
                                 .index(1)
-                                .validator(match_validator!([ name!(TARGET) ] name!(API), name!(RPC), name!(BOTH))),
+                                .possible_values(&[name!(API), name!(RPC), name!(BOTH)]),
                         ),
                 )
                 .subcommand(

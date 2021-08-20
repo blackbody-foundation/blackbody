@@ -9,7 +9,7 @@ impl<'a> Default for Args<'a> {
                     Arg::with_name(name!(mode: l))
                         .short(name!(mode: s))
                         .long(name!(mode: l))
-                        .value_name(concat!(name!(API), " | ", name!(RPC)))
+                        .value_name(name!(TARGET))
                         .help(concat!(
                             "run only `",
                             name!(API),
@@ -17,7 +17,7 @@ impl<'a> Default for Args<'a> {
                             name!(RPC),
                             "` mode"
                         ))
-                        .validator(match_validator!([ name!(mode: l) ] name!(API), name!(RPC)))
+                        .possible_values(&[name!(API), name!(RPC)])
                         .takes_value(true),
                 )
                 .set_verbose(name!(verbose: l))

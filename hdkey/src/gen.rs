@@ -32,6 +32,7 @@ const OUTPUT_ENTROPY_SIZE: usize = 32;
 use super::*;
 
 pub fn new_master_key<T: AsRef<Path>>(
+    version: Version,
     words: &str,
     salt: usize,
     lang: Language,
@@ -40,10 +41,11 @@ pub fn new_master_key<T: AsRef<Path>>(
 ) -> Result<Keypair, Box<dyn Error>> {
     let (phrase, seed) = new_seed(words, lang)?;
     shield::thrust_mnemonic_phrase(&phrase, target_directories, login_password, salt)?;
-    Keypair::new(&seed)
+    Keypair::new(&seed, version)
 }
 
 pub fn master_key_from_directories<T: AsRef<Path>>(
+    version: Version,
     words: &str,
     salt: usize,
     lang: Language,
@@ -52,7 +54,7 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
 ) -> Result<Keypair, Box<dyn Error>> {
     let phrase = shield::extract_mnemonic_phrase(target_directories, login_password, salt)?;
     let seed = seed_from_phrase(words, lang, &phrase)?;
-    Keypair::new(&seed)
+    Keypair::new(&seed, version)
 }
 
 pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>), Box<dyn Error>> {
