@@ -1,3 +1,4 @@
+use super::version::{self, Version};
 use ed25519_dalek::{
     Keypair as dalekKeypair, PublicKey, SecretKey, KEYPAIR_LENGTH, SECRET_KEY_LENGTH,
 };
@@ -25,17 +26,31 @@ impl Keypair {
     }
 }
 
+impl Keys for PublicKey {}
+impl Keys for SecretKey {}
+
+trait Keys: AsRef<[u8]> {
+    fn as_hex(&self) -> String {
+        hex::encode(self.as_ref())
+    }
+    fn as_base58(&self, version: Version) -> String {
+        bs58::encode(version::encode(self.as_ref(), version).as_slice()).into_string()
+    }
+}
 impl fmt::Debug for Keypair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        let sk = self.0.secret.as_bytes();
-        let pk = self.0.public.as_bytes();
+        let sk_hex = self.0.secret.as_hex();
+        let pk_hex = self.0.public.as_hex();
+        let sk_bs58 = self.0.secret.as_base58(Version::Zero);
+        let pk_bs58 = self.0.public.as_base58(Version::Zero);
         write!(
             f,
-            "hex (\nsecret: {}\npublic: {}\n)\nbase58[(0/127)checksum] (\nsecret: {}\npublic: {}\n)\n",
-            hex::encode(sk),
-            hex::encode(pk),
-            bs58::encode(sk).with_check_version(0).into_string(),
-            bs58::encode(pk).with_check_version(127).into_string()
+            "hex (\nsecret: {}\npublic: {}\n)\nbase58[V.{}] (\nsecret: {}\npublic: {}\n)\n",
+            sk_hex,
+            pk_hex,
+            Version::Zero.to_string(),
+            sk_bs58,
+            pk_bs58
         )
     }
 }
