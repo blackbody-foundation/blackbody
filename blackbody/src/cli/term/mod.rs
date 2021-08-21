@@ -76,6 +76,10 @@ impl Term {
         ));
         self.println("");
     }
+    pub fn reset_screen(&mut self) {
+        self.clear_all_entirely();
+        self.init();
+    }
     pub fn lock(&mut self) {
         self.locked = true;
     }
@@ -131,6 +135,14 @@ impl Term {
     }
     pub fn eprintln(&self, s: &str) {
         self.stderr.write_line(s).unwrap_or_else(else_error!());
+    }
+    pub fn clear_all_entirely(&self) {
+        self.stderr
+            .clear_to_end_of_screen()
+            .unwrap_or_else(else_error!());
+        self.stdout
+            .clear_to_end_of_screen()
+            .unwrap_or_else(else_error!());
     }
     pub fn clear_all(&self) {
         self.stderr.clear_screen().unwrap_or_else(else_error!());

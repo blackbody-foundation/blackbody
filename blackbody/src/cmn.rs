@@ -127,8 +127,14 @@ mod cf {
     /// static string
     #[macro_export]
     macro_rules! name {
+        (NotMatching) => {
+            "not matched."
+        };
         (ForgotPassword) => {
             "if you don't really remember your own password, please consider to restart with --reset flag. it just remove envs.locked file, not a wallet."
+        };
+        (FileIsNotWritten) => {
+            "unexpected error occurs. the file is not written."
         };
         (UnexpectedRuntime) => {
             "Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads

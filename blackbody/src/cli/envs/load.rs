@@ -68,8 +68,9 @@ impl Envs {
         self.decode(buf)
     }
     fn decode(&self, original_src: Vec<u8>) -> Result<Config> {
+        // bytes to toml
         let config: Config = toml::from_slice(original_src.as_slice())?;
-        // set env variables
+        // insert env variables
         for (k, v) in config.env.iter() {
             env::set_var(k, v);
         }

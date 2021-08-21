@@ -26,9 +26,39 @@ use ed25519_dalek::{
 use sha3::Sha3_512;
 use std::{error::Error, fmt};
 
+#[cfg(feature = "security")]
+use rand::Rng;
+
+#[cfg(feature = "security")]
+pub struct WrappedKeypair {
+    keypair: Vec<Vec<u8>>,
+    version: Version,
+}
+
+#[cfg(feature = "security")]
+impl WrappedKeypair {
+    pub fn new(keypair: Keypair) -> Self {
+        let version = keypair.version;
+        let bytes = keypair.into_bytes();
+        let parts = rand::thread_rng().gen_range(1..=4) * 2;
+        let part_size = bytes.len() / parts;
+        let mut buf = Vec::new();
+        for chunk in bytes.chunks(part_size) {
+            buf.push(chunk.to_vec());
+        }
+        Self {
+            keypair: buf,
+            version,
+        }
+    }
+    pub fn into_keypair(self) -> Result<Keypair, Box<dyn Error>> {
+        Keypair::from_bytes(self.keypair.concat(), self.version)
+    }
+}
+
 pub struct Keypair {
     pair: dalekKeypair,
-    version: Version,
+    pub version: Version,
 }
 
 impl Keypair {
@@ -69,6 +99,15 @@ impl Keypair {
         } else {
             Err("this is not a secret key".into())
         }
+    }
+    pub fn into_bytes(self) -> [u8; 64] {
+        self.pair.to_bytes()
+    }
+    pub fn from_bytes(bytes: Vec<u8>, version: Version) -> Result<Self, Box<dyn Error>> {
+        Ok(Self {
+            pair: dalekKeypair::from_bytes(bytes.as_slice())?,
+            version,
+        })
     }
 }
 

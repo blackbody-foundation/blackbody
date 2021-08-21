@@ -26,6 +26,9 @@ pub mod shield;
 mod keypair;
 pub use keypair::{Keypair, WrappedKey};
 
+#[cfg(feature = "security")]
+pub use keypair::WrappedKeypair;
+
 mod version;
 pub use version::{KeyType, NetType, Version};
 

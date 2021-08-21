@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + master.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,9 +18,32 @@
 
 */
 
-pub use hdkey::{NetType, Version};
+use crate::{Result, VERSION};
+use hdkey::*;
+use std::path::Path;
 
-mod login;
-pub use login::login;
+use hdkey::WrappedKeypair;
 
-pub mod master;
+pub fn read_original_key<T>(
+    words: String,
+    salt: usize,
+    lang: Language,
+    login_password: String,
+    target_directories: &[T],
+) -> Result<Keypair>
+where
+    T: AsRef<Path>,
+{
+    gen::master_key_from_directories(
+        VERSION,
+        words.as_str(),
+        salt,
+        lang,
+        login_password.as_str(),
+        target_directories,
+    )
+}
+
+pub fn safe_key(keypair: Keypair) -> WrappedKeypair {
+    WrappedKeypair::new(keypair)
+}
