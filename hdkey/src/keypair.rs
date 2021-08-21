@@ -59,28 +59,16 @@ impl Keypair {
     pub fn public(&self) -> WrappedKey {
         WrappedKey::Public(self.pair.public, self.version)
     }
-    pub fn from_secret_key(secret: SecretKey, version: Version) -> Self {
-        let public = PublicKey::from(&secret);
-        Self {
-            pair: dalekKeypair { secret, public },
-            version,
+    pub fn from_secret_key(wrapped_secret: WrappedKey) -> Result<Self, Box<dyn Error>> {
+        if let WrappedKey::Secret(secret, version) = wrapped_secret {
+            let public = PublicKey::from(&secret);
+            Ok(Self {
+                pair: dalekKeypair { secret, public },
+                version,
+            })
+        } else {
+            Err("this is not a secret key".into())
         }
-    }
-    pub fn from_base58check(
-        base58check_secret: &str,
-        version: Version,
-    ) -> Result<Self, Box<dyn Error>> {
-        let bytes = version::decode(
-            bs58::decode(base58check_secret).into_vec()?,
-            version,
-            KeyType::Secret,
-        )?;
-        let secret = SecretKey::from_bytes(bytes.as_slice())?;
-        let public = PublicKey::from(&secret);
-        Ok(Self {
-            pair: dalekKeypair { secret, public },
-            version,
-        })
     }
 }
 
@@ -123,6 +111,23 @@ impl WrappedKey {
                 bs58::encode(version::encode(key, *version, KeyType::Public).as_slice())
                     .into_string()
             }
+        }
+    }
+    pub fn from_base58check(
+        base58check: &str,
+        version: Version,
+        key_type: KeyType,
+    ) -> Result<Self, Box<dyn Error>> {
+        let bytes = version::decode(bs58::decode(base58check).into_vec()?, version, key_type)?;
+        match key_type {
+            KeyType::Secret => Ok(WrappedKey::Secret(
+                SecretKey::from_bytes(bytes.as_slice())?,
+                version,
+            )),
+            KeyType::Public => Ok(WrappedKey::Public(
+                PublicKey::from_bytes(bytes.as_slice())?,
+                version,
+            )),
         }
     }
 }

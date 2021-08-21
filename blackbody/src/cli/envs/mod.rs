@@ -1,5 +1,5 @@
 /*
-    .. + envs.rs + ..
+    .. + mod.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -19,13 +19,16 @@
 */
 
 mod load;
+pub use load::Envs;
+
+mod config;
 
 use clap::ArgMatches;
 
 pub fn arg_to_env(args: &ArgMatches, env_prefix: &str, arg_names: &[&str]) {
     for key in arg_names.iter() {
         std::env::set_var(
-            format!("{}_{}", env_prefix, key),
+            std::ffi::OsString::from(format!("{}_{}", env_prefix, key)),
             args.value_of(key).unwrap_or_default(),
         );
     }

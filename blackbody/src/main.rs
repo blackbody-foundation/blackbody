@@ -26,14 +26,38 @@ use cli::*;
 
 mod net;
 
+mod key;
+use key::VERSION; // current version
+
 fn main() -> Result<()> {
     let args_outter = args::outter::new();
+
+    let envs = Envs::new();
 
     let mut term = Term::new();
     term.init();
 
-    if true {
-        let _ = term.read_password();
+    if envs.exists() {
+        let mut ok = false;
+        for _ in 0..3 {
+            let password = term.read_password();
+            if let Ok(config) = envs.load(password) {
+                // read key
+                ok = true;
+                break;
+            }
+        }
+        if !ok {
+            something_wrong!(name!(ForgotPassword))();
+        }
+    } else {
+        // create account
+        let password = "";
+        let config = Envs::new_config();
+        //"please prepare a pencil for recording your mnemonic."
+        //"you will have a little random time, words will be shown four times in total."
+
+        let _ = envs.save(password, config)?;
     }
 
     let sl = &mut net::run(args_outter.value_of("mode").unwrap_or_default());

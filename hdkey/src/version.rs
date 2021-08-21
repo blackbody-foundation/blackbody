@@ -18,6 +18,8 @@
 
 */
 
+use std::str::FromStr;
+
 use ed25519_dalek::Digest;
 use sha3::Sha3_256;
 
@@ -56,11 +58,14 @@ impl NetType {
     }
 }
 
+// *********************** CONFIGURABLE ***********************
+
+const SERVER_COUNT: usize = 1;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Version {
     Zero(NetType),
 }
-
 impl Version {
     pub fn into_kind(self, key_type: KeyType) -> Kind {
         match self {
@@ -71,16 +76,30 @@ impl Version {
             ),
         }
     }
-}
-
-impl ToString for Version {
     #[inline]
-    fn to_string(&self) -> String {
-        match self {
-            Self::Zero(net) => format!("{} Zero", net.as_str()),
+    pub fn as_list() -> [&'static str; SERVER_COUNT] {
+        ["Zero"]
+    }
+}
+impl FromStr for Version {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Zero:TestNet" => Ok(Self::Zero(NetType::TestNet)),
+            "Zero:MainNet" => Ok(Self::Zero(NetType::MainNet)),
+            _ => Err("parse error".into()),
         }
     }
 }
+impl ToString for Version {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Zero(net) => format!("Zero:{}", net.as_str()),
+        }
+    }
+}
+
+// ************************************************************
 
 #[inline]
 pub fn encode<T: AsRef<[u8]>>(data: T, version: Version, key_type: KeyType) -> Vec<u8> {
@@ -137,7 +156,7 @@ impl Kind {
         version
     }
     pub fn detach_from(self, src: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        let target_version = self.0.to_le_bytes();
+        let target_version = self.0.to_be_bytes();
         let src_len = src.len();
         let version_len = target_version.len();
         let checksum_len = self.2 as usize;

@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + config.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,10 +18,17 @@
 
 */
 
-pub mod args;
+use std::ffi::OsString;
 
-pub mod envs;
-pub use envs::{verbose, Envs};
+use serde::{Deserialize, Serialize};
 
-mod term;
-pub use term::{cat, style, Key, Style, Term};
+#[derive(Default, Serialize, Deserialize)]
+pub struct Config {
+    pub one_shot: OneShot,
+    pub env: Vec<(OsString, OsString)>,
+}
+
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct OneShot {
+    pub hd_dirs: Vec<String>,
+}

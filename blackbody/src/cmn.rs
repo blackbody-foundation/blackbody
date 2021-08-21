@@ -127,6 +127,9 @@ mod cf {
     /// static string
     #[macro_export]
     macro_rules! name {
+        (ForgotPassword) => {
+            "if you don't really remember your own password, please consider to restart with --reset flag. it just remove envs.locked file, not a wallet."
+        };
         (UnexpectedRuntime) => {
             "Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads
             [example]: in linux, command `top` and get the PID, command `kill -9 <PID>`"
@@ -189,6 +192,13 @@ mod cf {
         };
         (TARGET) => {
             "TARGET"
+        };
+
+        (reset:l) => {
+            "reset"
+        };
+        (reset:s) => {
+            "r"
         };
 
         (verbose:l) => {

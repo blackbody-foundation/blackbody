@@ -60,7 +60,11 @@ mod tests {
         // sign with keypair 1
         let msg = "nepi is handsome guy.";
         let sig1 = keypair1.sign(msg.as_bytes(), None).unwrap();
-        println!("keypair1 signed '{}'.\n\n", msg);
+        let pubbase58check1 = keypair1.public().as_base58check();
+        println!(
+            "keypair1 signed '{}'\nwith publickey: {}\n\n",
+            msg, pubbase58check1
+        );
 
         // distribute phrase into paths
         shield::thrust_mnemonic_phrase(&phrase1, &dirs, "test1234", 24213421).unwrap();
@@ -83,10 +87,24 @@ mod tests {
             .unwrap();
         println!("keypair2 is verified as keypair1\n\n");
 
+        // test decoding base58check
+        let pubkey_from_base58 = WrappedKey::from_base58check(
+            &pubbase58check1,
+            Version::Zero(NetType::MainNet),
+            KeyType::Public,
+        )
+        .unwrap();
+        let pubkey_from_base58_base58 = pubkey_from_base58.as_base58check();
+        println!("successful decoding: {}\n\n", &pubkey_from_base58_base58);
+        let _ = pubkey_from_base58.verify(msg.as_bytes(), None, &sig1);
+
         // eq!
+        assert_eq!(pubkey_from_base58_base58, pubbase58check1);
         assert_eq!(keypair1, keypair2);
         assert_eq!(phrase1, phrase_reload);
         assert_eq!(format!("{:?}", seed1), format!("{:?}", seed2));
+
+        println!("complete all.\n\n");
 
         // remove paths
         for dir in dirs.iter() {

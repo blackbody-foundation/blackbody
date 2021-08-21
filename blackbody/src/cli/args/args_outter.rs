@@ -20,6 +20,12 @@ impl<'a> Default for Args<'a> {
                         .possible_values(&[name!(API), name!(RPC)])
                         .takes_value(true),
                 )
+                .push(
+                    Arg::with_name(name!(reset: l))
+                        .short(name!(reset: s))
+                        .long(name!(reset: l))
+                        .help(name!(ForgotPassword))
+                )
                 .set_verbose(name!(verbose: l))
                 .sink()
                 .subcommand(

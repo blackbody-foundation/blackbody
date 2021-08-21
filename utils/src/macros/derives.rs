@@ -115,6 +115,14 @@ pub use derive_substruct;
 ///
 pub mod serde {
     #[macro_export]
+    macro_rules! deserialize {
+        ($i:item) => {
+            #[derive(Deserialize)]
+            $i
+        };
+    }
+    pub use deserialize;
+    #[macro_export]
     macro_rules! serialize {
         ($i:item) => {
             #[derive(Clone, Debug, Deserialize, Serialize)]
