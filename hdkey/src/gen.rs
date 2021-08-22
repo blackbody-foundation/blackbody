@@ -18,6 +18,8 @@
 
 */
 
+use unicode_normalization::UnicodeNormalization;
+
 pub use bip39::Language;
 use bip39::{Mnemonic, Seed};
 
@@ -54,14 +56,14 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
     target_directories: &[T],
 ) -> Result<Keypair, Box<dyn Error>> {
     let phrase = shield::extract_mnemonic_phrase(target_directories, login_password, salt)?;
-    let seed = seed_from_phrase(words, lang, &phrase)?;
+    let seed = seed_from_phrase(words, lang, phrase.as_str())?;
     Keypair::new(&seed, version)
 }
 
 pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>), Box<dyn Error>> {
-    validate_words(words)?;
-    let password = get_entropy256_from_password(words);
+    let words = validate_words(words)?;
     let entropy = get_entropy256_from_computer(hash(words.as_bytes()).as_bytes()[0]);
+    let password = get_entropy256_from_password(words);
     let mnemonic = Mnemonic::from_entropy(entropy.as_bytes(), lang)?;
     let seed = Seed::new(&mnemonic, &password);
     Ok((mnemonic.into_phrase(), seed.as_bytes().to_vec()))
@@ -72,7 +74,7 @@ pub fn seed_from_phrase(
     lang: Language,
     phrase: &str,
 ) -> Result<Vec<u8>, Box<dyn Error>> {
-    validate_words(words)?;
+    let words = validate_words(words)?;
     let password = get_entropy256_from_password(words);
     let mut buf = [0u8; OUTPUT_ENTROPY_SIZE];
     buf.copy_from_slice(Mnemonic::from_phrase(phrase, lang)?.entropy());
@@ -82,8 +84,10 @@ pub fn seed_from_phrase(
     Ok(seed.as_bytes().to_vec())
 }
 
+/// ## Return
+/// normalized words(nfkd).
 #[inline]
-fn validate_words(words: &str) -> Result<(), Box<dyn Error>> {
+fn validate_words(words: &str) -> Result<String, Box<dyn Error>> {
     if words.len() < 8 {
         return Err(format!(
             "password must be more than 8 length bytes. you are {}",
@@ -91,7 +95,7 @@ fn validate_words(words: &str) -> Result<(), Box<dyn Error>> {
         )
         .into());
     }
-    Ok(())
+    Ok(words.nfkd().to_string())
 }
 
 struct VepHasher(blake3::Hasher); // for expanding a password
@@ -104,12 +108,11 @@ impl vep::Digester for VepHasher {
     }
 }
 
-fn get_entropy256_from_password(words: &str) -> String {
-    if words.is_empty() {
+fn get_entropy256_from_password(normed_words: String) -> String {
+    if normed_words.is_empty() {
         panic!("words are empty");
     }
-    let bytes = words.as_bytes();
-    let bytes = Vep(VepHasher(Hasher::new())).expand(bytes); // blake3
+    let bytes = Vep(VepHasher(Hasher::new())).expand(normed_words); // blake3
     let mut sha3 = Sha3_256::new(); // sha3
     sha3.update(bytes);
     format!("{:02x}", sha3.finalize_reset()) // into hex

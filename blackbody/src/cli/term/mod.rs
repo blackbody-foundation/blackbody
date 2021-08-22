@@ -103,10 +103,13 @@ impl Term {
             .unwrap_or_else(else_error!());
     }
     pub fn read_password(&self) -> String {
-        self.stdout.read_secure_line().unwrap_or_else(|e| {
-            eprintln!("{}", style(e).red());
-            String::new()
-        })
+        match self.stdout.read_secure_line() {
+            Ok(v) => v.nfkd().to_string(),
+            Err(e) => {
+                eprintln!("{}", style(e).red());
+                String::new()
+            }
+        }
     }
     /// stacked
     pub fn read_command(&mut self) -> String {

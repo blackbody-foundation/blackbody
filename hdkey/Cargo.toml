@@ -29,7 +29,8 @@ hex = "0.4.3"
 aes-gcm = "0.9.3"
 vep = "0.1.0"
 
-bs58 = { version= "0.4.0" }
+bs58 = "0.4.0"
+unicode-normalization = "0.1.19"
 
 ed25519-dalek = "1.0.1"
 ed25519-dalek-bip32 = "0.1.1"

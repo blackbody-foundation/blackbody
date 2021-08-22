@@ -36,10 +36,10 @@ where
 {
     gen::master_key_from_directories(
         VERSION,
-        words.as_str(),
+        &words,
         salt,
         lang,
-        login_password.as_str(),
+        &login_password,
         target_directories,
     )
 }

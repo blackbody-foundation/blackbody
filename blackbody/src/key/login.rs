@@ -22,6 +22,15 @@ use crate::*;
 
 const MAX_OPPORTUNITY: u8 = 3;
 
+use vep::{Digester, Vep};
+
+struct Hasher;
+impl Digester for Hasher {
+    fn digest(&mut self, bytes: &[u8]) -> Vec<u8> {
+        blake3::hash(bytes).as_bytes().to_vec()
+    }
+}
+
 pub fn login(term: &mut Term) -> Result<hdkey::WrappedKeypair> {
     let envs = Envs::new();
 
@@ -34,7 +43,8 @@ pub fn login(term: &mut Term) -> Result<hdkey::WrappedKeypair> {
 
         for _ in 0..MAX_OPPORTUNITY {
             let password = term.read_password();
-            login_password = password.clone();
+            login_password = hex::encode(Vep(Hasher).expand(password.as_bytes()));
+            
             if let Ok(v) = envs.load(password) {
                 config = v;
                 config.readed();
@@ -49,7 +59,8 @@ pub fn login(term: &mut Term) -> Result<hdkey::WrappedKeypair> {
     } else {
         // create account
         let password = term.read_password();
-        login_password = password.clone();
+        login_password = hex::encode(Vep(Hasher).expand(password.as_bytes()));
+
         let new_config = Envs::new_config();
 
         term.reset_screen();

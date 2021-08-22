@@ -18,6 +18,8 @@
 
 */
 
+pub use unicode_normalization::UnicodeNormalization;
+
 use std::collections::VecDeque;
 
 pub struct CommandStack {

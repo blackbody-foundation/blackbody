@@ -25,6 +25,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use unicode_normalization::UnicodeNormalization;
+
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use sha3::{Digest, Sha3_256 as sha256};
@@ -36,8 +38,7 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
     password: &str,
     salt: usize,
 ) -> Result<(), Box<dyn Error>> {
-    let password = password.as_bytes();
-    validate_ps(password.len(), salt)?;
+    let password = validate_ps(password, salt)?;
     let num_dirs = target_directories.len();
     let h_pw = password_to_hash(password, salt); // H(pw)
     let phrase_chunk_size = (phrase.len() as f32 / num_dirs as f32).ceil() as usize;
@@ -116,8 +117,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     password: &str,
     salt: usize,
 ) -> Result<String, Box<dyn Error>> {
-    let password = password.as_bytes();
-    validate_ps(password.len(), salt)?;
+    let password = validate_ps(password, salt)?;
 
     let num_dirs = target_directories.len();
 
@@ -179,21 +179,25 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     Ok(String::from_utf8(mnemonic.concat())?)
 }
 
-fn validate_ps(password_len: usize, salt: usize) -> Result<(), Box<dyn Error>> {
-    if password_len < 8 {
+/// ## Return
+/// normalized words(nfkd).
+fn validate_ps(password: &str, salt: usize) -> Result<String, Box<dyn Error>> {
+    let normed_words = password.nfkd().to_string();
+    if normed_words.len() < 8 {
         return Err(format!(
             "password must be more than 8 length bytes. you are {}",
-            password_len
+            normed_words.len()
         )
         .into());
     }
     if salt < 2 {
         return Err("salt must be more than 2.".into());
     }
-    Ok(())
+    Ok(normed_words)
 }
 
-fn password_to_hash(password: &[u8], salt: usize) -> Vec<u8> {
+fn password_to_hash(normed_words: String, salt: usize) -> Vec<u8> {
+    let password = normed_words.as_bytes();
     let h_pw = normal_hash256(&password.repeat(password[1].into()));
     let h_rot_l_h_pw = h_rot_l(&h_pw, salt.overflowing_add(1).0);
     h_rot_r(&h_rot_l_h_pw, salt.overflowing_add(2).0)

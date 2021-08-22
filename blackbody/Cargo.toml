@@ -32,10 +32,13 @@ hmac = "0.11.0"
 sha3 = "0.9.1"
 blake3 = "1.0.0"
 aes-gcm = "0.9.3"
+vep = "0.1.0"
+hex = "0.4.3"
 
 # CLI
 clap = "2.33.3"
 console = "0.14.1"
+unicode-normalization = "0.1.19"
 
 # NET
 actix-web = "3.3.2"
