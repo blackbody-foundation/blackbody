@@ -21,10 +21,11 @@
 pub use bip39::Language;
 use bip39::{Mnemonic, Seed};
 
-use blake3::{hash, keyed_hash, Hash};
+use blake3::{hash, keyed_hash, Hash, Hasher};
 use rand::{thread_rng, Rng};
-use sha3::{Digest, Sha3_256 as sha256};
+use sha3::{Digest, Sha3_256};
 use std::{error::Error, path::Path, time::Instant};
+use vep::Vep;
 
 const SYSTEM_ENTROPY_SIZE: usize = 32;
 const OUTPUT_ENTROPY_SIZE: usize = 32;
@@ -93,26 +94,25 @@ fn validate_words(words: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+struct VepHasher(blake3::Hasher); // for expanding a password
+
+impl vep::Digester for VepHasher {
+    fn digest(&mut self, bytes: &[u8]) -> Vec<u8> {
+        self.0.reset();
+        self.0.update(bytes);
+        self.0.finalize().as_bytes().to_vec()
+    }
+}
+
 fn get_entropy256_from_password(words: &str) -> String {
     if words.is_empty() {
         panic!("words are empty");
     }
     let bytes = words.as_bytes();
-    let bytes_len = bytes.len();
-    let bytes_avg = bytes
-        .iter()
-        .fold(0, move |acc, &x| (acc as usize + x as usize) / bytes_len) as u8;
-    let bytes_hash = hash(bytes); // blake3
-    let nonce = 255usize + bytes_avg as usize + bytes_hash.as_bytes()[0] as usize;
-    let mut sha = sha256::new();
-    sha.update(bytes); // sha3
-    let mut hash = sha.finalize_reset();
-    for _ in 0..nonce {
-        sha.update(hash);
-        sha.update(&[bytes_hash.as_bytes()[1]]); // salt by blake3
-        hash = sha.finalize_reset();
-    }
-    format!("{:02x}", hash) // into hex
+    let bytes = Vep(VepHasher(Hasher::new())).expand(bytes); // blake3
+    let mut sha3 = Sha3_256::new(); // sha3
+    sha3.update(bytes);
+    format!("{:02x}", sha3.finalize_reset()) // into hex
 }
 
 fn get_entropy256_from_computer(salt: u8) -> Hash {
