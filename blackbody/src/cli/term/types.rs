@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + types.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,10 +18,31 @@
 
 */
 
-pub mod args;
+/// ```no_run
+/// SelItem("for display", "for result")
+/// ```
+pub struct SelItem<T: AsRef<str>>(pub T, pub T);
 
-pub mod envs;
-pub use envs::{verbose, Envs};
+impl<T: AsRef<str>> SelItem<T> {
+    pub fn display(&self) -> &str {
+        self.0.as_ref()
+    }
+    pub fn result(&self) -> &str {
+        self.1.as_ref()
+    }
+}
 
-mod term;
-pub use term::{cat, style, Key, PasswordHasher, SelItem, Style, Term};
+/// encrypt
+pub use vep::{Digester, Vep};
+
+pub struct PasswordHasher;
+impl PasswordHasher {
+    pub fn size() -> usize {
+        blake3::KEY_LEN
+    }
+}
+impl Digester for PasswordHasher {
+    fn digest(&mut self, bytes: &[u8]) -> Vec<u8> {
+        blake3::hash(bytes).as_bytes().to_vec()
+    }
+}

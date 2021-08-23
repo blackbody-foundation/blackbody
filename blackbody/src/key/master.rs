@@ -44,6 +44,26 @@ where
     )
 }
 
+pub fn save_original_key<T>(
+    words: String,
+    salt: usize,
+    lang: Language,
+    login_password: String,
+    target_directories: &[T],
+) -> Result<Keypair>
+where
+    T: AsRef<Path>,
+{
+    gen::new_master_key(
+        VERSION,
+        &words,
+        salt,
+        lang,
+        &login_password,
+        target_directories,
+    )
+}
+
 pub fn safe_key(keypair: Keypair) -> WrappedKeypair {
     WrappedKeypair::new(keypair)
 }

@@ -22,7 +22,6 @@ mod cmn;
 use cmn::*;
 
 mod cli;
-use cli::*;
 
 mod net;
 
@@ -37,7 +36,10 @@ fn main() -> Result<()> {
     let mut term = Term::new();
     term.init();
 
-    key::login(&mut term)?;
+    let _master_key = key::login(
+        &mut term,
+        args_outter.subcommand_name().unwrap_or("") == name!(reset: l),
+    )?;
 
     let sl = &mut net::run(args_outter.value_of("mode").unwrap_or_default());
 

@@ -50,7 +50,7 @@ impl Envs {
     pub fn exists(&self) -> bool {
         self.path.exists()
     }
-    pub fn load(&self, password: String) -> Result<Config> {
+    pub fn load(&self, password: &str) -> Result<Config> {
         if !self.exists() {
             return errbang!(err::FileNotFound);
         }
@@ -62,7 +62,7 @@ impl Envs {
         file.read_to_end(&mut buf)?;
 
         // decrypt
-        buf = decrypt(&password, buf.as_slice())?;
+        buf = decrypt(password, buf.as_slice())?;
 
         // decode
         self.decode(buf)
@@ -84,9 +84,17 @@ impl Envs {
         let buf = encrypt(password, original_src.as_bytes())?;
         // write envs.locked file
         let path = self.path.as_path();
-        let mut file = OpenOptions::new().write(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
+        let mut file = OpenOptions::new().create(true).write(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
         file.write_all(&buf)?;
         set_permission(file); // read only
+        Ok(())
+    }
+    /// *** warning ***
+    pub fn delete(&self) -> Result<()> {
+        let path = self.path.as_path();
+        if path.exists() {
+            std::fs::remove_dir_all(path)?;
+        }
         Ok(())
     }
     fn encode(&self, config: Config) -> Result<String> {

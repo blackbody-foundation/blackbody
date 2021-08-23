@@ -23,6 +23,9 @@ use crate::cmn::*;
 pub use console::{style, Key, Style};
 use console::{Style as Se, Term as Tm};
 
+mod types;
+pub use types::*;
+
 #[macro_use]
 mod etc;
 pub use etc::*;
@@ -102,20 +105,62 @@ impl Term {
             ))
             .unwrap_or_else(else_error!());
     }
-    pub fn read_password(&self) -> String {
+    pub fn read_password(&self, encrypt: bool) -> String {
         match self.stdout.read_secure_line() {
-            Ok(v) => v.nfkd().to_string(),
+            Ok(v) => {
+                let mut pass = v.nfkd().to_string();
+                if encrypt {
+                    pass = hex::encode(Vep(PasswordHasher).expand(pass.as_bytes()));
+                }
+                pass
+            }
             Err(e) => {
                 eprintln!("{}", style(e).red());
                 String::new()
             }
         }
     }
+
+    /// if `f` is (true, _) then break the loop<br>
+    /// f(password: String) -> (bool, T)<br>
+    /// `T` will be out this entire function
+    pub fn read_password_op<T, F: Fn(String) -> (bool, T)>(
+        &self,
+        max_opportunity: u8,
+        encrypt: bool,
+        f: F,
+        err_msg: Option<&str>,
+    ) -> T {
+        for _ in 0..max_opportunity {
+            let password = self.read_password(encrypt); // get password
+            let (check, output) = f(password);
+            if check {
+                return output;
+            }
+            if let Some(msg) = err_msg {
+                self.eprintln(msg);
+            } else {
+                self.eprintln(name!(NotMatching));
+            }
+        }
+        something_wrong!(name!(ForgotPassword))()
+    }
     /// stacked
     pub fn read_command(&mut self) -> String {
         let command = self.stdout.read_line().unwrap_or_default();
         self.stack.push(&command);
         command
+    }
+    pub fn read_line(&mut self) -> String {
+        self.stdout.read_line().unwrap_or_default()
+    }
+    pub fn move_cursor_up(&self, n: usize) {
+        self.stdout.move_cursor_up(n).unwrap_or_else(else_error!());
+    }
+    pub fn move_cursor_down(&self, n: usize) {
+        self.stdout
+            .move_cursor_down(n)
+            .unwrap_or_else(else_error!());
     }
     pub fn move_cursor_left(&self, n: usize) {
         self.stdout
@@ -210,5 +255,54 @@ impl Term {
             }
         }
         command
+    }
+    pub fn get_select<T: AsRef<str>>(&mut self, list: &[SelItem<T>]) -> String {
+        let mut number = 0;
+        let max_number = list.len() - 1;
+        let none_style = Style::new().white();
+        let selected_style = Style::new().on_magenta();
+        self.eprintln("\n");
+        // render all
+        for (i, item) in list.iter().enumerate() {
+            self.eprintln(cat!(
+                "  {}. {}  ",
+                i + 1,
+                none_style.apply_to(item.display())
+            ));
+        }
+        self.eprintln("\n");
+        self.move_cursor_up(max_number + 3);
+        // set closure
+        let render_item = |number: usize, style: &Style| {
+            self.eprint(cat!(
+                "\r  {}. {}  ",
+                number + 1,
+                style.apply_to(list[number].display())
+            ));
+        };
+        loop {
+            render_item(number, &selected_style);
+            match self.read_key() {
+                Key::ArrowUp => {
+                    if number > 0 {
+                        render_item(number, &none_style);
+                        self.move_cursor_up(1);
+                        number -= 1;
+                    }
+                }
+                Key::ArrowDown => {
+                    if number < max_number {
+                        render_item(number, &none_style);
+                        self.move_cursor_down(1);
+                        number += 1;
+                    }
+                }
+                Key::Enter => {
+                    self.eprintln("");
+                    return String::from(list[number].result());
+                }
+                _ => {}
+            }
+        }
     }
 }

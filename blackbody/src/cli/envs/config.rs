@@ -24,22 +24,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Config {
-    readed: bool,
-    pub one_shot: OneShot,
+    pub hd_lang: String,
+    pub hd_dirs: Vec<String>,
     pub env: Vec<(OsString, OsString)>,
 }
 impl Config {
-    pub fn readed(&mut self) {
-        self.readed = true;
-    }
-    pub fn is_empty(&self) -> bool {
-        self.readed
-    }
     pub fn drop(self) {}
-}
-
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct OneShot {
-    pub lang: String,
-    pub hd_dirs: Vec<String>,
 }

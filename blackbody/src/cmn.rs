@@ -29,7 +29,7 @@ pub use crossbeam::channel::TryRecvError;
 pub use utils::system::*;
 
 // common in cli
-pub use crate::cli::{cat, envs, style, Key, Style};
+pub use crate::cli::*;
 
 #[derive(Debug, Clone)]
 pub struct Net {
@@ -127,6 +127,9 @@ mod cf {
     /// static string
     #[macro_export]
     macro_rules! name {
+        (FromMnemonic) => {
+            "login from mnemonic. this will not save any data for security reason."
+        };
         (NotMatching) => {
             "not matched."
         };
@@ -139,6 +142,9 @@ mod cf {
         (UnexpectedRuntime) => {
             "Because of unexpected panic occured previously, So runtime thread is already occupied. Please restart and clean your threads
             [example]: in linux, command `top` and get the PID, command `kill -9 <PID>`"
+        };
+        (MNEMONIC) => {
+            "MNEMONIC"
         };
         (TITLE) => {
             "BlackBody Node"
@@ -219,6 +225,13 @@ mod cf {
         };
         (server:s) => {
             "s"
+        };
+
+        (mnemonic:l) => {
+            "mnemonic"
+        };
+        (mnemonic:s) => {
+            "n"
         };
 
         (mode:l) => {

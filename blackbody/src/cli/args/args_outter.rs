@@ -21,10 +21,12 @@ impl<'a> Default for Args<'a> {
                         .takes_value(true),
                 )
                 .push(
-                    Arg::with_name(name!(reset: l))
-                        .short(name!(reset: s))
-                        .long(name!(reset: l))
-                        .help(name!(ForgotPassword))
+                    Arg::with_name(name!(mnemonic: l))
+                        .short(name!(mnemonic: s))
+                        .long(name!(mnemonic: l))
+                        .value_name(name!(MNEMONIC))
+                        .help(name!(FromMnemonic))
+                        .takes_value(true),
                 )
                 .set_verbose(name!(verbose: l))
                 .sink()
@@ -35,6 +37,10 @@ impl<'a> Default for Args<'a> {
                             .long(name!(debug: l))
                             .help("print debug information verbosely"),
                     ),
+                )
+                .subcommand(
+                    CSubCommand::new(name!(reset: l), "reset account", "1.0")
+                        .help(name!(ForgotPassword)),
                 )
                 .get_matches(),
         };
