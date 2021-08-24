@@ -42,6 +42,7 @@ impl Digester for PasswordHasher {
     }
 }
 
+// option structure
 use super::name;
 use optionee::optionee;
 

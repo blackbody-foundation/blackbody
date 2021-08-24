@@ -19,11 +19,12 @@
 */
 
 use std::{
-    error::Error,
     fs::{self, OpenOptions},
     io::{Read, Write},
     path::{Path, PathBuf},
 };
+
+use crate::errors::*;
 
 use unicode_normalization::UnicodeNormalization;
 
@@ -37,17 +38,17 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
     target_directories: &[T],
     password: &str,
     salt: usize,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let password = validate_ps(password, salt)?;
     let num_dirs = target_directories.len();
     let h_pw = password_to_hash(password, salt); // H(pw)
     let phrase_chunk_size = (phrase.len() as f32 / num_dirs as f32).ceil() as usize;
     if phrase_chunk_size < 2 {
-        return Err(format!(
+        return errbang!(
+            err::ShieldPathError,
             "too many target directories. must be less than {}",
             phrase.len() / 2
-        )
-        .into());
+        );
     }
     let mut piece_of_phrase = phrase.as_bytes().chunks(phrase_chunk_size);
 
@@ -55,12 +56,12 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
     let piece_of_file_name = h_pw.chunks(chunk_size);
 
     if piece_of_phrase.len() != piece_of_file_name.len() {
-        return Err(format!(
+        return errbang!(
+            err::ShieldPathError,
             "please adjust chunks size of environments. phrase chunks: {} != file chunks: {}",
             piece_of_phrase.len(),
             piece_of_file_name.len()
-        )
-        .into());
+        );
     }
 
     let file_path: Vec<PathBuf> = target_directories
@@ -70,7 +71,7 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
         .collect();
     for path in file_path.iter() {
         if path.exists() {
-            return Err(format!("file already exists. {:?}", path).into());
+            return errbang!(err::ShieldPathError, "file already exists. {:?}", path);
         }
     }
     mkdir(target_directories)?;
@@ -116,7 +117,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     target_directories: &[T],
     password: &str,
     salt: usize,
-) -> Result<String, Box<dyn Error>> {
+) -> Result<String> {
     let password = validate_ps(password, salt)?;
 
     let num_dirs = target_directories.len();
@@ -135,7 +136,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
         .collect();
     for path in file_path.iter() {
         if !path.exists() {
-            return Err(format!("file doesn't exists. {:?}", path).into());
+            return errbang!(err::ShieldPathError, "file doesn't exists. {:?}", path);
         }
     }
 
@@ -181,7 +182,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
 
 /// ## Return
 /// normalized words(nfkd).
-fn validate_ps(password: &str, salt: usize) -> Result<String, Box<dyn Error>> {
+fn validate_ps(password: &str, salt: usize) -> Result<String> {
     let normed_words = password.nfkd().to_string();
     if normed_words.len() < 8 {
         return Err(format!(
@@ -236,7 +237,7 @@ fn absolute_rem(a: usize, b: usize) -> usize {
     }
 }
 
-fn mkdir<T: AsRef<Path>>(dirs: &[T]) -> Result<(), Box<dyn Error>> {
+fn mkdir<T: AsRef<Path>>(dirs: &[T]) -> Result<()> {
     for dir in dirs.iter() {
         if !dir.as_ref().exists() {
             fs::create_dir_all(dir)?;

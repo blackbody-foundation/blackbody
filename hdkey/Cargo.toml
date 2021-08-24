@@ -34,3 +34,5 @@ unicode-normalization = "0.1.19"
 
 ed25519-dalek = "1.0.1"
 ed25519-dalek-bip32 = "0.1.1"
+
+utils-results = "4.3.1"

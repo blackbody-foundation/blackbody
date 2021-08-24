@@ -26,13 +26,14 @@ use bip39::{Mnemonic, Seed};
 use blake3::{hash, keyed_hash, Hash, Hasher};
 use rand::{thread_rng, Rng};
 use sha3::{Digest, Sha3_256};
-use std::{error::Error, path::Path, time::Instant};
+use std::{path::Path, time::Instant};
 use vep::Vep;
 
 const SYSTEM_ENTROPY_SIZE: usize = 32;
 const OUTPUT_ENTROPY_SIZE: usize = 32;
 
 use super::*;
+use crate::errors::*;
 
 pub fn new_master_key<T: AsRef<Path>>(
     version: Version,
@@ -41,7 +42,7 @@ pub fn new_master_key<T: AsRef<Path>>(
     lang: Language,
     login_password: &str,
     target_directories: &[T],
-) -> Result<Keypair, Box<dyn Error>> {
+) -> Result<Keypair> {
     let (phrase, seed) = new_seed(words, lang)?;
     shield::thrust_mnemonic_phrase(&phrase, target_directories, login_password, salt)?;
     Keypair::new(&seed, version)
@@ -54,13 +55,13 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
     lang: Language,
     login_password: &str,
     target_directories: &[T],
-) -> Result<Keypair, Box<dyn Error>> {
+) -> Result<Keypair> {
     let phrase = shield::extract_mnemonic_phrase(target_directories, login_password, salt)?;
     let seed = seed_from_phrase(words, lang, phrase.as_str())?;
     Keypair::new(&seed, version)
 }
 
-pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>)> {
     let words = validate_words(words)?;
     let entropy = get_entropy256_from_computer(hash(words.as_bytes()).as_bytes()[0]);
     let password = get_entropy256_from_password(words);
@@ -69,11 +70,7 @@ pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>), Box<dy
     Ok((mnemonic.into_phrase(), seed.as_bytes().to_vec()))
 }
 
-pub fn seed_from_phrase(
-    words: &str,
-    lang: Language,
-    phrase: &str,
-) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn seed_from_phrase(words: &str, lang: Language, phrase: &str) -> Result<Vec<u8>> {
     let words = validate_words(words)?;
     let password = get_entropy256_from_password(words);
     let mut buf = [0u8; OUTPUT_ENTROPY_SIZE];
@@ -87,7 +84,7 @@ pub fn seed_from_phrase(
 /// ## Return
 /// normalized words(nfkd).
 #[inline]
-fn validate_words(words: &str) -> Result<String, Box<dyn Error>> {
+fn validate_words(words: &str) -> Result<String> {
     if words.len() < 8 {
         return Err(format!(
             "password must be more than 8 length bytes. you are {}",

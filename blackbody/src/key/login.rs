@@ -87,12 +87,10 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             }
         });
 
-        let mut new_config = Envs::new_config();
-
         term.reset_screen();
 
         term.eprintln("mnemonic language:");
-        new_config.hd_lang = term.get_select(&[
+        let lang = term.get_select(&[
             SelItem("english", "en"),
             SelItem("korean", "ko"),
             SelItem("italian", "it"),
@@ -103,35 +101,89 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             SelItem("chinese-traditional", "zh-hant"),
         ]);
 
-        // get dirs
+        let hd_lang = match hdkey::Language::from_language_code(lang.as_str()) {
+            Some(v) => v,
+            None => return errbang!(err::BrokenContent, "envs.locked is broken."),
+        };
 
+        term.reset_screen();
+        term.eprintln("mnemonic language:");
+
+        let mut dirs = Vec::new();
+        let keypair = loop {
+            let n_dirs = match term.read_line().parse::<u8>() {
+                Ok(v) if v > 1 => v,
+                _ => {
+                    term.eprintln("range: 2 ~ 255.");
+                    continue;
+                }
+            };
+
+            for _ in 0..n_dirs {
+                let mut path;
+                loop {
+                    path = PathBuf::from(term.read_line());
+                    if path.exists() {
+                        break;
+                    } else {
+                        term.eprintln("target directory doesn't exist.");
+                    }
+                }
+                dirs.push(path);
+            }
+
+            match key::master::save_original_key(
+                &key_password,
+                salt,
+                hd_lang,
+                &account_password,
+                &dirs,
+            ) {
+                Ok(v) => break v,
+                Err(e) if errmatch!(e, key::master::ShieldPathError) => {
+                    term.eprintln(cat!("{}", e))
+                }
+                Err(e) => return Err(e),
+            }
+        };
+        let mut new_config = Envs::new_config();
+        new_config.new_key(lang, dirs);
         //"please prepare a pencil for recording your mnemonic."
         //"you will have a little random time, words will be shown four times in total."
         term.reset_screen();
         term.eprintln("successfully created!");
 
         if reset_mode {
-            envs.delete()?;
+            envs.delete()?; // delete envs.locked
         }
+        // save envs.locked
         let _ = envs.save(&account_password, new_config)?;
+        // load envs.locked
         if let Ok(v) = envs.load(&account_password) {
-            let lang = match hdkey::Language::from_language_code(v.hd_lang.as_str()) {
-                Some(v) => v,
-                None => return errbang!(err::BrokenContent, "envs.locked is broken."),
-            };
-            return Ok(key::master::safe_key(key::master::save_original_key(
+            // re-load master key
+            let keypair_reload = key::master::read_original_key(
                 key_password,
                 salt,
-                lang,
+                hd_lang,
                 account_password,
-                &v.hd_dirs,
-            )?));
+                v.keys[0].dirs.as_slice(),
+            )?;
+            // last check
+            if keypair == keypair_reload {
+                return Ok(key::master::safe_key(keypair)); // return master keypair
+            } else {
+                something_wrong!(name!(FileIsNotWritten))();
+            }
         } else {
             something_wrong!(name!(FileIsNotWritten))();
         }
     };
 
     // if key already exists
+
+    // select account
+    let n_account = 0;
+
     term.eprintln("account:");
     let out = term.read_password_op(&password_option, |password| {
         if let Ok(conf) = envs.load(&password) {
@@ -140,6 +192,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             (false, (Envs::new_config(), password))
         }
     });
+
     // extract things
     let login_password = out.1;
     let config = out.0;
@@ -158,7 +211,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
         let salt = term.read_password(false).parse::<usize>()?;
 
         term.reset_screen();
-        let lang = match hdkey::Language::from_language_code(config.hd_lang.as_str()) {
+        let lang = match hdkey::Language::from_language_code(config.keys[n_account].lang.as_str()) {
             Some(v) => v,
             None => return errbang!(err::BrokenContent, "envs.locked is broken."),
         };
@@ -168,7 +221,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             salt,
             lang,
             login_password,
-            config.hd_dirs.as_slice(),
+            config.keys[n_account].dirs.as_slice(),
         )?)
     };
 

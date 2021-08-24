@@ -19,12 +19,13 @@
 */
 
 use super::version::{self, KeyType, Version};
+use crate::errors::*;
 use ed25519_dalek::{
     ed25519, Digest, Keypair as dalekKeypair, PublicKey, SecretKey, SignatureError, KEYPAIR_LENGTH,
     SECRET_KEY_LENGTH,
 };
 use sha3::Sha3_512;
-use std::{error::Error, fmt};
+use std::fmt;
 
 #[cfg(feature = "security")]
 use rand::Rng;
@@ -51,7 +52,7 @@ impl WrappedKeypair {
             version,
         }
     }
-    pub fn into_keypair(self) -> Result<Keypair, Box<dyn Error>> {
+    pub fn into_keypair(self) -> Result<Keypair> {
         Keypair::from_bytes(self.keypair.concat(), self.version)
     }
 }
@@ -62,7 +63,7 @@ pub struct Keypair {
 }
 
 impl Keypair {
-    pub fn new(seed: &[u8], version: Version) -> Result<Self, Box<dyn Error>> {
+    pub fn new(seed: &[u8], version: Version) -> Result<Self> {
         if seed.len() != KEYPAIR_LENGTH {
             /* = 32 * 2,  [8 * (32 * 2) = 512 bits] */
             return Err(format!(
@@ -83,13 +84,13 @@ impl Keypair {
         &self,
         msg: T,
         memo: Option<&[u8]>,
-    ) -> Result<ed25519::Signature, SignatureError> {
+    ) -> std::result::Result<ed25519::Signature, SignatureError> {
         self.pair.sign_prehashed(prehash512(msg.as_ref()), memo)
     }
     pub fn public(&self) -> WrappedKey {
         WrappedKey::Public(self.pair.public, self.version)
     }
-    pub fn from_secret_key(wrapped_secret: WrappedKey) -> Result<Self, Box<dyn Error>> {
+    pub fn from_secret_key(wrapped_secret: WrappedKey) -> Result<Self> {
         if let WrappedKey::Secret(secret, version) = wrapped_secret {
             let public = PublicKey::from(&secret);
             Ok(Self {
@@ -103,7 +104,7 @@ impl Keypair {
     pub fn into_bytes(self) -> [u8; 64] {
         self.pair.to_bytes()
     }
-    pub fn from_bytes(bytes: Vec<u8>, version: Version) -> Result<Self, Box<dyn Error>> {
+    pub fn from_bytes(bytes: Vec<u8>, version: Version) -> Result<Self> {
         Ok(Self {
             pair: dalekKeypair::from_bytes(bytes.as_slice())?,
             version,
@@ -128,7 +129,7 @@ impl WrappedKey {
         msg: &[u8],
         memo: Option<&[u8]>,
         sig: &ed25519_dalek::Signature,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         match self {
             Self::Public(public, _) => Ok(public.verify_prehashed(prehash512(msg), memo, sig)?),
             _ => Err("this is not a public key.".into()),
@@ -156,7 +157,7 @@ impl WrappedKey {
         base58check: &str,
         version: Version,
         key_type: KeyType,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self> {
         let bytes = version::decode(bs58::decode(base58check).into_vec()?, version, key_type)?;
         match key_type {
             KeyType::Secret => Ok(WrappedKey::Secret(

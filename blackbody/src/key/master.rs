@@ -19,10 +19,10 @@
 */
 
 use crate::{Result, VERSION};
-use hdkey::*;
 use std::path::Path;
 
-use hdkey::WrappedKeypair;
+pub use hdkey::ShieldPathError;
+use hdkey::*;
 
 pub fn read_original_key<T>(
     words: String,
@@ -45,10 +45,10 @@ where
 }
 
 pub fn save_original_key<T>(
-    words: String,
+    words: &str,
     salt: usize,
     lang: Language,
-    login_password: String,
+    login_password: &str,
     target_directories: &[T],
 ) -> Result<Keypair>
 where
@@ -56,10 +56,10 @@ where
 {
     gen::new_master_key(
         VERSION,
-        &words,
+        words,
         salt,
         lang,
-        &login_password,
+        login_password,
         target_directories,
     )
 }

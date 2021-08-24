@@ -18,6 +18,9 @@
 
 */
 
+mod errors;
+pub use errors::err::ShieldPathError;
+
 pub mod gen;
 pub use gen::Language;
 
