@@ -24,4 +24,4 @@ pub mod envs;
 pub use envs::{verbose, Envs};
 
 mod term;
-pub use term::{cat, style, Key, PasswordHasher, SelItem, Style, Term};
+pub use term::{cat, style, SelItem, Style, Term, TermPassword};

@@ -36,13 +36,24 @@ impl<T: AsRef<str>> SelItem<T> {
 pub use vep::{Digester, Vep};
 
 pub struct PasswordHasher;
-impl PasswordHasher {
-    pub fn size() -> usize {
-        blake3::KEY_LEN
-    }
-}
 impl Digester for PasswordHasher {
     fn digest(&mut self, bytes: &[u8]) -> Vec<u8> {
         blake3::hash(bytes).as_bytes().to_vec()
     }
 }
+
+use super::name;
+use optionee::optionee;
+
+optionee! {
+    pub TermOption {
+        Password {
+            max_opportunity: u8 [=] 3, name!(ForgotPassword)
+            encrypt: bool [=] false
+            min_length: u8 [>] 7, "password must be more than 8 lengths bytes."
+            max_length: u8 [<] 21, "password must be less than 20 lengths bytes."
+        }
+    }
+}
+
+pub use optionees::TermOption::Password as TermPassword;

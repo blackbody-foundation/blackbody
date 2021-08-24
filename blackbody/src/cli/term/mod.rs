@@ -126,22 +126,37 @@ impl Term {
     /// `T` will be out this entire function
     pub fn read_password_op<T, F: Fn(String) -> (bool, T)>(
         &self,
-        max_opportunity: u8,
-        encrypt: bool,
+        option: &TermPassword,
         f: F,
-        err_msg: Option<&str>,
     ) -> T {
+        let max_opportunity = *option.max_opportunity.get_value();
+        let encrypt = *option.encrypt.get_value();
+
         for _ in 0..max_opportunity {
-            let password = self.read_password(encrypt); // get password
+            let mut password = loop {
+                let password = self.read_password(false); // get password
+
+                if let Err(e) = option.max_length.check(password.len() as u8) {
+                    self.eprintln(cat!("{}", e));
+                    continue;
+                }
+                if let Err(e) = option.min_length.check(password.len() as u8) {
+                    self.eprintln(cat!("{}", e));
+                    continue;
+                }
+                break password;
+            };
+            if encrypt {
+                password = hex::encode(Vep(PasswordHasher).expand(password.as_bytes()));
+            }
+
             let (check, output) = f(password);
+
             if check {
                 return output;
             }
-            if let Some(msg) = err_msg {
-                self.eprintln(msg);
-            } else {
-                self.eprintln(name!(NotMatching));
-            }
+
+            self.eprintln(name!(NotMatching));
         }
         something_wrong!(name!(ForgotPassword))()
     }
