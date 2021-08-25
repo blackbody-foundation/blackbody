@@ -225,6 +225,14 @@ impl Term {
     pub fn read_key(&self) -> Key {
         self.stdout.read_key().unwrap_or(Key::Unknown)
     }
+    pub fn hide_cursor(&self) {
+        self.stdout.hide_cursor().unwrap_or_else(else_error!());
+        self.stderr.hide_cursor().unwrap_or_else(else_error!());
+    }
+    pub fn show_cursor(&self) {
+        self.stdout.show_cursor().unwrap_or_else(else_error!());
+        self.stderr.show_cursor().unwrap_or_else(else_error!());
+    }
     /// basic terminal implement.<br>
     /// domain_name must be "name " <- one whitespace added.
     pub fn base_loop(&mut self, domain_name: &str) -> String {

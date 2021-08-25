@@ -42,11 +42,11 @@ pub fn new_master_key<T: AsRef<Path>>(
     lang: Language,
     login_password: &str,
     target_directories: &[T],
-) -> Result<Keypair> {
+) -> Result<(Keypair, String)> {
     let (phrase, seed) = new_seed(words, lang)?;
     let mixed_password = format!("{}{}", words, login_password);
     shield::thrust_mnemonic_phrase(&phrase, target_directories, &mixed_password, salt)?;
-    Keypair::new(&seed, version)
+    Ok((Keypair::new(&seed, version)?, phrase))
 }
 
 pub fn master_key_from_directories<T: AsRef<Path>>(

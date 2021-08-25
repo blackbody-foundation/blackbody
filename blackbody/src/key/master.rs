@@ -50,7 +50,7 @@ pub fn save_original_key<T>(
     lang: Language,
     login_password: &str,
     target_directories: &[T],
-) -> Result<Keypair>
+) -> Result<(Keypair, String)>
 where
     T: AsRef<Path>,
 {

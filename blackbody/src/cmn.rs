@@ -21,7 +21,8 @@
 pub use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
-    thread, time,
+    thread,
+    time::{self, Duration},
 };
 
 pub use actix_web::dev::Server;

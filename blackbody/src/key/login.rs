@@ -108,7 +108,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
 
         term.reset_screen();
         let mut dirs;
-        let keypair = loop {
+        let (keypair, mnemonic) = loop {
             term.eprintln("key saving target directory:\n");
             term.eprintln("number of split folders(range 2 ~ 255):");
 
@@ -150,10 +150,12 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                 Err(e) => return Err(e),
             }
         };
+
+        show_mnemonic(term, mnemonic);
+
         let mut new_config = Envs::new_config();
         new_config.new_key(lang, dirs);
-        //"please prepare a pencil for recording your mnemonic."
-        //"you will have a little random time, words will be shown four times in total."
+
         term.reset_screen();
         term.eprintln("successfully created!");
 
@@ -238,4 +240,29 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
 
     config.drop(); // because of importance, specify this.
     Ok(keypair)
+}
+
+fn show_mnemonic(term: &mut Term, mnemonic: String) {
+    term.reset_screen();
+    term.eprintln("please prepare a pencil for recording your mnemonic.\n");
+    thread::sleep(Duration::from_secs(2));
+    term.eprintln("the words will be shown four times in a total.\n");
+    thread::sleep(Duration::from_secs(2));
+    term.eprintln("if you are ready, press any key.\n");
+    let _ = term.read_key();
+    term.reset_screen();
+
+    let mnemonic = mnemonic.split_whitespace().collect::<Vec<&str>>();
+    let size = mnemonic.len() / 4;
+    term.hide_cursor();
+    term.reset_screen();
+    for (i, chunk) in mnemonic.chunks(size).enumerate() {
+        term.eprint(cat!("\r{}.\n{}\n\npress any key..", i + 1, chunk.join(" ")));
+        term.move_cursor_up(3);
+        let _ = term.read_key();
+    }
+    term.move_cursor_down(1);
+    term.clear_line();
+    term.reset_screen();
+    term.show_cursor();
 }
