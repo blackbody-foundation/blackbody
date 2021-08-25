@@ -31,6 +31,18 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
         .encrypt(true)
         .max_opportunity(MAX_OPPORTUNITY);
 
+    let mut salt_option = TermPassword::new()
+        .encrypt(false)
+        .max_opportunity(MAX_OPPORTUNITY)
+        .min_length(1)
+        .max_length(10);
+    salt_option
+        .min_length
+        .set_error_message(Some("salt must be more than 10"));
+    salt_option
+        .max_length
+        .set_error_message(Some("salt must be less than 999999999"));
+
     // if envs.locked file not exists
     if !envs.exists() || reset_mode {
         // create account
@@ -56,18 +68,6 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                 (false, re_password)
             }
         });
-
-        let mut salt_option = TermPassword::new()
-            .encrypt(false)
-            .max_opportunity(MAX_OPPORTUNITY)
-            .min_length(1)
-            .max_length(10);
-        salt_option
-            .min_length
-            .set_error_message(Some("salt must be more than 10"));
-        salt_option
-            .max_length
-            .set_error_message(Some("salt must be less than 999999999"));
 
         term.reset_screen();
         term.eprintln("new key salt:");
@@ -107,10 +107,11 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
         };
 
         term.reset_screen();
-        term.eprintln("mnemonic language:");
-
-        let mut dirs = Vec::new();
+        let mut dirs;
         let keypair = loop {
+            term.eprintln("key saving target directory:\n");
+            term.eprintln("number of split folders(range 2 ~ 255):");
+
             let n_dirs = match term.read_line().parse::<u8>() {
                 Ok(v) if v > 1 => v,
                 _ => {
@@ -119,11 +120,13 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                 }
             };
 
+            dirs = Vec::new();
             for _ in 0..n_dirs {
                 let mut path;
                 loop {
-                    path = PathBuf::from(term.read_line());
-                    if path.exists() {
+                    term.eprintln("path:");
+                    path = term.read_line();
+                    if PathBuf::from(&path).exists() {
                         break;
                     } else {
                         term.eprintln("target directory doesn't exist.");
@@ -141,7 +144,8 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             ) {
                 Ok(v) => break v,
                 Err(e) if errmatch!(e, key::master::ShieldPathError) => {
-                    term.eprintln(cat!("{}", e))
+                    term.reset_screen();
+                    term.eprintln(cat!("{}\n", e))
                 }
                 Err(e) => return Err(e),
             }
@@ -204,11 +208,17 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
     let keypair = {
         term.reset_screen();
         term.eprintln("master key:");
-        let words = term.read_password(true);
+        let words = term.read_password_op(&password_option, |pass| (true, pass));
 
         term.reset_screen();
         term.eprintln("key salt:");
-        let salt = term.read_password(false).parse::<usize>()?;
+        let salt = term.read_password_op(&salt_option, |password| {
+            if let Ok(v) = password.parse::<usize>() {
+                (v > 1, v)
+            } else {
+                (false, 0)
+            }
+        });
 
         term.reset_screen();
         let lang = match hdkey::Language::from_language_code(config.keys[n_account].lang.as_str()) {
@@ -216,13 +226,14 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             None => return errbang!(err::BrokenContent, "envs.locked is broken."),
         };
 
-        key::master::safe_key(key::master::read_original_key(
-            words,
-            salt,
-            lang,
-            login_password,
-            config.keys[n_account].dirs.as_slice(),
-        )?)
+        key::master::safe_key(errextract!(key::master::read_original_key(
+                words,
+                salt,
+                lang,
+                login_password,
+                config.keys[n_account].dirs.as_slice(),
+            ),
+            key::master::ShieldPathNotMatching => something_wrong!("login failed")()))
     };
 
     config.drop(); // because of importance, specify this.

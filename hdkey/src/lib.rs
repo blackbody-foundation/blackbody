@@ -19,7 +19,7 @@
 */
 
 mod errors;
-pub use errors::err::ShieldPathError;
+pub use errors::err::{ShieldPathError, ShieldPathNotMatching};
 
 pub mod gen;
 pub use gen::Language;

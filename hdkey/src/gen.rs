@@ -44,7 +44,8 @@ pub fn new_master_key<T: AsRef<Path>>(
     target_directories: &[T],
 ) -> Result<Keypair> {
     let (phrase, seed) = new_seed(words, lang)?;
-    shield::thrust_mnemonic_phrase(&phrase, target_directories, login_password, salt)?;
+    let mixed_password = format!("{}{}", words, login_password);
+    shield::thrust_mnemonic_phrase(&phrase, target_directories, &mixed_password, salt)?;
     Keypair::new(&seed, version)
 }
 
@@ -56,7 +57,8 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
     login_password: &str,
     target_directories: &[T],
 ) -> Result<Keypair> {
-    let phrase = shield::extract_mnemonic_phrase(target_directories, login_password, salt)?;
+    let mixed_password = format!("{}{}", words, login_password);
+    let phrase = shield::extract_mnemonic_phrase(target_directories, &mixed_password, salt)?;
     let seed = seed_from_phrase(words, lang, phrase.as_str())?;
     Keypair::new(&seed, version)
 }

@@ -71,8 +71,8 @@ impl Envs {
         // bytes to toml
         let config: Config = toml::from_slice(original_src.as_slice())?;
         // insert env variables
-        for (k, v) in config.env.iter() {
-            env::set_var(k, v);
+        for pair in config.env.iter() {
+            env::set_var(&pair.key, &pair.value);
         }
         // and return a whole config data
         Ok(config)
@@ -84,7 +84,7 @@ impl Envs {
         let buf = encrypt(password, original_src.as_bytes())?;
         // write envs.locked file
         let path = self.path.as_path();
-        let mut file = OpenOptions::new().create(true).write(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
+        let mut file =OpenOptions::new().create(true).write(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
         file.write_all(&buf)?;
         set_permission(file); // read only
         Ok(())

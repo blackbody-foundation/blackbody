@@ -21,8 +21,8 @@
 use crate::{Result, VERSION};
 use std::path::Path;
 
-pub use hdkey::ShieldPathError;
 use hdkey::*;
+pub use hdkey::{ShieldPathError, ShieldPathNotMatching};
 
 pub fn read_original_key<T>(
     words: String,

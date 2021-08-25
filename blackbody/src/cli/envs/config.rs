@@ -18,24 +18,39 @@
 
 */
 
-use std::{ffi::OsString, path::PathBuf};
-
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub keys: Vec<HDKey>,
-    pub env: Vec<(OsString, OsString)>,
+    pub env: Vec<EnvPair>,
 }
 impl Config {
-    pub fn new_key(&mut self, lang: String, dirs: Vec<PathBuf>) {
+    pub fn new_key(&mut self, lang: String, dirs: Vec<String>) {
         self.keys.push(HDKey { lang, dirs });
     }
     pub fn drop(self) {}
 }
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            keys: Vec::new(),
+            env: vec![EnvPair {
+                key: "verbose".to_string(),
+                value: "1".to_string(),
+            }],
+        }
+    }
+}
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct HDKey {
     pub lang: String,
-    pub dirs: Vec<PathBuf>,
+    pub dirs: Vec<String>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct EnvPair {
+    pub key: String,
+    pub value: String,
 }

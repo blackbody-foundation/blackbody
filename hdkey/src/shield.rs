@@ -67,7 +67,14 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
     let file_path: Vec<PathBuf> = target_directories
         .iter()
         .zip(piece_of_file_name)
-        .map(|(dir, fi)| PathBuf::from(format!(r"{}/{}", dir.as_ref().display(), hex::encode(fi))))
+        .map(|(dir, fi)| {
+            let mut d = dir.as_ref().display().to_string();
+            let end_slash = d.ends_with('/');
+            if !end_slash {
+                d.push('/');
+            }
+            PathBuf::from(format!(r"{}{}", d, hex::encode(fi)))
+        })
         .collect();
     for path in file_path.iter() {
         if path.exists() {
@@ -132,11 +139,18 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     let file_path: Vec<PathBuf> = target_directories
         .iter()
         .zip(piece_of_file_name)
-        .map(|(dir, fi)| PathBuf::from(format!(r"{}/{}", dir.as_ref().display(), hex::encode(fi))))
+        .map(|(dir, fi)| {
+            let mut d = dir.as_ref().display().to_string();
+            let end_slash = d.ends_with('/');
+            if !end_slash {
+                d.push('/');
+            }
+            PathBuf::from(format!(r"{}{}", d, hex::encode(fi)))
+        })
         .collect();
     for path in file_path.iter() {
         if !path.exists() {
-            return errbang!(err::ShieldPathError, "file doesn't exists. {:?}", path);
+            return errbang!(err::ShieldPathNotMatching, "matching files do not exist.");
         }
     }
 

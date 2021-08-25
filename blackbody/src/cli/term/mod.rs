@@ -166,8 +166,13 @@ impl Term {
         self.stack.push(&command);
         command
     }
+    // nfkd encoded
     pub fn read_line(&mut self) -> String {
-        self.stdout.read_line().unwrap_or_default()
+        self.stdout
+            .read_line()
+            .unwrap_or_default()
+            .nfkd()
+            .to_string()
     }
     pub fn move_cursor_up(&self, n: usize) {
         self.stdout.move_cursor_up(n).unwrap_or_else(else_error!());
