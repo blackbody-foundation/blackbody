@@ -22,6 +22,7 @@ mod load;
 pub use load::Envs;
 
 mod config;
+pub use config::Config;
 
 use clap::ArgMatches;
 

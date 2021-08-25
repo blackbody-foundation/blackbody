@@ -56,140 +56,18 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                 (false, re_password)
             }
         });
-
-        term.reset_screen();
-        term.eprintln("new master key:");
-        let key_password = term.read_password_op(&password_option, |pass| (true, pass));
-        term.eprintln("confirmation:");
-        let key_password = term.read_password_op(&password_option, |re_password| {
-            if key_password == re_password {
-                (true, re_password)
-            } else {
-                (false, re_password)
-            }
-        });
-
-        term.reset_screen();
-        term.eprintln("new key salt:");
-        let salt = term.read_password_op(&salt_option, |password| {
-            if let Ok(v) = password.parse::<usize>() {
-                (v > 1, v)
-            } else {
-                (false, 0)
-            }
-        });
-        term.eprintln("confirmation:");
-        let salt = term.read_password_op(&salt_option, |password| {
-            if let Ok(v) = password.parse::<usize>() {
-                (v == salt, v)
-            } else {
-                (false, 0)
-            }
-        });
-
-        term.reset_screen();
-
-        term.eprintln("mnemonic language:");
-        let lang = term.get_select(&[
-            SelItem("english", "en"),
-            SelItem("korean", "ko"),
-            SelItem("italian", "it"),
-            SelItem("french", "fr"),
-            SelItem("spanish", "es"),
-            SelItem("japanese", "ja"),
-            SelItem("chinese-simplified", "zh-hans"),
-            SelItem("chinese-traditional", "zh-hant"),
-        ]);
-
-        let hd_lang = match hdkey::Language::from_language_code(lang.as_str()) {
-            Some(v) => v,
-            None => return errbang!(err::BrokenContent, "envs.locked is broken."),
-        };
-
-        term.reset_screen();
-        let mut dirs;
-        let (keypair, mnemonic) = loop {
-            term.eprintln("key saving target directory:\n");
-            term.eprintln("number of split folders(range 2 ~ 255):");
-
-            let n_dirs = match term.read_line().parse::<u8>() {
-                Ok(v) if v > 1 => v,
-                _ => {
-                    term.eprintln("range: 2 ~ 255.");
-                    continue;
-                }
-            };
-
-            dirs = Vec::new();
-            for _ in 0..n_dirs {
-                let mut path;
-                loop {
-                    term.eprintln("path:");
-                    path = term.read_line();
-                    if PathBuf::from(&path).exists() {
-                        break;
-                    } else {
-                        term.eprintln("target directory doesn't exist.");
-                    }
-                }
-                dirs.push(path);
-            }
-
-            match key::master::save_original_key(
-                &key_password,
-                salt,
-                hd_lang,
-                &account_password,
-                &dirs,
-            ) {
-                Ok(v) => break v,
-                Err(e) if errmatch!(e, key::master::ShieldPathError) => {
-                    term.reset_screen();
-                    term.eprintln(cat!("{}\n", e))
-                }
-                Err(e) => return Err(e),
-            }
-        };
-
-        show_mnemonic(term, mnemonic);
-
-        let mut new_config = Envs::new_config();
-        new_config.new_key(lang, dirs);
-
-        term.reset_screen();
-        term.eprintln("successfully created!");
-
-        if reset_mode {
-            envs.delete()?; // delete envs.locked
-        }
-        // save envs.locked
-        let _ = envs.save(&account_password, new_config)?;
-        // load envs.locked
-        if let Ok(v) = envs.load(&account_password) {
-            // re-load master key
-            let keypair_reload = key::master::read_original_key(
-                key_password,
-                salt,
-                hd_lang,
-                account_password,
-                v.keys[0].dirs.as_slice(),
-            )?;
-            // last check
-            if keypair == keypair_reload {
-                return Ok(key::master::safe_key(keypair)); // return master keypair
-            } else {
-                something_wrong!(name!(FileIsNotWritten))();
-            }
-        } else {
-            something_wrong!(name!(FileIsNotWritten))();
-        }
+        return create_new_master_key(
+            term,
+            account_password,
+            &password_option,
+            &salt_option,
+            envs,
+            None,
+            reset_mode,
+        );
     };
 
     // if key already exists
-
-    // select account
-    let n_account = 0;
-
     term.eprintln("account:");
     let out = term.read_password_op(&password_option, |password| {
         if let Ok(conf) = envs.load(&password) {
@@ -200,16 +78,35 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
     });
 
     // extract things
-    let login_password = out.1;
+    let account_password = out.1;
     let config = out.0;
 
-    if login_password.is_empty() {
+    if account_password.is_empty() {
         return errbang!(err::MysteriousError, "login password is empty.");
     }
 
+    let n_key = get_select_n_key(term, &config);
+    if n_key == "new" {
+        // if user select 'n' key for new master key
+        // new key
+        return create_new_master_key(
+            term,
+            account_password,
+            &password_option,
+            &salt_option,
+            envs,
+            Some(config),
+            false,
+        );
+    } else if n_key.ends_with(" remove") {
+        // ========= todo!()
+    }
+
+    let n_key = n_key.parse::<usize>()?;
+
     let keypair = {
         term.reset_screen();
-        term.eprintln("master key:");
+        term.eprintln("key password:");
         let words = term.read_password_op(&password_option, |pass| (true, pass));
 
         term.reset_screen();
@@ -223,7 +120,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
         });
 
         term.reset_screen();
-        let lang = match hdkey::Language::from_language_code(config.keys[n_account].lang.as_str()) {
+        let lang = match hdkey::Language::from_language_code(config.keys[n_key].lang.as_str()) {
             Some(v) => v,
             None => return errbang!(err::BrokenContent, "envs.locked is broken."),
         };
@@ -232,14 +129,44 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                 words,
                 salt,
                 lang,
-                login_password,
-                config.keys[n_account].dirs.as_slice(),
+                account_password,
+                config.keys[n_key].dirs.as_slice(),
             ),
             key::master::ShieldPathNotMatching => something_wrong!("login failed")()))
     };
 
     config.drop(); // because of importance, specify this.
     Ok(keypair)
+}
+
+fn get_select_n_key(term: &mut Term, config: &Config) -> String {
+    term.reset_screen();
+    term.eprintln("master key:");
+
+    let mut sel_list = Vec::new();
+
+    let index = (0..config.keys.len())
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>();
+
+    for (i, key) in config.keys.iter().enumerate() {
+        sel_list.push(SelItem(key.address.as_str(), &index[i]));
+    }
+
+    term.get_select(
+        &sel_list,
+        Some((
+            &[" [ n ]   new key", " [ r ]   remove key"],
+            Box::new(|c, mut res| match c {
+                Key::Char('n') => (true, String::from("new")),
+                Key::Char('r') => {
+                    res.push_str(" remove");
+                    (true, res)
+                }
+                _ => (false, res),
+            }),
+        )),
+    )
 }
 
 fn show_mnemonic(term: &mut Term, mnemonic: String) {
@@ -257,12 +184,155 @@ fn show_mnemonic(term: &mut Term, mnemonic: String) {
     term.hide_cursor();
     term.reset_screen();
     for (i, chunk) in mnemonic.chunks(size).enumerate() {
-        term.eprint(cat!("\r{}.\n{}\n\npress any key..", i + 1, chunk.join(" ")));
-        term.move_cursor_up(3);
+        term.eprint(cat!(
+            "\r{}.\n\n{}\n\npress any key..",
+            i + 1,
+            chunk.join(" ")
+        ));
+        term.move_cursor_up(4);
         let _ = term.read_key();
     }
     term.move_cursor_down(1);
     term.clear_line();
     term.reset_screen();
     term.show_cursor();
+}
+
+fn create_new_master_key(
+    term: &mut Term,
+    account_password: String,
+    password_option: &TermPassword,
+    salt_option: &TermPassword,
+    envs: Envs,
+    config: Option<Config>,
+    reset_mode: bool,
+) -> Result<hdkey::WrappedKeypair> {
+    term.reset_screen();
+    term.eprintln("new master key:");
+    let key_password = term.read_password_op(password_option, |pass| (true, pass));
+    term.eprintln("confirmation:");
+    let key_password = term.read_password_op(password_option, |re_password| {
+        if key_password == re_password {
+            (true, re_password)
+        } else {
+            (false, re_password)
+        }
+    });
+
+    term.reset_screen();
+    term.eprintln("new key salt:");
+    let salt = term.read_password_op(salt_option, |password| {
+        if let Ok(v) = password.parse::<usize>() {
+            (v > 1, v)
+        } else {
+            (false, 0)
+        }
+    });
+    term.eprintln("confirmation:");
+    let salt = term.read_password_op(salt_option, |password| {
+        if let Ok(v) = password.parse::<usize>() {
+            (v == salt, v)
+        } else {
+            (false, 0)
+        }
+    });
+
+    term.reset_screen();
+
+    term.eprintln("mnemonic language:");
+    let lang = term.get_select(
+        &[
+            SelItem("english", "en"),
+            SelItem("korean", "ko"),
+            SelItem("italian", "it"),
+            SelItem("french", "fr"),
+            SelItem("spanish", "es"),
+            SelItem("japanese", "ja"),
+            SelItem("chinese-simplified", "zh-hans"),
+            SelItem("chinese-traditional", "zh-hant"),
+        ],
+        None,
+    );
+
+    let hd_lang = match hdkey::Language::from_language_code(lang.as_str()) {
+        Some(v) => v,
+        None => return errbang!(err::BrokenContent, "envs.locked is broken."),
+    };
+
+    term.reset_screen();
+    let mut dirs;
+    let (keypair, mnemonic) = loop {
+        term.eprintln("key saving target directory:\n");
+        term.eprintln("number of split folders(range 2 ~ 255):");
+
+        let n_dirs = match term.read_line().parse::<u8>() {
+            Ok(v) if v > 1 => v,
+            _ => {
+                term.eprintln("range: 2 ~ 255.");
+                continue;
+            }
+        };
+
+        dirs = Vec::new();
+        for _ in 0..n_dirs {
+            let mut path;
+            loop {
+                term.eprintln("path:");
+                path = term.read_line();
+                if PathBuf::from(&path).exists() {
+                    break;
+                } else {
+                    term.eprintln("target directory doesn't exist.");
+                }
+            }
+            dirs.push(path);
+        }
+
+        match key::master::save_original_key(&key_password, salt, hd_lang, &account_password, &dirs)
+        {
+            Ok(v) => break v,
+            Err(e) if errmatch!(e, key::master::ShieldPathError) => {
+                term.reset_screen();
+                term.eprintln(cat!("{}\n", e))
+            }
+            Err(e) => return Err(e),
+        }
+    };
+
+    show_mnemonic(term, mnemonic);
+
+    let mut new_config = if let Some(conf) = config {
+        conf
+    } else {
+        Envs::new_config()
+    };
+    new_config.new_key(keypair.public().as_base58check(), lang, dirs);
+
+    term.reset_screen();
+    term.eprintln("successfully created!");
+
+    if reset_mode {
+        envs.delete()?; // delete envs.locked
+    }
+    // save envs.locked
+    let _ = envs.save(&account_password, new_config)?;
+    // load envs.locked
+    if let Ok(v) = envs.load(&account_password) {
+        // re-load master key
+        let keypair_reload = key::master::read_original_key(
+            key_password,
+            salt,
+            hd_lang,
+            account_password,
+            v.keys[0].dirs.as_slice(),
+        )?;
+        // last check
+        if keypair == keypair_reload {
+            Ok(key::master::safe_key(keypair)) // return master keypair
+        } else {
+            something_wrong!(name!(FileIsNotWritten))()
+        }
+    } else {
+        something_wrong!(name!(FileIsNotWritten))()
+    }
 }

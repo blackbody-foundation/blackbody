@@ -284,7 +284,11 @@ impl Term {
         }
         command
     }
-    pub fn get_select<T: AsRef<str>>(&mut self, list: &[SelItem<T>]) -> String {
+    pub fn get_select<T: AsRef<str>>(
+        &mut self,
+        list: &[SelItem<T>],
+        other_key: Option<OtherKeys>,
+    ) -> String {
         let mut number = 0;
         let max_number = list.len() - 1;
         let none_style = Style::new().white();
@@ -308,6 +312,13 @@ impl Term {
                 style.apply_to(list[number].display())
             ));
         };
+        if let Some((help, _)) = other_key {
+            self.eprintln("\n\n\n\n\n");
+            for other in help.iter() {
+                self.eprintln(other.as_ref());
+            }
+            self.move_cursor_up(help.len() + 6);
+        }
         loop {
             render_item(number, &selected_style);
             match self.read_key() {
@@ -329,7 +340,14 @@ impl Term {
                     self.eprintln("");
                     return String::from(list[number].result());
                 }
-                _ => {}
+                c => {
+                    if let Some((_, ref f)) = other_key {
+                        let result = f(c, String::from(list[number].result()));
+                        if result.0 {
+                            return result.1;
+                        }
+                    }
+                }
             }
         }
     }

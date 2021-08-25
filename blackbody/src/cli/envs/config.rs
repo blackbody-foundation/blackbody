@@ -22,12 +22,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub keys: Vec<HDKey>,
+    pub keys: Vec<MasterKey>,
     pub env: Vec<EnvPair>,
 }
 impl Config {
-    pub fn new_key(&mut self, lang: String, dirs: Vec<String>) {
-        self.keys.push(HDKey { lang, dirs });
+    pub fn new_key(&mut self, address: String, lang: String, dirs: Vec<String>) {
+        self.keys.push(MasterKey {
+            address,
+            lang,
+            dirs,
+        });
     }
     pub fn drop(self) {}
 }
@@ -44,7 +48,8 @@ impl Default for Config {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct HDKey {
+pub struct MasterKey {
+    pub address: String,
     pub lang: String,
     pub dirs: Vec<String>,
 }

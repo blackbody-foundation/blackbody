@@ -32,6 +32,12 @@ impl<T: AsRef<str>> SelItem<T> {
     }
 }
 
+/// key name & help list , |any key, result value| { return (true, String) } if `true` -> `return`
+pub type OtherKeys<'a> = (
+    &'a [&'a str],
+    Box<dyn Fn(console::Key, String) -> (bool, String)>,
+);
+
 /// encrypt
 pub use vep::{Digester, Vep};
 

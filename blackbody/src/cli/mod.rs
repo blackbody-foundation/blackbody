@@ -21,7 +21,7 @@
 pub mod args;
 
 pub mod envs;
-pub use envs::{verbose, Envs};
+pub use envs::{verbose, Config, Envs};
 
 mod term;
-pub use term::{cat, style, SelItem, Style, Term, TermPassword};
+pub use term::{cat, style, Key, OtherKeys, SelItem, Style, Term, TermPassword};

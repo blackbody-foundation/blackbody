@@ -22,8 +22,8 @@ use crate::{err, errbang, errcast, style, Result};
 use std::io::{Read, Write};
 use std::{
     env,
-    fs::{File, OpenOptions},
-    path::PathBuf,
+    fs::OpenOptions,
+    path::{Path, PathBuf},
 };
 
 use hmac::{Hmac, Mac, NewMac};
@@ -84,9 +84,11 @@ impl Envs {
         let buf = encrypt(password, original_src.as_bytes())?;
         // write envs.locked file
         let path = self.path.as_path();
-        let mut file =OpenOptions::new().create(true).write(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
+
+        set_permission(path, false); // read only
+        let mut file = OpenOptions::new().write(true).create(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
         file.write_all(&buf)?;
-        set_permission(file); // read only
+        set_permission(path, true); // read only
         Ok(())
     }
     /// *** warning ***
@@ -101,7 +103,6 @@ impl Envs {
         Ok(toml::to_string(&config)?)
     }
 }
-
 fn encrypt(password: &str, buf: &[u8]) -> Result<Vec<u8>> {
     let hash = password_to_hash(password)?;
 
@@ -143,11 +144,10 @@ fn password_to_hash(password: &str) -> Result<Vec<u8>> {
 }
 
 #[inline]
-fn set_permission(file: File) {
-    if let Ok(v) = file.metadata() {
+fn set_permission(path: &Path, readonly: bool) {
+    if let Ok(v) = path.metadata() {
         let mut perm = v.permissions();
-        perm.set_readonly(true);
-        file.set_permissions(perm)
-            .unwrap_or_else(|e| eprintln!("{}", e));
+        perm.set_readonly(readonly);
+        std::fs::set_permissions(path, perm).unwrap_or_else(|e| eprintln!("{}", e));
     }
 }
