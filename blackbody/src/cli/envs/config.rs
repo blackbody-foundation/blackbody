@@ -26,6 +26,9 @@ pub struct Config {
     pub env: Vec<EnvPair>,
 }
 impl Config {
+    pub fn remove_key(&mut self, index: usize) {
+        self.keys.remove(index);
+    }
     pub fn new_key(&mut self, address: String, lang: String, dirs: Vec<String>) {
         self.keys.push(MasterKey {
             address,

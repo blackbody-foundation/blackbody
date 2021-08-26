@@ -85,7 +85,8 @@ impl Envs {
         // write envs.locked file
         let path = self.path.as_path();
 
-        set_permission(path, false); // read only
+        set_permission(path, false);
+        self.delete()?;
         let mut file = OpenOptions::new().write(true).create(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
         file.write_all(&buf)?;
         set_permission(path, true); // read only
@@ -95,7 +96,7 @@ impl Envs {
     pub fn delete(&self) -> Result<()> {
         let path = self.path.as_path();
         if path.exists() {
-            std::fs::remove_dir_all(path)?;
+            std::fs::remove_file(path)?;
         }
         Ok(())
     }

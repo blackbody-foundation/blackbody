@@ -79,14 +79,29 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
 
     // extract things
     let account_password = out.1;
-    let config = out.0;
+    let mut config = out.0;
 
     if account_password.is_empty() {
         return errbang!(err::MysteriousError, "login password is empty.");
     }
 
-    let n_key = get_select_n_key(term, &config);
-    if n_key == "new" {
+    // empty key
+    if config.keys.is_empty() {
+        // new key
+        return create_new_master_key(
+            term,
+            account_password,
+            &password_option,
+            &salt_option,
+            envs,
+            Some(config),
+            false,
+        );
+    }
+
+    let n_key = get_select_n_key(term, &config); // select key
+
+    let (n_key, remove_mode) = if n_key == "new" {
         // if user select 'n' key for new master key
         // new key
         return create_new_master_key(
@@ -99,10 +114,10 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             false,
         );
     } else if n_key.ends_with(" remove") {
-        // ========= todo!()
-    }
-
-    let n_key = n_key.parse::<usize>()?;
+        ((&n_key[0..n_key.len() - 7]).parse::<usize>()?, true)
+    } else {
+        (n_key.parse::<usize>()?, false)
+    };
 
     let keypair = {
         term.reset_screen();
@@ -124,15 +139,61 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             Some(v) => v,
             None => return errbang!(err::BrokenContent, "envs.locked is broken."),
         };
-
-        key::master::safe_key(errextract!(key::master::read_original_key(
-                words,
+        let (keypair, mnemonic) = errextract!(key::master::read_original_key(
+                words.clone(),
                 salt,
                 lang,
-                account_password,
+                account_password.clone(),
                 config.keys[n_key].dirs.as_slice(),
             ),
-            key::master::ShieldPathNotMatching => something_wrong!("login failed")()))
+            key::master::ShieldPathNotMatching => something_wrong!("login failed")());
+
+        if remove_mode {
+            term.eprintln("really do you want remove the key?  (y/n)\n");
+            extract_key!(term,
+                Key::Char('y') => {break},
+                Key::Char('n') => {
+                    something_wrong!("please restart blackbody.")();
+                },
+                _ => {continue}
+            );
+            term.reset_screen();
+            term.eprintln(
+                "then please input your first five mnemonic words. (seprate whitespace)\n",
+            );
+            let check = loop {
+                let check = term.read_line();
+                if !check.is_empty() {
+                    break check;
+                }
+            };
+            if check.as_str()
+                == mnemonic
+                    .split_whitespace()
+                    .take(5)
+                    .collect::<Vec<&str>>()
+                    .join(" ")
+            {
+                key::master::remove_original_key(
+                    &words,
+                    salt,
+                    &account_password,
+                    config.keys[n_key].dirs.as_slice(),
+                )?;
+                config.remove_key(n_key);
+                envs.save(&account_password, config)?;
+                drop(words);
+                drop(account_password);
+                term.eprintln("removed!");
+                thread::sleep(Duration::from_secs(2));
+                return login(term, false);
+            } else {
+                something_wrong!("failed!")();
+            }
+        } else {
+            drop(account_password);
+        }
+        key::master::safe_key(keypair)
     };
 
     config.drop(); // because of importance, specify this.
@@ -172,9 +233,9 @@ fn get_select_n_key(term: &mut Term, config: &Config) -> String {
 fn show_mnemonic(term: &mut Term, mnemonic: String) {
     term.reset_screen();
     term.eprintln("please prepare a pencil for recording your mnemonic.\n");
-    thread::sleep(Duration::from_secs(2));
+    thread::sleep(Duration::from_secs(1));
     term.eprintln("the words will be shown four times in a total.\n");
-    thread::sleep(Duration::from_secs(2));
+    thread::sleep(Duration::from_secs(1));
     term.eprintln("if you are ready, press any key.\n");
     let _ = term.read_key();
     term.reset_screen();
@@ -319,7 +380,7 @@ fn create_new_master_key(
     // load envs.locked
     if let Ok(v) = envs.load(&account_password) {
         // re-load master key
-        let keypair_reload = key::master::read_original_key(
+        let (keypair_reload, _) = key::master::read_original_key(
             key_password,
             salt,
             hd_lang,

@@ -56,11 +56,21 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
     lang: Language,
     login_password: &str,
     target_directories: &[T],
-) -> Result<Keypair> {
+) -> Result<(Keypair, String)> {
     let mixed_password = format!("{}{}", words, login_password);
     let phrase = shield::extract_mnemonic_phrase(target_directories, &mixed_password, salt)?;
     let seed = seed_from_phrase(words, lang, phrase.as_str())?;
-    Keypair::new(&seed, version)
+    Ok((Keypair::new(&seed, version)?, phrase))
+}
+
+pub fn remove_master_key<T: AsRef<Path>>(
+    words: &str,
+    salt: usize,
+    login_password: &str,
+    target_directories: &[T],
+) -> Result<()> {
+    let mixed_password = format!("{}{}", words, login_password);
+    shield::delete_key_file(target_directories, &mixed_password, salt)
 }
 
 pub fn new_seed(words: &str, lang: Language) -> Result<(String, Vec<u8>)> {

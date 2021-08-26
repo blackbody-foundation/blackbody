@@ -30,7 +30,7 @@ pub fn read_original_key<T>(
     lang: Language,
     login_password: String,
     target_directories: &[T],
-) -> Result<Keypair>
+) -> Result<(Keypair, String)>
 where
     T: AsRef<Path>,
 {
@@ -62,6 +62,18 @@ where
         login_password,
         target_directories,
     )
+}
+
+pub fn remove_original_key<T>(
+    words: &str,
+    salt: usize,
+    login_password: &str,
+    target_directories: &[T],
+) -> Result<()>
+where
+    T: AsRef<Path>,
+{
+    gen::remove_master_key(words, salt, login_password, target_directories)
 }
 
 pub fn safe_key(keypair: Keypair) -> WrappedKeypair {

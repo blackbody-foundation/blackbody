@@ -194,6 +194,49 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     Ok(String::from_utf8(mnemonic.concat())?)
 }
 
+/// *** warning ***
+pub fn delete_key_file<T: AsRef<Path>>(
+    target_directories: &[T],
+    password: &str,
+    salt: usize,
+) -> Result<()> {
+    let password = validate_ps(password, salt)?;
+
+    let num_dirs = target_directories.len();
+
+    let h_pw = password_to_hash(password, salt); // H(pw)
+
+    let chunk_size = (h_pw.len() as f32 / num_dirs as f32).ceil() as usize;
+    let piece_of_file_name = h_pw.chunks(chunk_size);
+
+    let file_path: Vec<PathBuf> = target_directories
+        .iter()
+        .zip(piece_of_file_name)
+        .map(|(dir, fi)| {
+            let mut d = dir.as_ref().display().to_string();
+            let end_slash = d.ends_with('/');
+            if !end_slash {
+                d.push('/');
+            }
+            PathBuf::from(format!(r"{}{}", d, hex::encode(fi)))
+        })
+        .collect();
+    for path in file_path.iter() {
+        if !path.exists() {
+            return errbang!(
+                err::ShieldPathNotMatching,
+                "matching files do not exist. {:?}",
+                path
+            );
+        }
+    }
+    for file in file_path.iter() {
+        // remove real key file
+        std::fs::remove_file(file)?;
+    }
+    Ok(())
+}
+
 /// ## Return
 /// normalized words(nfkd).
 fn validate_ps(password: &str, salt: usize) -> Result<String> {

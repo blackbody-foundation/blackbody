@@ -88,3 +88,20 @@ macro_rules! check_rx_return {
     };
 }
 pub use check_rx_return;
+
+///```no_run
+/// extract_key!(&term, Key::Char('y') => {break}, Key::Char('n') => {..}, _ => {continue});
+///```
+#[macro_export]
+macro_rules! extract_key {
+    ($term:expr, $($key:pat => $matching:block),+) => {
+        loop {
+            match $term.read_key() {
+                $(
+                    $key => $matching
+                )+
+            }
+        }
+    };
+}
+pub use extract_key;
