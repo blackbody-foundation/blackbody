@@ -35,7 +35,8 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
         .encrypt(false)
         .max_opportunity(MAX_OPPORTUNITY)
         .min_length(1)
-        .max_length(10);
+        .max_length(10)
+        .not_matching_message("salt (10 ~ 999999999)");
     salt_option
         .min_length
         .set_error_message(Some("salt must be more than 10"));
@@ -128,7 +129,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
         term.eprintln("key salt:");
         let salt = term.read_password_op(&salt_option, |password| {
             if let Ok(v) = password.parse::<usize>() {
-                (v > 1, v)
+                (v > 9, v)
             } else {
                 (false, 0)
             }
@@ -204,9 +205,11 @@ fn get_select_n_key(term: &mut Term, config: &Config) -> String {
     term.reset_screen();
     term.eprintln("master key:");
 
-    let mut sel_list = Vec::new();
+    let key_count = config.keys.len();
 
-    let index = (0..config.keys.len())
+    let mut sel_list = Vec::with_capacity(key_count);
+
+    let index = (0..key_count)
         .map(|x| x.to_string())
         .collect::<Vec<String>>();
 
@@ -284,7 +287,7 @@ fn create_new_master_key(
     term.eprintln("new key salt:");
     let salt = term.read_password_op(salt_option, |password| {
         if let Ok(v) = password.parse::<usize>() {
-            (v > 1, v)
+            (v > 9, v)
         } else {
             (false, 0)
         }
@@ -334,7 +337,7 @@ fn create_new_master_key(
             }
         };
 
-        dirs = Vec::new();
+        dirs = Vec::with_capacity(n_dirs as usize);
         for _ in 0..n_dirs {
             let mut path;
             loop {
@@ -349,13 +352,11 @@ fn create_new_master_key(
             dirs.push(path);
         }
 
+        term.reset_screen();
         match key::master::save_original_key(&key_password, salt, hd_lang, &account_password, &dirs)
         {
             Ok(v) => break v,
-            Err(e) if errmatch!(e, key::master::ShieldPathError) => {
-                term.reset_screen();
-                term.eprintln(cat!("{}\n", e))
-            }
+            Err(e) if errmatch!(e, key::master::ShieldPathError) => term.eprintln(cat!("{}\n", e)),
             Err(e) => return Err(e),
         }
     };
@@ -380,12 +381,13 @@ fn create_new_master_key(
     // load envs.locked
     if let Ok(v) = envs.load(&account_password) {
         // re-load master key
+        let last_key_index = v.keys.len() - 1;
         let (keypair_reload, _) = key::master::read_original_key(
             key_password,
             salt,
             hd_lang,
             account_password,
-            v.keys[0].dirs.as_slice(),
+            v.keys[last_key_index].dirs.as_slice(),
         )?;
         // last check
         if keypair == keypair_reload {

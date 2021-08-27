@@ -156,7 +156,7 @@ impl Term {
                 return output;
             }
 
-            self.eprintln(name!(NotMatching));
+            self.eprintln(option.not_matching_message.get_value());
         }
         something_wrong!(name!(ForgotPassword))()
     }

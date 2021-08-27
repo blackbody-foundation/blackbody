@@ -26,7 +26,7 @@ pub use std::{
 };
 
 pub use actix_web::dev::Server;
-pub use crossbeam::channel::TryRecvError;
+pub use crossbeam::channel::{bounded, unbounded};
 pub use utils::system::*;
 
 // common in cli
@@ -49,7 +49,7 @@ pub struct ServerList(pub Vec<Net>);
 
 impl ServerList {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self(Vec::with_capacity(2))
     }
 }
 impl IntoIterator for ServerList {

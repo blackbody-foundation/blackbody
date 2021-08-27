@@ -39,7 +39,7 @@ pub async fn index(web::Path((id, name)): web::Path<(u32, String)>) -> impl Resp
     )
 }
 
-pub fn run() -> Net {
+pub fn run() -> Result<Net> {
     let (tx, rx) = unbounded();
     let v = verbose::init!("outter", "verbose");
 
@@ -59,9 +59,8 @@ pub fn run() -> Net {
         Ok(())
     });
 
-    Net::new(
+    Ok(Net::new(
         SERVER_NAME,
-        rx.recv()
-            .unwrap_or_else(something_wrong!(name!(UnexpectedRuntime), _)),
-    )
+        rx.recv().map_err(|_| name!(UnexpectedRuntime))?,
+    ))
 }

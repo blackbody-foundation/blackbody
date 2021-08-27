@@ -150,38 +150,27 @@ impl Kind {
             checksum = h(checksum.as_slice());
         }
         let checksum_len = self.2 as usize;
-        for &byte in checksum.iter().take(checksum_len) {
-            version.push(byte); // (version + src) + checksum[..len]
-        }
+        checksum.truncate(checksum_len);
+        version.extend(checksum.into_iter());
         version
     }
     pub fn detach_from(self, src: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        let target_version = self.0.to_be_bytes();
         let src_len = src.len();
+        let target_version = self.0.to_be_bytes();
         let version_len = target_version.len();
         let checksum_len = self.2 as usize;
-        let mut version = Vec::new();
-        let mut payload = Vec::new();
-        let mut checksum = Vec::new();
-        for (i, &byte) in src.iter().enumerate() {
-            if i < version_len {
-                version.push(byte);
-            } else if i < src_len - checksum_len {
-                payload.push(byte);
-            } else {
-                checksum.push(byte);
-            }
-        }
+        let version = &src[..version_len];
+        let payload = &src[version_len - 1..src_len - checksum_len];
+        let checksum = &src[src_len - checksum_len - 1..];
+
+        let mut target_checksum = Vec::from(&src[..src_len - checksum_len]);
+
         let hashing = self.1;
-        let mut target_checksum0 = Vec::from(version.as_slice());
-        target_checksum0.extend_from_slice(payload.as_slice()); // version + src
         for h in hashing.iter() {
-            target_checksum0 = h(target_checksum0.as_slice());
+            target_checksum = h(target_checksum.as_slice());
         }
-        let mut target_checksum = Vec::new();
-        for byte in target_checksum0.into_iter().take(checksum_len) {
-            target_checksum.push(byte); // H(version + src)[..len] = checksum
-        }
+        target_checksum.truncate(checksum_len);
+
         if version != target_version.as_ref() {
             return Err(format!(
                 "version is not match: {} != your {}",
@@ -198,6 +187,6 @@ impl Kind {
             )
             .into());
         }
-        Ok(payload)
+        Ok(payload.to_vec())
     }
 }

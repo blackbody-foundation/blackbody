@@ -77,7 +77,7 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
         })
         .collect();
     for path in file_path.iter() {
-        if path.exists() {
+        if path.is_file() {
             return errbang!(err::ShieldPathError, "file already exists. {:?}", path);
         }
     }
@@ -134,7 +134,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
     let chunk_size = (h_pw.len() as f32 / num_dirs as f32).ceil() as usize;
     let piece_of_file_name = h_pw.chunks(chunk_size);
 
-    let mut mnemonic = Vec::new();
+    let mut mnemonic = Vec::with_capacity(num_dirs);
 
     let file_path: Vec<PathBuf> = target_directories
         .iter()
@@ -149,8 +149,12 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
         })
         .collect();
     for path in file_path.iter() {
-        if !path.exists() {
-            return errbang!(err::ShieldPathNotMatching, "matching files do not exist.");
+        if !path.is_file() {
+            return errbang!(
+                err::ShieldPathNotMatching,
+                "matching files do not exist. {:?}",
+                path
+            );
         }
     }
 
@@ -222,12 +226,8 @@ pub fn delete_key_file<T: AsRef<Path>>(
         })
         .collect();
     for path in file_path.iter() {
-        if !path.exists() {
-            return errbang!(
-                err::ShieldPathNotMatching,
-                "matching files do not exist. {:?}",
-                path
-            );
+        if !path.is_file() {
+            return errbang!(err::ShieldPathNotMatching, "matching files do not exist.");
         }
     }
     for file in file_path.iter() {

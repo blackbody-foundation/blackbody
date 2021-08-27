@@ -44,7 +44,7 @@ pub fn new_master_key<T: AsRef<Path>>(
     target_directories: &[T],
 ) -> Result<(Keypair, String)> {
     let (phrase, seed) = new_seed(words, lang)?;
-    let mixed_password = format!("{}{}", words, login_password);
+    let mixed_password = format!("{}{}{}", words, salt, login_password);
     shield::thrust_mnemonic_phrase(&phrase, target_directories, &mixed_password, salt)?;
     Ok((Keypair::new(&seed, version)?, phrase))
 }
@@ -57,9 +57,10 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
     login_password: &str,
     target_directories: &[T],
 ) -> Result<(Keypair, String)> {
-    let mixed_password = format!("{}{}", words, login_password);
+    let mixed_password = format!("{}{}{}", words, salt, login_password);
     let phrase = shield::extract_mnemonic_phrase(target_directories, &mixed_password, salt)?;
-    let seed = seed_from_phrase(words, lang, phrase.as_str())?;
+    let seed =
+        seed_from_phrase(words, lang, phrase.as_str()).map_err(|_| "maybe another key you have")?;
     Ok((Keypair::new(&seed, version)?, phrase))
 }
 
@@ -69,7 +70,7 @@ pub fn remove_master_key<T: AsRef<Path>>(
     login_password: &str,
     target_directories: &[T],
 ) -> Result<()> {
-    let mixed_password = format!("{}{}", words, login_password);
+    let mixed_password = format!("{}{}{}", words, salt, login_password);
     shield::delete_key_file(target_directories, &mixed_password, salt)
 }
 

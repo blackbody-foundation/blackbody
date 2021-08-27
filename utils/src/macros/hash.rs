@@ -65,7 +65,7 @@ macro_rules! hashchains {
                     fn default() -> Self {
                         Self {
                             hash: <$algo>::new(),
-                            latest_output: Vec::new(),
+                            latest_output: Vec::with_capacity($output),
                         }
                     }
                 }

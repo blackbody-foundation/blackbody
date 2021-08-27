@@ -37,13 +37,15 @@ mod tests {
     const FILE_PATH: &str = "test";
     #[test]
     fn otoodb() -> Result<()> {
-        if std::path::Path::new(FILE_PATH).exists() {
+        if std::path::Path::new(FILE_PATH).is_file() {
             fs::remove_file(FILE_PATH)?;
         }
 
-        let mut packet = Vec::new();
-        for i in 1..=250_u8 {
-            packet.push((vec![i + 1, i + 2, i + 3, i + 4], vec![i + 5; 32]));
+        let mut packet = [([0u8; 4], [0u8; 32]); 250];
+        let mut i = 1u8;
+        for p in packet.iter_mut() {
+            *p = ([i + 1, i + 2, i + 3, i + 4], [i + 5; 32]);
+            i += 1;
         }
 
         // test: define

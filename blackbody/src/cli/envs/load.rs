@@ -44,11 +44,15 @@ impl Envs {
         Config::default()
     }
     pub fn new() -> Self {
-        let path = PathBuf::from(env::var("ENV_PATH").unwrap_or_else(|_| DEFAULT_PATH.to_string()));
+        let mut path =
+            PathBuf::from(env::var("ENV_PATH").unwrap_or_else(|_| DEFAULT_PATH.to_string()));
+        if !path.is_file() && path.is_dir() {
+            path.push("envs.locked");
+        }
         Self { path }
     }
     pub fn exists(&self) -> bool {
-        self.path.exists()
+        self.path.is_file()
     }
     pub fn load(&self, password: &str) -> Result<Config> {
         if !self.exists() {
@@ -95,7 +99,7 @@ impl Envs {
     /// *** warning ***
     pub fn delete(&self) -> Result<()> {
         let path = self.path.as_path();
-        if path.exists() {
+        if path.is_file() {
             std::fs::remove_file(path)?;
         }
         Ok(())

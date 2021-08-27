@@ -45,7 +45,7 @@ mod tests {
     #[test]
     fn it_works() {
         // crate paths
-        let mut dirs = Vec::new();
+        let mut dirs = Vec::with_capacity(NUM_DIRS);
         for i in 0..NUM_DIRS {
             dirs.push(PathBuf::from(format!("/{}/{}", TARGET_DIR, i)));
         }

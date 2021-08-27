@@ -28,12 +28,12 @@ pub mod rpc;
 mod verify;
 
 #[inline]
-pub fn run(mode: &str) -> ServerList {
-    ServerList(match mode {
-        rpc::SERVER_NAME => vec![rpc::run()],
-        api::SERVER_NAME => vec![api::run()],
-        _ => vec![rpc::run(), api::run()], /* start RPC -> API */
-    })
+pub fn run(mode: &str) -> Result<ServerList> {
+    Ok(ServerList(match mode {
+        rpc::SERVER_NAME => vec![rpc::run()?],
+        api::SERVER_NAME => vec![api::run()?],
+        _ => vec![rpc::run()?, api::run()?], /* start RPC -> API */
+    }))
 }
 
 #[inline]
@@ -49,21 +49,22 @@ pub fn stop(servers: &mut ServerList) {
     thread::sleep(Duration::from_millis(100));
 }
 
-pub fn restart(servers: &mut ServerList, mode: &str) {
+pub fn restart(servers: &mut ServerList, mode: &str) -> Result<()> {
     match mode {
         api::SERVER_NAME => {}
         rpc::SERVER_NAME => {}
         name!(BOTH) => {
             stop(servers);
-            *servers = run(mode);
-            return;
+            *servers = run(mode)?;
+            return Ok(());
         }
         _ => something_wrong!("* Failed to restart invalid mode name")(),
     }
 
     let _ = find_and_stop(servers, mode);
-    let net = run(mode);
+    let net = run(mode)?;
     servers.extend(net);
+    Ok(())
 }
 
 pub fn find_and_stop(servers: &mut ServerList, mode: &str) -> Result<()> {

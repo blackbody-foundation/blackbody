@@ -59,6 +59,7 @@ optionee! {
             encrypt: bool [=] false
             min_length: u8 [>] 7, "password must be more than 8 lengths bytes."
             max_length: u8 [<] 21, "password must be less than 20 lengths bytes."
+            not_matching_message: &'static str [=] name!(NotMatching)
         }
     }
 }

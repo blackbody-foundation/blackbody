@@ -25,3 +25,93 @@ pub use envs::{verbose, Config, Envs};
 
 mod term;
 pub use term::{cat, style, Key, OtherKeys, SelItem, Style, Term, TermPassword};
+
+use crate::*;
+use hdkey::WrappedKeypair;
+use outter_conf::OutterConfig;
+
+pub fn base_loop(
+    term: &mut Term,
+    _conf: OutterConfig,
+    _master_key: WrappedKeypair,
+    sl: &mut ServerList,
+) -> Result<()> {
+    let args_inner = &mut args::inner::new();
+
+    let (tx, _rx) = unbounded::<()>(); // for cli sub thread
+
+    loop {
+        term.print_domain();
+
+        let command = term.base_loop(name!(COMMAND));
+
+        let arguments = command.split_whitespace().collect();
+
+        match args_inner.matches(arguments) {
+            // -s or --server | print servers statement
+            Ok(args) if args.is_present(name!(server: l)) => {
+                for s in sl.iter() {
+                    let a = term.style(name!(SERVER));
+                    let b = term.style(name!(ITALIC_ALERT));
+                    term.println(cat!("{} {}", a.apply_to(s.name), b.apply_to("ON")));
+                }
+            }
+
+            Ok(args) => match args.subcommand() {
+                // clear | clear screen of stdout & stderr
+                (name!(clear), Some(_)) => term.clear_all(),
+
+                // p | break current specific process
+                (name!(p), Some(_)) => tx.try_send(()).unwrap_or_default(),
+
+                // quit | terminate program
+                (name!(quit), Some(_)) => break,
+
+                // restart <API/RPC/BOTH> | restart servers
+                (name!(restart), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
+                    name!(API) => net::restart(sl, name!(API)).unwrap_or_else(else_error!()),
+                    name!(RPC) => net::restart(sl, name!(RPC)).unwrap_or_else(else_error!()),
+                    name!(BOTH) => net::restart(sl, name!(BOTH)).unwrap_or_else(else_error!()),
+                    _ => {}
+                },
+
+                // stop <API/RPC/BOTH> | stop servers
+                (name!(stop), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
+                    name!(API) => net::find_and_stop(sl, name!(API)).unwrap_or_else(else_error!()),
+                    name!(RPC) => net::find_and_stop(sl, name!(RPC)).unwrap_or_else(else_error!()),
+                    name!(BOTH) => net::stop(sl),
+                    _ => {}
+                },
+
+                // test | testing features
+                (name!(test: l), Some(m)) => {
+                    term.lock();
+                    match m.subcommand() {
+                        ("otoodb", Some(mm)) => {
+                            let test_mode = mm.is_present("delete");
+                            let v = m.occurrences_of(name!(verbose: s)) as u8;
+                            test::otoodb(term, test_mode, v)?;
+                        }
+                        ("wallet", Some(_)) => {}
+                        _ => term.eprintln("test --help"),
+                    }
+                    term.unlock();
+                }
+
+                // echo | echo <env_name>
+                (name!(echo), Some(m)) => {
+                    let env_name = m.value_of(name!(env)).unwrap_or("");
+                    term.eprintln(cat!(
+                        "{}",
+                        std::env::var(env_name).unwrap_or_else(|_| "[None]".to_string())
+                    ));
+                }
+
+                _ => term.eprintln("* Invalid command"),
+            },
+
+            Err(e) => term.eprintln(cat!("{}\n", e)),
+        }
+    }
+    Ok(())
+}

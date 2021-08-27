@@ -1,5 +1,5 @@
 /*
-    .. + mod.rs + ..
+    .. + outter_conf.rs + ..
 
     Copyright 2021 Hwakyeom Kim(=just-do-halee)
 
@@ -18,9 +18,18 @@
 
 */
 
-pub use hdkey::{NetType, Version, WrappedKeypair};
+use crate::{args, name};
+pub struct OutterConfig {
+    pub reset_mode: bool,
+    pub net_mode: String,
+}
 
-mod login;
-pub use login::login;
-
-pub mod master;
+pub fn get() -> OutterConfig {
+    let args_outter = args::outter::new();
+    let reset_mode = args_outter.subcommand_name().unwrap_or("") == name!(reset: l);
+    let net_mode = args_outter.value_of("mode").unwrap_or_default().to_string();
+    OutterConfig {
+        reset_mode,
+        net_mode,
+    }
+}
