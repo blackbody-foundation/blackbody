@@ -39,25 +39,25 @@ impl<M> Chan<M> {
     pub fn is_none(&self) -> bool {
         self.sender.is_none() && self.receiver.is_none()
     }
-    pub fn sender(&self) -> ResultSend<&Sender<M>> {
+    pub fn sender(&self) -> Result<&Sender<M>> {
         match &self.sender {
             Some(v) => Ok(v),
             None => errbang!(err::UnwrapingError, "this channel has no sender."),
         }
     }
-    pub fn receiver(&self) -> ResultSend<&Receiver<M>> {
+    pub fn receiver(&self) -> Result<&Receiver<M>> {
         match &self.receiver {
             Some(v) => Ok(v),
             None => errbang!(err::UnwrapingError, "this channel has no receiver."),
         }
     }
-    pub fn send(&self, msg: M) -> ResultSend<()> {
+    pub fn send(&self, msg: M) -> Result<()> {
         match self.sender().unwrap().send(msg) {
             Ok(_) => Ok(()),
             Err(_) => errbang!(err::UnexpectedEof, "sender error."),
         }
     }
-    pub fn recv(&self) -> ResultSend<M> {
+    pub fn recv(&self) -> Result<M> {
         match self.receiver().unwrap().recv() {
             Ok(m) => Ok(m),
             Err(_) => errbang!(err::UnexpectedEof, "receive error."),

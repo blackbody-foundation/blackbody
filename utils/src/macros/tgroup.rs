@@ -58,7 +58,7 @@ macro_rules! tgroup {
 
         $vis struct $name {
             /// sub group thread handlers
-            $vis sub: Vec<std::thread::JoinHandle<ResultSend<$output>>>,
+            $vis sub: Vec<std::thread::JoinHandle<Result<$output>>>,
         }
         impl TGroup for $name {
             type R = $requirement;

@@ -59,8 +59,8 @@ pub fn master_key_from_directories<T: AsRef<Path>>(
 ) -> Result<(Keypair, String)> {
     let mixed_password = format!("{}{}{}", words, salt, login_password);
     let phrase = shield::extract_mnemonic_phrase(target_directories, &mixed_password, salt)?;
-    let seed =
-        seed_from_phrase(words, lang, phrase.as_str()).map_err(|_| "maybe another key you have")?;
+    let seed = seed_from_phrase(words, lang, phrase.as_str())
+        .map_err(|_| Error::msg("maybe another key you have"))?;
     Ok((Keypair::new(&seed, version)?, phrase))
 }
 
@@ -99,11 +99,11 @@ pub fn seed_from_phrase(words: &str, lang: Language, phrase: &str) -> Result<Vec
 #[inline]
 fn validate_words(words: &str) -> Result<String> {
     if words.len() < 8 {
-        return Err(format!(
+        return errbang!(
+            err::ValidationFailed,
             "password must be more than 8 length bytes. you are {}",
             words.len()
-        )
-        .into());
+        );
     }
     Ok(words.nfkd().to_string())
 }

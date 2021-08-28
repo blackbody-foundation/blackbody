@@ -24,6 +24,7 @@ use ed25519_dalek::{
     ed25519, Digest, Keypair as dalekKeypair, PublicKey, SecretKey, SignatureError, KEYPAIR_LENGTH,
     SECRET_KEY_LENGTH,
 };
+use ed25519_dalek_bip32::ExtendedSecretKey;
 use sha3::Sha3_512;
 use std::fmt;
 
@@ -43,7 +44,7 @@ impl WrappedKeypair {
         let bytes = keypair.into_bytes();
         let parts = rand::thread_rng().gen_range(1..=4) * 2;
         let part_size = bytes.len() / parts;
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(8);
         for chunk in bytes.chunks(part_size) {
             buf.push(chunk.to_vec());
         }
@@ -66,15 +67,18 @@ impl Keypair {
     pub fn new(seed: &[u8], version: Version) -> Result<Self> {
         if seed.len() != KEYPAIR_LENGTH {
             /* = 32 * 2,  [8 * (32 * 2) = 512 bits] */
-            return Err(format!(
+            return errbang!(
+                err::ValidationFailed,
                 "seed size must be {}, you are {}",
                 KEYPAIR_LENGTH,
                 seed.len()
-            )
-            .into());
+            );
         }
-        let secret = SecretKey::from_bytes(&seed[..SECRET_KEY_LENGTH])?; // L 256 bits
-        let public = PublicKey::from(&secret);
+        // let secret = SecretKey::from_bytes(&seed[..SECRET_KEY_LENGTH])?; // L 256 bits
+        let xprv = ExtendedSecretKey::from_seed(&seed[..SECRET_KEY_LENGTH]).map_err(Error::msg)?;
+        let public = xprv.public_key();
+        let secret = xprv.secret_key;
+
         Ok(Self {
             pair: dalekKeypair { secret, public },
             version,
@@ -98,7 +102,7 @@ impl Keypair {
                 version,
             })
         } else {
-            Err("this is not a secret key".into())
+            errbang!(err::ValidationFailed, "this is not a secret key")
         }
     }
     pub fn into_bytes(self) -> [u8; 64] {
@@ -132,7 +136,7 @@ impl WrappedKey {
     ) -> Result<()> {
         match self {
             Self::Public(public, _) => Ok(public.verify_prehashed(prehash512(msg), memo, sig)?),
-            _ => Err("this is not a public key.".into()),
+            _ => errbang!(err::ValidationFailed, "this is not a public key."),
         }
     }
     pub fn as_hex(&self) -> String {

@@ -45,7 +45,7 @@ pub fn run() -> Result<Net> {
 
     verbose::einfo_styled!(v;1: Style::new().dim() => "start {} server.", SERVER_NAME);
 
-    thread::spawn(move || -> ResultSend<()> {
+    thread::spawn(move || -> Result<()> {
         let mut sys = rt::System::new(rand::random::<char>());
 
         let srv = HttpServer::new(|| App::new().service(index))
@@ -61,6 +61,6 @@ pub fn run() -> Result<Net> {
 
     Ok(Net::new(
         SERVER_NAME,
-        rx.recv().map_err(|_| name!(UnexpectedRuntime))?,
+        errcast!(rx.recv(), err::ThreadReceiving, name!(UnexpectedRuntime)),
     ))
 }

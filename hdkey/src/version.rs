@@ -18,6 +18,7 @@
 
 */
 
+use crate::errors::*;
 use std::str::FromStr;
 
 use ed25519_dalek::Digest;
@@ -107,11 +108,7 @@ pub fn encode<T: AsRef<[u8]>>(data: T, version: Version, key_type: KeyType) -> V
 }
 
 #[inline]
-pub fn decode<T: AsRef<[u8]>>(
-    data: T,
-    version: Version,
-    key_type: KeyType,
-) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn decode<T: AsRef<[u8]>>(data: T, version: Version, key_type: KeyType) -> Result<Vec<u8>> {
     version.into_kind(key_type).detach_from(data.as_ref())
 }
 
@@ -154,14 +151,22 @@ impl Kind {
         version.extend(checksum.into_iter());
         version
     }
-    pub fn detach_from(self, src: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    pub fn detach_from(self, src: &[u8]) -> Result<Vec<u8>> {
         let src_len = src.len();
         let target_version = self.0.to_be_bytes();
         let version_len = target_version.len();
-        let checksum_len = self.2 as usize;
         let version = &src[..version_len];
-        let payload = &src[version_len - 1..src_len - checksum_len];
-        let checksum = &src[src_len - checksum_len - 1..];
+        if version != target_version.as_ref() {
+            return errbang!(
+                err::ValidationFailed,
+                "version is not match: {} != your {}",
+                hex::encode(target_version),
+                hex::encode(version)
+            );
+        }
+        let checksum_len = self.2 as usize;
+        let payload = &src[version_len..src_len - checksum_len];
+        let checksum = &src[src_len - checksum_len..];
 
         let mut target_checksum = Vec::from(&src[..src_len - checksum_len]);
 
@@ -171,22 +176,15 @@ impl Kind {
         }
         target_checksum.truncate(checksum_len);
 
-        if version != target_version.as_ref() {
-            return Err(format!(
-                "version is not match: {} != your {}",
-                hex::encode(target_version),
-                hex::encode(version)
-            )
-            .into());
-        }
         if checksum != target_checksum {
-            return Err(format!(
+            return errbang!(
+                err::ValidationFailed,
                 "checksum is not match: {} != your {}",
                 hex::encode(target_checksum),
                 hex::encode(checksum)
-            )
-            .into());
+            );
         }
+
         Ok(payload.to_vec())
     }
 }

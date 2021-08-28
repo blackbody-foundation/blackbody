@@ -113,7 +113,7 @@ pub fn thrust_mnemonic_phrase<T: AsRef<Path>>(
             file.write_all(&v)?;
             set_permission(file);
         } else {
-            return Err("encrpyt failure.".into());
+            return errbang!(err::EncryptFailed);
         }
     }
     Ok(())
@@ -192,7 +192,7 @@ pub fn extract_mnemonic_phrase<T: AsRef<Path>>(
         if let Ok(v) = cipher.decrypt(nonce, mnemonic_buf.as_ref()) {
             mnemonic.push(v);
         } else {
-            return Err("decrpyt failure.".into());
+            return errbang!(err::DecryptFailed);
         }
     }
     Ok(String::from_utf8(mnemonic.concat())?)
@@ -242,14 +242,14 @@ pub fn delete_key_file<T: AsRef<Path>>(
 fn validate_ps(password: &str, salt: usize) -> Result<String> {
     let normed_words = password.nfkd().to_string();
     if normed_words.len() < 8 {
-        return Err(format!(
+        return errbang!(
+            err::ValidationFailed,
             "password must be more than 8 length bytes. you are {}",
             normed_words.len()
-        )
-        .into());
+        );
     }
     if salt < 2 {
-        return Err("salt must be more than 2.".into());
+        return errbang!(err::ValidationFailed, "salt must be more than 2.");
     }
     Ok(normed_words)
 }

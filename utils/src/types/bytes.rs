@@ -39,18 +39,18 @@ where
     T: serde::Serialize,
 {
     fn into_bytes(self) -> Result<T>;
-    fn into_bytes_send(self) -> ResultSend<T>;
+    // fn into_bytes_send(self) -> ResultSend<T>;
     fn to_bytes(&self) -> Result<T>;
-    fn to_bytes_send(&self) -> ResultSend<T>;
+    // fn to_bytes_send(&self) -> ResultSend<T>;
 }
 pub trait BytesDe<T>
 where
     T: serde::de::DeserializeOwned,
 {
     fn into_something(self) -> Result<T>;
-    fn into_something_send(self) -> ResultSend<T>;
+    // fn into_something_send(self) -> ResultSend<T>;
     fn to_something(&self) -> Result<T>;
-    fn to_something_send(&self) -> ResultSend<T>;
+    // fn to_something_send(&self) -> ResultSend<T>;
 }
 
 pub type OptionBytes = Option<Vec<u8>>;
@@ -59,57 +59,57 @@ impl<T: serde::Serialize> BytesSer<OptionBytes> for Option<T> {
     fn into_bytes(self) -> Result<OptionBytes> {
         serialize_option_t!(&self)
     }
-    fn into_bytes_send(self) -> ResultSend<OptionBytes> {
-        serialize_option_t!(&self)
-    }
+    // fn into_bytes_send(self) -> ResultSend<OptionBytes> {
+    //     serialize_option_t!(&self)
+    // }
     fn to_bytes(&self) -> Result<OptionBytes> {
         serialize_option_t!(self)
     }
-    fn to_bytes_send(&self) -> ResultSend<OptionBytes> {
-        serialize_option_t!(self)
-    }
+    // fn to_bytes_send(&self) -> ResultSend<OptionBytes> {
+    //     serialize_option_t!(self)
+    // }
 }
 
 impl<T: serde::de::DeserializeOwned> BytesDe<Option<T>> for OptionBytes {
     fn into_something(self) -> Result<Option<T>> {
         deserialize_option_t!(&self)
     }
-    fn into_something_send(self) -> ResultSend<Option<T>> {
-        deserialize_option_t!(&self)
-    }
+    // fn into_something_send(self) -> ResultSend<Option<T>> {
+    //     deserialize_option_t!(&self)
+    // }
     fn to_something(&self) -> Result<Option<T>> {
         deserialize_option_t!(self)
     }
-    fn to_something_send(&self) -> ResultSend<Option<T>> {
-        deserialize_option_t!(self)
-    }
+    // fn to_something_send(&self) -> ResultSend<Option<T>> {
+    //     deserialize_option_t!(self)
+    // }
 }
 
 impl<T: serde::Serialize> BytesSer<Vec<u8>> for T {
     fn into_bytes(self) -> Result<Vec<u8>> {
         Ok(serialize_t!(&self)?)
     }
-    fn into_bytes_send(self) -> ResultSend<Vec<u8>> {
-        Ok(serialize_t!(&self)?)
-    }
+    // fn into_bytes_send(self) -> ResultSend<Vec<u8>> {
+    //     Ok(serialize_t!(&self)?)
+    // }
     fn to_bytes(&self) -> Result<Vec<u8>> {
         Ok(serialize_t!(self)?)
     }
-    fn to_bytes_send(&self) -> ResultSend<Vec<u8>> {
-        Ok(serialize_t!(self)?)
-    }
+    // fn to_bytes_send(&self) -> ResultSend<Vec<u8>> {
+    //     Ok(serialize_t!(self)?)
+    // }
 }
 impl<T: serde::de::DeserializeOwned> BytesDe<T> for Vec<u8> {
     fn into_something(self) -> Result<T> {
         Ok(deserialize_t!(&self)?)
     }
-    fn into_something_send(self) -> ResultSend<T> {
-        Ok(deserialize_t!(&self)?)
-    }
+    // fn into_something_send(self) -> ResultSend<T> {
+    //     Ok(deserialize_t!(&self)?)
+    // }
     fn to_something(&self) -> Result<T> {
         Ok(deserialize_t!(self)?)
     }
-    fn to_something_send(&self) -> ResultSend<T> {
-        Ok(deserialize_t!(self)?)
-    }
+    // fn to_something_send(&self) -> ResultSend<T> {
+    //     Ok(deserialize_t!(self)?)
+    // }
 }

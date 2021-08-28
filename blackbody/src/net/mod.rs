@@ -83,7 +83,7 @@ pub fn find_and_stop(servers: &mut ServerList, mode: &str) -> Result<()> {
             i += 1;
         }
         if !found {
-            return Err("* item not found".into());
+            return errbang!("* item not found");
         }
         stop(&mut ServerList(vec![(servers.0[i]).clone()]));
         servers.remove(i);

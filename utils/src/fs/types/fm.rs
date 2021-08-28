@@ -67,38 +67,38 @@ impl<T: HeaderTrait> FM<T> {
         }
     }
     pub fn stream_position(&mut self) -> Result<u64> {
-        Ok(io_to_err!(self.ptr.stream_position())? - self.header_size as uPS)
+        Ok(self.ptr.stream_position()? - self.header_size as uPS)
     }
     pub fn set_cursor_general(&mut self, pos: uPS) -> Result<uPS> {
-        io_to_err!(self.ptr.seek(SeekFrom::Start(pos)))
+        Ok(self.ptr.seek(SeekFrom::Start(pos))?)
     }
     pub fn set_cursor_relative(&mut self, pos: iPS) -> Result<uPS> {
-        Ok(io_to_err!(self.ptr.seek(SeekFrom::Current(pos)))? - self.header_size as uPS)
+        Ok(self.ptr.seek(SeekFrom::Current(pos))? - self.header_size as uPS)
     }
     /// whole proccess exclusives header size
     pub fn set_cursor(&mut self, pos: uPS) -> Result<uPS> {
         Ok(
-            io_to_err!(self.ptr.seek(SeekFrom::Start(pos + self.header_size)))?
+            self.ptr.seek(SeekFrom::Start(pos + self.header_size))?
                 - self.header_size as uPS,
         )
     }
     /// normal read
     pub fn read_general(&mut self, buf: &mut [u8]) -> Result<LS> {
-        io_to_err!(self.ptr.read(buf))
+        Ok(self.ptr.read(buf)?)
     }
     pub fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-        io_to_err!(self.ptr.read_exact(buf))
+        Ok(self.ptr.read_exact(buf)?)
     }
     pub fn read_cursoring(&mut self, buf: &mut [u8], pos: uPS) -> Result<()> {
         self.set_cursor(pos)?;
-        io_to_err!(self.ptr.read_exact(buf))
+        Ok(self.ptr.read_exact(buf)?)
     }
     pub fn write(&mut self, buf: &[u8]) -> Result<()> {
-        io_to_err!(self.ptr.write_all(buf))
+        Ok(self.ptr.write_all(buf)?)
     }
     pub fn write_cursoring(&mut self, buf: &[u8], pos: uPS) -> Result<()> {
         self.set_cursor(pos)?;
-        io_to_err!(self.ptr.write_all(buf))
+        Ok(self.ptr.write_all(buf)?)
     }
     pub fn debug(&mut self) -> Result<()> {
         let mut buf = [0u8; 1024];
@@ -132,7 +132,7 @@ impl<T: HeaderTrait> FM<T> {
         self.flash_file_size()
     }
     fn flash_file_size(&mut self) -> Result<()> {
-        self.file_size = io_to_err!(self.ptr.seek(SeekFrom::End(0)))?;
+        self.file_size = self.ptr.seek(SeekFrom::End(0))?;
         self.content_lim = Lim::new(self.header_size, self.file_size);
         Ok(())
     }

@@ -214,7 +214,8 @@ fn get_select_n_key(term: &mut Term, config: &Config) -> String {
         .collect::<Vec<String>>();
 
     for (i, key) in config.keys.iter().enumerate() {
-        sel_list.push(SelItem(key.address.as_str(), &index[i]));
+        let len = key.address.len();
+        sel_list.push(SelItem(&key.address[..len - 16], &index[i]));
     }
 
     term.get_select(

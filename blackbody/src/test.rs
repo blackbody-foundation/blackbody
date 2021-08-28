@@ -57,7 +57,7 @@ pub fn otoodb(term: &mut Term, delete: bool, verbose: u8) -> Result<()> {
         let mut packet = Vec::new();
 
         let (tx, rx) = crossbeam::channel::bounded::<([u8; 64], [[u8; 8]; 8])>(1024);
-        let handle = std::thread::spawn(move || -> ResultSend<()> {
+        let handle = std::thread::spawn(move || -> Result<()> {
             let mut bytes64: [u8; 64];
             let mut bytes8: [[u8; 8]; 8];
             let mut i: u64 = 0;
