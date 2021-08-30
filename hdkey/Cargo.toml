@@ -32,7 +32,6 @@ vep = "0.1.0"
 bs58 = "0.4.0"
 unicode-normalization = "0.1.19"
 
-ed25519-dalek = "1.0.1"
-ed25519-dalek-bip32 = "0.1.1"
+ed25519-dalek-bip32-black = "0.1.2"
 
 utils-results = "5.1.1"

@@ -21,7 +21,7 @@
 use crate::errors::*;
 use std::str::FromStr;
 
-use ed25519_dalek::Digest;
+use ed25519_dalek_bip32_black::ed25519_dalek::Digest;
 use sha3::Sha3_256;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

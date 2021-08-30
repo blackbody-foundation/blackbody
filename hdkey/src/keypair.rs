@@ -20,13 +20,16 @@
 
 use super::version::{self, KeyType, Version};
 use crate::errors::*;
-use ed25519_dalek::{
-    ed25519, Digest, Keypair as dalekKeypair, PublicKey, SecretKey, SignatureError, KEYPAIR_LENGTH,
-    SECRET_KEY_LENGTH,
+
+use core::{convert::TryInto, fmt};
+
+use ed25519_dalek_bip32_black::{
+    ed25519_dalek::{ed25519::Signature, Digest},
+    ChildIndex, DalekKeypair, ExtendedSecretKey, PublicKey, SecretKey, EXTENDED_KEY_LENGTH,
 };
-use ed25519_dalek_bip32::ExtendedSecretKey;
 use sha3::Sha3_512;
-use std::fmt;
+
+const SEED_LENGTH: usize = 64;
 
 #[cfg(feature = "security")]
 use rand::Rng;
@@ -54,65 +57,58 @@ impl WrappedKeypair {
         }
     }
     pub fn into_keypair(self) -> Result<Keypair> {
-        Keypair::from_bytes(self.keypair.concat(), self.version)
+        Keypair::from_bytes(self.keypair.concat().as_slice(), self.version)
     }
 }
 
 pub struct Keypair {
-    pair: dalekKeypair,
+    xprv: ExtendedSecretKey,
+    pair: DalekKeypair,
     pub version: Version,
 }
 
 impl Keypair {
+    pub fn drive_random_child(&self) -> Result<Keypair> {
+        let xprv = self
+            .xprv
+            .derive_child(ChildIndex::Hardened(rand::random::<u32>()))?;
+        Ok(Keypair::new_from_xprv(xprv, self.version))
+    }
+    pub fn new_from_xprv(xprv: ExtendedSecretKey, version: Version) -> Self {
+        Self {
+            pair: xprv.keypair(),
+            xprv,
+            version,
+        }
+    }
     pub fn new(seed: &[u8], version: Version) -> Result<Self> {
-        if seed.len() != KEYPAIR_LENGTH {
-            /* = 32 * 2,  [8 * (32 * 2) = 512 bits] */
+        if seed.len() != SEED_LENGTH {
             return errbang!(
                 err::ValidationFailed,
                 "seed size must be {}, you are {}",
-                KEYPAIR_LENGTH,
+                SEED_LENGTH,
                 seed.len()
             );
         }
-        // let secret = SecretKey::from_bytes(&seed[..SECRET_KEY_LENGTH])?; // L 256 bits
-        let xprv = ExtendedSecretKey::from_seed(&seed[..SECRET_KEY_LENGTH]).map_err(Error::msg)?;
-        let public = xprv.public_key();
-        let secret = xprv.secret_key;
-
-        Ok(Self {
-            pair: dalekKeypair { secret, public },
-            version,
-        })
+        let xprv = ExtendedSecretKey::from_seed(seed)?;
+        Ok(Self::new_from_xprv(xprv, version))
     }
-    pub fn sign<T: AsRef<[u8]>>(
-        &self,
-        msg: T,
-        memo: Option<&[u8]>,
-    ) -> std::result::Result<ed25519::Signature, SignatureError> {
-        self.pair.sign_prehashed(prehash512(msg.as_ref()), memo)
+    pub fn sign<T: AsRef<[u8]>>(&self, msg: T, memo: Option<&[u8]>) -> Result<Signature> {
+        self.pair
+            .sign_prehashed(prehash512(msg.as_ref()), memo)
+            .map_err(Error::msg)
     }
     pub fn public(&self) -> WrappedKey {
         WrappedKey::Public(self.pair.public, self.version)
     }
-    pub fn from_secret_key(wrapped_secret: WrappedKey) -> Result<Self> {
-        if let WrappedKey::Secret(secret, version) = wrapped_secret {
-            let public = PublicKey::from(&secret);
-            Ok(Self {
-                pair: dalekKeypair { secret, public },
-                version,
-            })
-        } else {
-            errbang!(err::ValidationFailed, "this is not a secret key")
-        }
+    pub fn into_bytes(self) -> [u8; EXTENDED_KEY_LENGTH] {
+        self.xprv.into_bytes()
     }
-    pub fn into_bytes(self) -> [u8; 64] {
-        self.pair.to_bytes()
-    }
-    pub fn from_bytes(bytes: Vec<u8>, version: Version) -> Result<Self> {
-        Ok(Self {
-            pair: dalekKeypair::from_bytes(bytes.as_slice())?,
+    pub fn from_bytes(bytes: &[u8], version: Version) -> Result<Self> {
+        Ok(Self::new_from_xprv(
+            ExtendedSecretKey::from_bytes(bytes.try_into()?)?,
             version,
-        })
+        ))
     }
 }
 
@@ -128,14 +124,11 @@ pub enum WrappedKey {
 }
 
 impl WrappedKey {
-    pub fn verify(
-        &self,
-        msg: &[u8],
-        memo: Option<&[u8]>,
-        sig: &ed25519_dalek::Signature,
-    ) -> Result<()> {
+    pub fn verify(&self, msg: &[u8], memo: Option<&[u8]>, sig: &Signature) -> Result<()> {
         match self {
-            Self::Public(public, _) => Ok(public.verify_prehashed(prehash512(msg), memo, sig)?),
+            Self::Public(public, _) => Ok(public
+                .verify_prehashed(prehash512(msg), memo, sig)
+                .map_err(Error::msg)?),
             _ => errbang!(err::ValidationFailed, "this is not a public key."),
         }
     }
@@ -165,11 +158,19 @@ impl WrappedKey {
         let bytes = version::decode(bs58::decode(base58check).into_vec()?, version, key_type)?;
         match key_type {
             KeyType::Secret => Ok(WrappedKey::Secret(
-                SecretKey::from_bytes(bytes.as_slice())?,
+                errcast!(
+                    SecretKey::from_bytes(bytes.as_slice()),
+                    err::ValidationFailed,
+                    "cannot parse the secret bytes."
+                ),
                 version,
             )),
             KeyType::Public => Ok(WrappedKey::Public(
-                PublicKey::from_bytes(bytes.as_slice())?,
+                errcast!(
+                    PublicKey::from_bytes(bytes.as_slice()),
+                    err::ValidationFailed,
+                    "cannot parse the public bytes."
+                ),
                 version,
             )),
         }
@@ -206,7 +207,9 @@ impl fmt::Debug for Keypair {
 }
 impl PartialEq for Keypair {
     fn eq(&self, other: &Self) -> bool {
-        (self.pair.public == other.pair.public)
+        (self.version == other.version)
+            && (self.xprv == other.xprv)
+            && (self.pair.public == other.pair.public)
             && (self.pair.secret.as_bytes() == other.pair.secret.as_bytes())
     }
 }

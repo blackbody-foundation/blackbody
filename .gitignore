@@ -1,6 +1,7 @@
 /target
 **/*.rs.bk
 Cargo.lock
+envs.locked
 *.hawking
 *.cccs
 *.cccs_tmp0
