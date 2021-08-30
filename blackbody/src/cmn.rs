@@ -75,7 +75,18 @@ impl DerefMut for ServerList {
 
 #[macro_use]
 mod cf {
-    /// ```no_run
+    /// ```ignore
+    /// .unwrap_or_else(|e| eprintln!("{}", style(e).red())) // term::style
+    /// ```
+    #[macro_export]
+    macro_rules! print_unwrap {
+        ($e:expr) => {
+            $e.unwrap_or_else(else_error!())
+        };
+    }
+    pub use print_unwrap;
+
+    /// ```ignore
     /// |e| eprintln!("{}", style(e).red()) // term::style
     /// ```
     #[macro_export]
@@ -86,7 +97,7 @@ mod cf {
     }
     pub use else_error;
 
-    /// ```no_run
+    /// ```ignore
     /// |$($arg)?| panic!("{}", style($s).red().bold()) // term::style
     /// ```
     /// closure panic! with some text $s.<br>
@@ -110,7 +121,7 @@ mod cf {
     }
     pub use target_help;
 
-    /// ```no_run
+    /// ```ignore
     /// let padded = align_center!(term.stdout, "text");
     /// let padded = align_center!(term.stderr, "text");
     /// ```

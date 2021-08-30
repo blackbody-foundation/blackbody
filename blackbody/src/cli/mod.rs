@@ -69,16 +69,16 @@ pub fn base_loop(
 
                 // restart <API/RPC/BOTH> | restart servers
                 (name!(restart), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
-                    name!(API) => net::restart(sl, name!(API)).unwrap_or_else(else_error!()),
-                    name!(RPC) => net::restart(sl, name!(RPC)).unwrap_or_else(else_error!()),
-                    name!(BOTH) => net::restart(sl, name!(BOTH)).unwrap_or_else(else_error!()),
+                    name!(API) => print_unwrap!(net::restart(sl, name!(API))),
+                    name!(RPC) => print_unwrap!(net::restart(sl, name!(RPC))),
+                    name!(BOTH) => print_unwrap!(net::restart(sl, name!(BOTH))),
                     _ => {}
                 },
 
                 // stop <API/RPC/BOTH> | stop servers
                 (name!(stop), Some(m)) => match m.value_of(name!(TARGET)).unwrap_or_default() {
-                    name!(API) => net::find_and_stop(sl, name!(API)).unwrap_or_else(else_error!()),
-                    name!(RPC) => net::find_and_stop(sl, name!(RPC)).unwrap_or_else(else_error!()),
+                    name!(API) => print_unwrap!(net::find_and_stop(sl, name!(API))),
+                    name!(RPC) => print_unwrap!(net::find_and_stop(sl, name!(RPC))),
                     name!(BOTH) => net::stop(sl),
                     _ => {}
                 },

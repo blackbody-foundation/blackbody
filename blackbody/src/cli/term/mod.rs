@@ -97,13 +97,11 @@ impl Term {
     pub fn print_domain(&self) {
         let a = self.style(name!(ADMIN));
         let b = self.style(name!(ICON));
-        self.stdout
-            .write_str(&format!(
-                "{} {} ",
-                a.apply_to(name!(ADMIN)),
-                b.apply_to("✗")
-            ))
-            .unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.write_str(&format!(
+            "{} {} ",
+            a.apply_to(name!(ADMIN)),
+            b.apply_to("✗")
+        )));
     }
     pub fn read_password(&self, encrypt: bool) -> String {
         match self.stdout.read_secure_line() {
@@ -175,63 +173,53 @@ impl Term {
             .to_string()
     }
     pub fn move_cursor_up(&self, n: usize) {
-        self.stdout.move_cursor_up(n).unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.move_cursor_up(n));
     }
     pub fn move_cursor_down(&self, n: usize) {
-        self.stdout
-            .move_cursor_down(n)
-            .unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.move_cursor_down(n));
     }
     pub fn move_cursor_left(&self, n: usize) {
-        self.stdout
-            .move_cursor_left(n)
-            .unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.move_cursor_left(n));
     }
     pub fn move_cursor_right(&self, n: usize) {
-        self.stdout
-            .move_cursor_right(n)
-            .unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.move_cursor_right(n));
     }
     pub fn print(&self, s: &str) {
-        self.stdout.write_str(s).unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.write_str(s));
     }
     pub fn println(&self, s: &str) {
-        self.stdout.write_line(s).unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.write_line(s));
     }
     pub fn eprint(&self, s: &str) {
-        self.stderr.write_str(s).unwrap_or_else(else_error!());
+        print_unwrap!(self.stderr.write_str(s));
     }
     pub fn eprintln(&self, s: &str) {
-        self.stderr.write_line(s).unwrap_or_else(else_error!());
+        print_unwrap!(self.stderr.write_line(s));
     }
     pub fn clear_all_entirely(&self) {
-        self.stderr
-            .clear_to_end_of_screen()
-            .unwrap_or_else(else_error!());
-        self.stdout
-            .clear_to_end_of_screen()
-            .unwrap_or_else(else_error!());
+        print_unwrap!(self.stderr.clear_to_end_of_screen());
+        print_unwrap!(self.stdout.clear_to_end_of_screen());
     }
     pub fn clear_all(&self) {
-        self.stderr.clear_screen().unwrap_or_else(else_error!());
-        self.stdout.clear_screen().unwrap_or_else(else_error!());
+        print_unwrap!(self.stderr.clear_screen());
+        print_unwrap!(self.stdout.clear_screen());
     }
     pub fn clear_line(&self) {
-        self.stdout.clear_line().unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.clear_line());
     }
     pub fn clear_chars(&self, n: usize) {
-        self.stdout.clear_chars(n).unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.clear_chars(n));
     }
     pub fn read_key(&self) -> Key {
         self.stdout.read_key().unwrap_or(Key::Unknown)
     }
     pub fn hide_cursor(&self) {
-        self.stdout.hide_cursor().unwrap_or_else(else_error!());
-        self.stderr.hide_cursor().unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.hide_cursor());
+        print_unwrap!(self.stderr.hide_cursor());
     }
     pub fn show_cursor(&self) {
-        self.stdout.show_cursor().unwrap_or_else(else_error!());
-        self.stderr.show_cursor().unwrap_or_else(else_error!());
+        print_unwrap!(self.stdout.show_cursor());
+        print_unwrap!(self.stderr.show_cursor());
     }
     /// basic terminal implement.<br>
     /// domain_name must be "name " <- one whitespace added.
