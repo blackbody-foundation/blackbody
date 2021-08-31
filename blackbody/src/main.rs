@@ -26,9 +26,9 @@ mod cli;
 mod net;
 
 mod key;
-use key::{NetType, Version};
+use key::Version;
 
-pub const VERSION: Version = Version::Zero(NetType::TestNet); // current version
+pub const VERSION: Version = Version::TestNet; // current version
 
 mod outter_conf;
 mod test;

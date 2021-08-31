@@ -18,7 +18,7 @@
 
 */
 
-pub use hdkey::{NetType, Version, WrappedKeypair};
+pub use hdkey::{Password, Version, WrappedKeypair};
 
 mod login;
 pub use login::login;

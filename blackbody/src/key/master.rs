@@ -25,10 +25,10 @@ use hdkey::*;
 pub use hdkey::{ShieldPathError, ShieldPathNotMatching};
 
 pub fn read_original_key<T>(
-    words: String,
+    words: Password,
     salt: usize,
     lang: Language,
-    login_password: String,
+    login_password: Password,
     target_directories: &[T],
 ) -> Result<(Keypair, String)>
 where
@@ -36,19 +36,19 @@ where
 {
     gen::master_key_from_directories(
         VERSION,
-        &words,
+        words,
         salt,
         lang,
-        &login_password,
+        login_password,
         target_directories,
     )
 }
 
 pub fn save_original_key<T>(
-    words: &str,
+    words: Password,
     salt: usize,
     lang: Language,
-    login_password: &str,
+    login_password: Password,
     target_directories: &[T],
 ) -> Result<(Keypair, String)>
 where
@@ -65,9 +65,9 @@ where
 }
 
 pub fn remove_original_key<T>(
-    words: &str,
+    words: Password,
     salt: usize,
-    login_password: &str,
+    login_password: Password,
     target_directories: &[T],
 ) -> Result<()>
 where

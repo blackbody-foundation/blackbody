@@ -18,32 +18,24 @@
 
 */
 
-use super::version::{self, KeyType, Version};
-use crate::errors::*;
+use super::{ed25519_dalek::Signature, errors::*, ExtendedKeypair, PublicKey, Version};
 
-use core::{convert::TryInto, fmt};
+use core::fmt;
+use std::str::FromStr;
 
-use ed25519_dalek_bip32_black::{
-    ed25519_dalek::{ed25519::Signature, Digest},
-    ChildIndex, DalekKeypair, ExtendedSecretKey, PublicKey, SecretKey, EXTENDED_KEY_LENGTH,
-};
-use sha3::Sha3_512;
-
-const SEED_LENGTH: usize = 64;
+use sha3::{Digest, Sha3_512};
 
 #[cfg(feature = "security")]
 use rand::Rng;
 
 #[cfg(feature = "security")]
 pub struct WrappedKeypair {
-    keypair: Vec<Vec<u8>>,
-    version: Version,
+    buf: Vec<Vec<u8>>,
 }
 
 #[cfg(feature = "security")]
 impl WrappedKeypair {
     pub fn new(keypair: Keypair) -> Self {
-        let version = keypair.version;
         let bytes = keypair.into_bytes();
         let parts = rand::thread_rng().gen_range(1..=4) * 2;
         let part_size = bytes.len() / parts;
@@ -51,166 +43,73 @@ impl WrappedKeypair {
         for chunk in bytes.chunks(part_size) {
             buf.push(chunk.to_vec());
         }
-        Self {
-            keypair: buf,
-            version,
-        }
+        Self { buf }
     }
     pub fn into_keypair(self) -> Result<Keypair> {
-        Keypair::from_bytes(self.keypair.concat().as_slice(), self.version)
+        Keypair::from_bytes(self.buf.concat().as_slice())
     }
 }
 
-pub struct Keypair {
-    xprv: ExtendedSecretKey,
-    pair: DalekKeypair,
-    pub version: Version,
-}
+#[derive(Clone, PartialEq, Eq)]
+pub struct Keypair(ExtendedKeypair);
 
 impl Keypair {
+    #[inline]
     pub fn drive_random_child(&self) -> Result<Keypair> {
-        let xprv = self
-            .xprv
-            .derive_child(ChildIndex::Hardened(rand::random::<u32>()))?;
-        Ok(Keypair::new_from_xprv(xprv, self.version))
+        let pair = self.0.derive_child(rand::random::<u32>())?;
+        Ok(Self(pair))
     }
-    pub fn new_from_xprv(xprv: ExtendedSecretKey, version: Version) -> Self {
-        Self {
-            pair: xprv.keypair(),
-            xprv,
-            version,
-        }
+    #[inline]
+    pub fn new(seed: &[u8], prefix: Version) -> Result<Self> {
+        let pair = ExtendedKeypair::from_seed(seed, prefix.into_prefix())?;
+        Ok(Self(pair))
     }
-    pub fn new(seed: &[u8], version: Version) -> Result<Self> {
-        if seed.len() != SEED_LENGTH {
-            return errbang!(
-                err::ValidationFailed,
-                "seed size must be {}, you are {}",
-                SEED_LENGTH,
-                seed.len()
-            );
-        }
-        let xprv = ExtendedSecretKey::from_seed(seed)?;
-        Ok(Self::new_from_xprv(xprv, version))
-    }
+    #[inline]
     pub fn sign<T: AsRef<[u8]>>(&self, msg: T, memo: Option<&[u8]>) -> Result<Signature> {
-        self.pair
+        self.0
+            .pair()
             .sign_prehashed(prehash512(msg.as_ref()), memo)
             .map_err(Error::msg)
     }
-    pub fn public(&self) -> WrappedKey {
-        WrappedKey::Public(self.pair.public, self.version)
+    #[inline]
+    pub fn verify(&self, msg: &[u8], memo: Option<&[u8]>, sig: &Signature) -> Result<()> {
+        self.public()
+            .verify_prehashed(prehash512(msg), memo, sig)
+            .map_err(Error::msg)
     }
-    pub fn into_bytes(self) -> [u8; EXTENDED_KEY_LENGTH] {
-        self.xprv.into_bytes()
+    #[inline]
+    pub fn public(&self) -> PublicKey {
+        self.0.pair().public
     }
-    pub fn from_bytes(bytes: &[u8], version: Version) -> Result<Self> {
-        Ok(Self::new_from_xprv(
-            ExtendedSecretKey::from_bytes(bytes.try_into()?)?,
-            version,
-        ))
+    #[inline]
+    pub fn into_bytes(self) -> [u8; ExtendedKeypair::LENGTH] {
+        self.0.into_bytes()
+    }
+    #[inline]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        Ok(Self(ExtendedKeypair::from_bytes(bytes)?))
+    }
+    #[inline]
+    pub fn from_base58check(base58check: &str) -> Result<Self> {
+        Ok(Self(ExtendedKeypair::from_str(base58check)?))
     }
 }
 
+#[inline]
 fn prehash512(msg: &[u8]) -> Sha3_512 {
     let mut sha = Sha3_512::new();
     sha.update(msg);
     sha
 }
 
-pub enum WrappedKey {
-    Public(PublicKey, Version),
-    Secret(SecretKey, Version),
-}
-
-impl WrappedKey {
-    pub fn verify(&self, msg: &[u8], memo: Option<&[u8]>, sig: &Signature) -> Result<()> {
-        match self {
-            Self::Public(public, _) => Ok(public
-                .verify_prehashed(prehash512(msg), memo, sig)
-                .map_err(Error::msg)?),
-            _ => errbang!(err::ValidationFailed, "this is not a public key."),
-        }
-    }
-    pub fn as_hex(&self) -> String {
-        match self {
-            Self::Secret(key, _) => hex::encode(key),
-            Self::Public(key, _) => hex::encode(key),
-        }
-    }
-    pub fn as_base58check(&self) -> String {
-        match self {
-            Self::Secret(key, version) => {
-                bs58::encode(version::encode(key, *version, KeyType::Secret).as_slice())
-                    .into_string()
-            }
-            Self::Public(key, version) => {
-                bs58::encode(version::encode(key, *version, KeyType::Public).as_slice())
-                    .into_string()
-            }
-        }
-    }
-    pub fn from_base58check(
-        base58check: &str,
-        version: Version,
-        key_type: KeyType,
-    ) -> Result<Self> {
-        let bytes = version::decode(bs58::decode(base58check).into_vec()?, version, key_type)?;
-        match key_type {
-            KeyType::Secret => Ok(WrappedKey::Secret(
-                errcast!(
-                    SecretKey::from_bytes(bytes.as_slice()),
-                    err::ValidationFailed,
-                    "cannot parse the secret bytes."
-                ),
-                version,
-            )),
-            KeyType::Public => Ok(WrappedKey::Public(
-                errcast!(
-                    PublicKey::from_bytes(bytes.as_slice()),
-                    err::ValidationFailed,
-                    "cannot parse the public bytes."
-                ),
-                version,
-            )),
-        }
-    }
-}
 impl fmt::Debug for Keypair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        // *** Test Secret Key ***
-        // let sk = Key::Secret(
-        //     SecretKey::from_bytes(self.pair.secret.as_bytes()).unwrap(),
-        //     self.version,
-        // );
-        // let sk_hex = sk.as_hex();
-        // let sk_bs58 = sk.as_base58check();
-        // write!(
-        //     f,
-        //     "hex (\nsecret: {}\npublic: {}\n)\nbase58check[{}] (\nsecret: {}\npublic: {}\n)\n",
-        //     sk_hex,
-        //     pk_hex,
-        //     self.version.to_string(),
-        //     sk_bs58,
-        //     pk_bs58
-        // )
-        let pk_hex = self.public().as_hex();
-        let pk_bs58 = self.public().as_base58check();
-        write!(
-            f,
-            "\n- hex -\npublic: {}\n\n- base58check [{}] -\npublic: {}\n",
-            pk_hex,
-            self.version.to_string(),
-            pk_bs58,
-        )
+        write!(f, "\n{}\n", self.0,)
     }
 }
-impl PartialEq for Keypair {
-    fn eq(&self, other: &Self) -> bool {
-        (self.version == other.version)
-            && (self.xprv == other.xprv)
-            && (self.pair.public == other.pair.public)
-            && (self.pair.secret.as_bytes() == other.pair.secret.as_bytes())
+
+impl fmt::Display for Keypair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
-impl Eq for Keypair {}

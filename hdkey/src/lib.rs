@@ -27,17 +27,23 @@ pub use gen::Language;
 pub mod shield;
 
 mod keypair;
-pub use keypair::{Keypair, WrappedKey};
+pub use keypair::Keypair;
 
 #[cfg(feature = "security")]
 pub use keypair::WrappedKeypair;
 
+pub type Password = secwords::Password<8>;
+
+pub use ed25519_dalek_xkeypair::{ed25519_dalek::Signature, *};
+
 mod version;
-pub use version::{KeyType, NetType, Version};
+pub use version::Version;
 
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+
+    use crate::Password;
 
     use super::*;
     const TARGET_DIR: &str = "/Users/hwakyeom/programs/blackchain/hdkey";
@@ -59,17 +65,20 @@ mod tests {
         }
 
         // gen phrase & seed
-        let (phrase1, seed1) = gen::new_seed("test5678", Language::Korean).unwrap();
+        let (phrase1, seed1) =
+            gen::new_seed(Password::new("test5678").unwrap(), Language::Korean).unwrap();
         println!("* phrase1: {}\n* seed1: {:?}", &phrase1, &seed1);
-        let keypair1 = Keypair::new(&seed1, Version::Zero(NetType::MainNet)).unwrap();
+        let keypair1 = Keypair::new(&seed1, Version::TestNet).unwrap();
         println!("\n-- keypair1:\n{:?}", keypair1);
         // sign with keypair 1
         let msg = "nepi is handsome guy.";
         let sig1 = keypair1.sign(msg.as_bytes(), None).unwrap();
-        let pubbase58check1 = keypair1.public().as_base58check();
+
         println!(
-            "keypair1 signed '{}'\nwith publickey: {}\n\n",
-            msg, pubbase58check1
+            "keypair1 signed '{}'\nwith publickey: {}\n\npair base58check: {}\n\n",
+            msg,
+            hex::encode(keypair1.public()),
+            keypair1
         );
 
         // distribute phrase into paths
@@ -81,31 +90,27 @@ mod tests {
         println!("recovered: {}\n", phrase_reload);
 
         // gen second phrase & seed
-        let seed2 = gen::seed_from_phrase("test5678", Language::Korean, &phrase_reload).unwrap();
+        let seed2 = gen::seed_from_phrase(
+            Password::new("test5678").unwrap(),
+            Language::Korean,
+            &phrase_reload,
+        )
+        .unwrap();
         println!("* phrase2: {}\n* seed2: {:?}", &phrase_reload, &seed2);
-        let keypair2 = Keypair::new(&seed2, Version::Zero(NetType::MainNet)).unwrap();
+        let keypair2 = Keypair::new(&seed2, Version::TestNet).unwrap();
         println!("\n-- keypair2:\n{:?}\n", keypair2);
 
         // verify sig 1 with keypair 2
-        let _ = keypair2
-            .public()
-            .verify(msg.as_bytes(), None, &sig1)
-            .unwrap();
+        let _ = keypair2.verify(msg.as_bytes(), None, &sig1).unwrap();
         println!("keypair2 is verified as keypair1\n\n");
 
         // test decoding base58check
-        let pubkey_from_base58 = WrappedKey::from_base58check(
-            &pubbase58check1,
-            Version::Zero(NetType::MainNet),
-            KeyType::Public,
-        )
-        .unwrap();
-        let pubkey_from_base58_base58 = pubkey_from_base58.as_base58check();
-        println!("successful decoding: {}\n\n", &pubkey_from_base58_base58);
-        let _ = pubkey_from_base58.verify(msg.as_bytes(), None, &sig1);
+        let keypair_from_key1base58 = Keypair::from_base58check(&keypair1.to_string()).unwrap();
+        println!("successful decoding: {}\n\n", &keypair_from_key1base58);
+        let _ = keypair_from_key1base58.verify(msg.as_bytes(), None, &sig1);
 
         // eq!
-        assert_eq!(pubkey_from_base58_base58, pubbase58check1);
+        assert_eq!(keypair_from_key1base58, keypair1);
         assert_eq!(keypair1, keypair2);
         assert_eq!(phrase1, phrase_reload);
         assert_eq!(format!("{:?}", seed1), format!("{:?}", seed2));

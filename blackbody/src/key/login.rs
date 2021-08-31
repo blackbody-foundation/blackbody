@@ -141,10 +141,10 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             None => return errbang!(err::BrokenContent, "envs.locked is broken."),
         };
         let (keypair, mnemonic) = errextract!(key::master::read_original_key(
-                words.clone(),
+                Password::new(&words)?,
                 salt,
                 lang,
-                account_password.clone(),
+                Password::new(&account_password)?,
                 config.keys[n_key].dirs.as_slice(),
             ),
             key::master::ShieldPathNotMatching => something_wrong!("login failed")());
@@ -176,9 +176,9 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                     .join(" ")
             {
                 key::master::remove_original_key(
-                    &words,
+                    Password::new(&words)?,
                     salt,
-                    &account_password,
+                    Password::new(&account_password)?,
                     config.keys[n_key].dirs.as_slice(),
                 )?;
                 config.remove_key(n_key);
@@ -354,8 +354,13 @@ fn create_new_master_key(
         }
 
         term.reset_screen();
-        match key::master::save_original_key(&key_password, salt, hd_lang, &account_password, &dirs)
-        {
+        match key::master::save_original_key(
+            Password::new(&key_password)?,
+            salt,
+            hd_lang,
+            Password::new(&account_password)?,
+            &dirs,
+        ) {
             Ok(v) => break v,
             Err(e) if errmatch!(e, key::master::ShieldPathError) => term.eprintln(cat!("{}\n", e)),
             Err(e) => return Err(e),
@@ -369,7 +374,7 @@ fn create_new_master_key(
     } else {
         Envs::new_config()
     };
-    new_config.new_key(keypair.public().as_base58check(), lang, dirs);
+    new_config.new_key(hex::encode(keypair.public()), lang, dirs);
 
     term.reset_screen();
     term.eprintln("successfully created!");
@@ -384,10 +389,10 @@ fn create_new_master_key(
         // re-load master key
         let last_key_index = v.keys.len() - 1;
         let (keypair_reload, _) = key::master::read_original_key(
-            key_password,
+            Password::new(key_password)?,
             salt,
             hd_lang,
-            account_password,
+            Password::new(account_password)?,
             v.keys[last_key_index].dirs.as_slice(),
         )?;
         // last check
