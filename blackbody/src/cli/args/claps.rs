@@ -52,7 +52,7 @@ impl<'a, 'b> CApp<'a, 'b> {
                 .short(name!(verbose: s))
                 .default_value(VERBOSE_DEFAULT)
                 .takes_value(true)
-                .validator(match_validator!([ name!(verbose: s) ] "0", "1", "2", "3"))
+                .possible_values(&["0", "1", "2", "3"])
                 .help(VERBOSE_HELP),
         )
     }
@@ -87,19 +87,3 @@ pub mod CSubCommand {
             .about(about)
     }
 }
-
-#[macro_export]
-macro_rules! match_validator {
-    ([$name:expr] $($val:expr),+) => {
-        |v: String| -> Result<(), String> {
-            match v.as_ref() {
-                $(
-                    $val => return Ok(()),
-                )+
-                _ => Err(String::from(concat!(" | ", $($val, " | "),+)))
-            }
-        }
-
-    };
-}
-pub use match_validator;

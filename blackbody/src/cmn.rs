@@ -143,6 +143,9 @@ mod cf {
     /// static string
     #[macro_export]
     macro_rules! name {
+        (NoEnvPath) => {
+            "please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now:"
+        };
         (FromMnemonic) => {
             "login from mnemonic. this will not save any data for security reason."
         };

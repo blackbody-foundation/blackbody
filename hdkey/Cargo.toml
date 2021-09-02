@@ -32,9 +32,9 @@ vep = "0.1.0"
 bs58 = "0.4.0"
 unicode-normalization = "0.1.19"
 
-ed25519-dalek-xkeypair = "0.1.1"
+ed25519-dalek-xkeypair = "1.0.0"
 
-utils-results = "5.1.1"
+utils-results = "5.2.0"
 zeroize = "1.4.1"
 
 secwords = "0.1.1"

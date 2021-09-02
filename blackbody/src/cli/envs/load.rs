@@ -61,12 +61,18 @@ impl Envs {
         let path = self.path.as_path();
 
         // read envs.locked file
-        let mut file = OpenOptions::new().read(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
+        let mut file = errcast_panic!(
+            OpenOptions::new().read(true).open(path),
+            err::Permission,
+            "{} {:?}",
+            style(name!(NoEnvPath)).red().bold(),
+            path
+        );
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
 
         // decrypt
-        buf = decrypt(password, buf.as_slice())?;
+        buf = decrypt(Password::new(password)?, buf.as_slice())?;
 
         // decode
         self.decode(buf)
@@ -85,13 +91,19 @@ impl Envs {
         // encode
         let original_src = self.encode(config)?;
         // encrypt
-        let buf = encrypt(password, original_src.as_bytes())?;
+        let buf = encrypt(Password::new(password)?, original_src.as_bytes())?;
         // write envs.locked file
         let path = self.path.as_path();
 
         set_permission(path, false);
         self.delete()?;
-        let mut file = OpenOptions::new().write(true).create(true).open(path).unwrap_or_else(|e| panic!("{}", style(format!("{}: please check the path's permission, or set the '$ENV_PATH' environment variable to change default envs path. now: {:?}", e, path)).red().bold()));
+        let mut file = errcast_panic!(
+            OpenOptions::new().write(true).create(true).open(path),
+            err::Permission,
+            "{} {:?}",
+            style(name!(NoEnvPath)).red().bold(),
+            path
+        );
         file.write_all(&buf)?;
         set_permission(path, true); // read only
         Ok(())
@@ -108,7 +120,7 @@ impl Envs {
         Ok(toml::to_string(&config)?)
     }
 }
-fn encrypt(password: &str, buf: &[u8]) -> Result<Vec<u8>> {
+fn encrypt(password: Password, buf: &[u8]) -> Result<Vec<u8>> {
     let hash = password_to_hash(password)?;
 
     let secret_key = Key::from_slice(&hash);
@@ -118,7 +130,7 @@ fn encrypt(password: &str, buf: &[u8]) -> Result<Vec<u8>> {
 
     Ok(errcast!(cipher.encrypt(nonce, buf), err::UnwrapingError))
 }
-fn decrypt(password: &str, buf: &[u8]) -> Result<Vec<u8>> {
+fn decrypt(password: Password, buf: &[u8]) -> Result<Vec<u8>> {
     let hash = password_to_hash(password)?;
 
     let secret_key = Key::from_slice(&hash);
@@ -128,20 +140,12 @@ fn decrypt(password: &str, buf: &[u8]) -> Result<Vec<u8>> {
 
     Ok(errcast!(cipher.decrypt(nonce, buf), err::UnwrapingError))
 }
-fn password_to_hash(password: &str) -> Result<Vec<u8>> {
-    let password_len = password.len();
-    if password_len < 8 {
-        return errbang!(
-            err::InvalidLenSize,
-            "password must be more than 8 length bytes. you are {}",
-            password_len
-        );
-    }
-
+fn password_to_hash(password: Password) -> Result<Vec<u8>> {
     let bytes = password.as_bytes();
-    let mut mac =
-        Hmac::<Sha3_256>::new_from_slice(blake3::hash(&bytes[..4].repeat(password_len)).as_bytes())
-            .unwrap();
+    let mut mac = Hmac::<Sha3_256>::new_from_slice(
+        blake3::hash(&bytes[..4].repeat(password.len())).as_bytes(),
+    )
+    .unwrap();
 
     mac.update(bytes);
 
@@ -153,6 +157,6 @@ fn set_permission(path: &Path, readonly: bool) {
     if let Ok(v) = path.metadata() {
         let mut perm = v.permissions();
         perm.set_readonly(readonly);
-        std::fs::set_permissions(path, perm).unwrap_or_else(|e| eprintln!("{}", e));
+        print_unwrap!(std::fs::set_permissions(path, perm));
     }
 }

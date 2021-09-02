@@ -21,7 +21,7 @@ edition = "2018"
 fs = []
 
 [dependencies]
-utils-results = { version = "5.1.1", features = [ "std" ]}
+utils-results = { version = "5.2.0" }
 
 serde = { version = "1.0.127", features = ["derive"] }
 bincode = "1.3.3"

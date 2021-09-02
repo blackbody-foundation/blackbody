@@ -27,6 +27,7 @@ err! {
     BrokenContent => "broken content."
     ItemNotFound => "item not found."
     FileNotFound => "file not found."
+    Permission => "permission error."
     InvalidLenSize => "invalid target len."
     EmptyArgument => "empty argument."
     MysteriousError => "mysterious error occurs."

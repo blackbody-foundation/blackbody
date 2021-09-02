@@ -104,7 +104,7 @@ fn prehash512(msg: &[u8]) -> Sha3_512 {
 
 impl fmt::Debug for Keypair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\n{}\n", self.0,)
+        write!(f, "\n{}\n", self.0)
     }
 }
 
