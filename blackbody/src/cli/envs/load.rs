@@ -26,9 +26,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use hmac::{Hmac, Mac, NewMac};
-use sha3::Sha3_256;
-
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 
@@ -54,7 +51,7 @@ impl Envs {
     pub fn exists(&self) -> bool {
         self.path.is_file()
     }
-    pub fn load(&self, password: &str) -> Result<Config> {
+    pub fn load(&self, password: Password) -> Result<Config> {
         if !self.exists() {
             return errbang!(err::FileNotFound);
         }
@@ -72,7 +69,7 @@ impl Envs {
         file.read_to_end(&mut buf)?;
 
         // decrypt
-        buf = decrypt(Password::new(password)?, buf.as_slice())?;
+        buf = decrypt(password, buf.as_slice())?;
 
         // decode
         self.decode(buf)
@@ -87,11 +84,11 @@ impl Envs {
         // and return a whole config data
         Ok(config)
     }
-    pub fn save(&self, password: &str, config: Config) -> Result<()> {
+    pub fn save(&self, password: Password, config: Config) -> Result<()> {
         // encode
         let original_src = self.encode(config)?;
         // encrypt
-        let buf = encrypt(Password::new(password)?, original_src.as_bytes())?;
+        let buf = encrypt(password, original_src.as_bytes())?;
         // write envs.locked file
         let path = self.path.as_path();
 
@@ -121,9 +118,9 @@ impl Envs {
     }
 }
 fn encrypt(password: Password, buf: &[u8]) -> Result<Vec<u8>> {
-    let hash = password_to_hash(password)?;
+    let hash = password.as_ref();
 
-    let secret_key = Key::from_slice(&hash);
+    let secret_key = Key::from_slice(&hash[..32]);
     let cipher = Aes256Gcm::new(secret_key);
 
     let nonce = Nonce::from_slice(&secret_key[..12]); // 96 bits;
@@ -131,25 +128,14 @@ fn encrypt(password: Password, buf: &[u8]) -> Result<Vec<u8>> {
     Ok(errcast!(cipher.encrypt(nonce, buf), err::UnwrapingError))
 }
 fn decrypt(password: Password, buf: &[u8]) -> Result<Vec<u8>> {
-    let hash = password_to_hash(password)?;
+    let hash = password.as_ref();
 
-    let secret_key = Key::from_slice(&hash);
+    let secret_key = Key::from_slice(&hash[..32]);
     let cipher = Aes256Gcm::new(secret_key);
 
     let nonce = Nonce::from_slice(&secret_key[..12]); // 96 bits;
 
     Ok(errcast!(cipher.decrypt(nonce, buf), err::UnwrapingError))
-}
-fn password_to_hash(password: Password) -> Result<Vec<u8>> {
-    let bytes = password.as_bytes();
-    let mut mac = Hmac::<Sha3_256>::new_from_slice(
-        blake3::hash(&bytes[..4].repeat(password.len())).as_bytes(),
-    )
-    .unwrap();
-
-    mac.update(bytes);
-
-    Ok(mac.finalize().into_bytes().to_vec())
 }
 
 #[inline]

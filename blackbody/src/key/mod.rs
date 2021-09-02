@@ -18,7 +18,7 @@
 
 */
 
-pub use hdkey::{Password, Version, WrappedKeypair};
+pub use hdkey::{Password, PasswordT, Version, WrappedKeypair, PASSWORD_MIN_LENGTH};
 
 mod login;
 pub use login::login;

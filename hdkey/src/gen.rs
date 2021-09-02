@@ -22,13 +22,17 @@ pub use bip39::Language;
 use bip39::{Mnemonic, Seed};
 
 use blake3::{hash, keyed_hash, Hash, Hasher};
-use rand::{thread_rng, Rng};
+
+use super::ran::*;
+
 use sha3::{Digest, Sha3_256};
 use std::{path::Path, time::Instant};
 use vep::Vep;
 use zeroize::Zeroize;
 
+/// 32
 const SYSTEM_ENTROPY_SIZE: usize = 32;
+/// 32
 const OUTPUT_ENTROPY_SIZE: usize = 32;
 
 use super::*;
@@ -83,7 +87,7 @@ pub fn remove_master_key<T: AsRef<Path>>(
 }
 
 pub fn new_seed(words: Password, lang: Language) -> Result<(String, Vec<u8>)> {
-    let entropy = get_entropy256_from_computer(hash(words.as_bytes()).as_bytes()[0]);
+    let entropy = get_entropy256_from_computer(hash(words.as_ref()).as_bytes()[0]);
     let mut password = get_entropy256_from_password(words);
     let mnemonic = Mnemonic::from_entropy(entropy.as_bytes(), lang)?;
     let seed = Seed::new(&mnemonic, &password).as_bytes().to_vec();
@@ -102,18 +106,8 @@ pub fn seed_from_phrase(words: Password, lang: Language, phrase: &str) -> Result
     Ok(seed)
 }
 
-struct VepHasher(blake3::Hasher); // for expanding a password
-
-impl vep::Digester for VepHasher {
-    fn digest(&mut self, bytes: &[u8]) -> Vec<u8> {
-        self.0.reset();
-        self.0.update(bytes);
-        self.0.finalize().as_bytes().to_vec()
-    }
-}
-
 fn get_entropy256_from_password(words: Password) -> String {
-    let mut bytes = Vep(VepHasher(Hasher::new())).expand(words.as_bytes()); // blake3
+    let mut bytes = Vep(Hasher::new()).expand(words.as_ref()); // blake3
     let mut sha3 = Sha3_256::new(); // sha3
     sha3.update(&bytes);
     bytes.zeroize();
@@ -121,17 +115,28 @@ fn get_entropy256_from_password(words: Password) -> String {
 }
 
 fn get_entropy256_from_computer(salt: u8) -> Hash {
+    #[cfg(feature = "std")]
     let mut rng = thread_rng();
-    let start = Instant::now();
+    #[cfg(not(feature = "std"))]
+    let mut rng = OsRng;
+
     let mut input = rng.gen::<[u8; SYSTEM_ENTROPY_SIZE]>();
+
+    let start = Instant::now();
     let duration: f32 = rng.gen_range(0.42..1.142);
     let min_count: usize = rng.gen_range(0..14);
+
     let mut hash;
     let mut i = 0;
     let input_len = input.len();
     input.rotate_left(absolute_rem(salt as usize, input_len));
     loop {
-        hash = keyed_hash(&rng.gen::<[u8; SYSTEM_ENTROPY_SIZE]>(), &input);
+        #[cfg(feature = "std")]
+        let r = rng.gen::<[u8; SYSTEM_ENTROPY_SIZE]>();
+        #[cfg(not(feature = "std"))]
+        let r = OsRng.gen::<[u8; SYSTEM_ENTROPY_SIZE]>();
+
+        hash = keyed_hash(&r, &input);
         if i > min_count && start.elapsed().as_secs_f32() > duration {
             break;
         }

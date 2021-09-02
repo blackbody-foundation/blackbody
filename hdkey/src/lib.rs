@@ -32,12 +32,26 @@ pub use keypair::Keypair;
 #[cfg(feature = "security")]
 pub use keypair::WrappedKeypair;
 
-pub type Password = secwords::Password<8>;
+/// 8
+pub const PASSWORD_MIN_LENGTH: usize = 8;
+/// min length = 8
+pub type Password = secwords::Password<blake3::Hasher, PASSWORD_MIN_LENGTH>;
+/// generic
+pub type PasswordT<const LENGTH: usize> = secwords::Password<blake3::Hasher, LENGTH>;
 
 pub use ed25519_dalek_xkeypair::{ed25519_dalek::Signature, *};
 
 mod version;
 pub use version::Version;
+
+pub mod ran {
+    #[cfg(not(feature = "std"))]
+    pub use rand::rngs::OsRng;
+    #[cfg(not(feature = "std"))]
+    pub use rand::Rng;
+    #[cfg(feature = "std")]
+    pub use rand::{random, thread_rng, Rng};
+}
 
 #[cfg(test)]
 mod tests {
@@ -65,8 +79,11 @@ mod tests {
         }
 
         // gen phrase & seed
-        let (phrase1, seed1) =
-            gen::new_seed(Password::new("test5678").unwrap(), Language::Korean).unwrap();
+        let (phrase1, seed1) = gen::new_seed(
+            Password::new("test5678".to_string()).unwrap(),
+            Language::Korean,
+        )
+        .unwrap();
         println!("* phrase1: {}\n* seed1: {:?}", &phrase1, &seed1);
         let keypair1 = Keypair::new(&seed1, Version::TestNet).unwrap();
         println!("\n-- keypair1:\n{:?}", keypair1);
@@ -91,7 +108,7 @@ mod tests {
 
         // gen second phrase & seed
         let seed2 = gen::seed_from_phrase(
-            Password::new("test5678").unwrap(),
+            Password::new("test5678".to_string()).unwrap(),
             Language::Korean,
             &phrase_reload,
         )

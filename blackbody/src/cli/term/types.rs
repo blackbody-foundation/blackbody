@@ -39,14 +39,9 @@ pub type OtherKeys<'a> = (
 );
 
 /// encrypt
-pub use vep::{Digester, Vep};
-
-pub struct PasswordHasher;
-impl Digester for PasswordHasher {
-    fn digest(&mut self, bytes: &[u8]) -> Vec<u8> {
-        blake3::hash(bytes).as_bytes().to_vec()
-    }
-}
+pub use vep::Vep;
+pub type PasswordHasher = blake3::Hasher;
+pub use sha3::Digest;
 
 // option structure
 use super::name;

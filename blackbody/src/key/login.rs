@@ -28,7 +28,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
     term.reset_screen();
 
     let password_option = TermPassword::new()
-        .encrypt(true)
+        .encrypt(false)
         .max_opportunity(MAX_OPPORTUNITY);
 
     let mut salt_option = TermPassword::new()
@@ -57,6 +57,8 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                 (false, re_password)
             }
         });
+        let account_password = Password::new(account_password)?;
+
         return create_new_master_key(
             term,
             account_password,
@@ -71,10 +73,11 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
     // if key already exists
     term.eprintln("account:");
     let out = term.read_password_op(&password_option, |password| {
-        if let Ok(conf) = envs.load(&password) {
-            (true, (conf, password))
+        let pass = Password::new(password).unwrap();
+        if let Ok(conf) = envs.load(pass.clone()) {
+            (true, (conf, pass))
         } else {
-            (false, (Envs::new_config(), password))
+            (false, (Envs::new_config(), pass))
         }
     });
 
@@ -123,7 +126,7 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
     let keypair = {
         term.reset_screen();
         term.eprintln("key password:");
-        let words = term.read_password_op(&password_option, |pass| (true, pass));
+        let words = term.read_password_op(&password_option, |pass| (true, Password::new(pass)))?;
 
         term.reset_screen();
         term.eprintln("key salt:");
@@ -141,10 +144,10 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
             None => return errbang!(err::BrokenContent, "envs.locked is broken."),
         };
         let (keypair, mnemonic) = errextract!(key::master::read_original_key(
-                Password::new(&words)?,
+                words.clone(),
                 salt,
                 lang,
-                Password::new(&account_password)?,
+                account_password.clone(),
                 config.keys[n_key].dirs.as_slice(),
             ),
             key::master::ShieldPathNotMatching => something_wrong!("login failed")());
@@ -176,15 +179,13 @@ pub fn login(term: &mut Term, reset_mode: bool) -> Result<hdkey::WrappedKeypair>
                     .join(" ")
             {
                 key::master::remove_original_key(
-                    Password::new(&words)?,
+                    words,
                     salt,
-                    Password::new(&account_password)?,
+                    account_password.clone(),
                     config.keys[n_key].dirs.as_slice(),
                 )?;
                 config.remove_key(n_key);
-                envs.save(&account_password, config)?;
-                drop(words);
-                drop(account_password);
+                envs.save(account_password, config)?;
                 term.eprintln("removed!");
                 thread::sleep(Duration::from_secs(2));
                 return login(term, false);
@@ -265,7 +266,7 @@ fn show_mnemonic(term: &mut Term, mnemonic: String) {
 
 fn create_new_master_key(
     term: &mut Term,
-    account_password: String,
+    account_password: Password,
     password_option: &TermPassword,
     salt_option: &TermPassword,
     envs: Envs,
@@ -273,8 +274,10 @@ fn create_new_master_key(
     reset_mode: bool,
 ) -> Result<hdkey::WrappedKeypair> {
     term.reset_screen();
+
     term.eprintln("new master key:");
-    let key_password = term.read_password_op(password_option, |pass| (true, pass));
+    let key_password =
+        term.read_password_op(password_option, |pass| (true, Password::new(pass)))?;
     term.eprintln("confirmation:");
     let key_password = term.read_password_op(password_option, |re_password| {
         if key_password == re_password {
@@ -283,6 +286,7 @@ fn create_new_master_key(
             (false, re_password)
         }
     });
+    let key_password = Password::new(key_password)?;
 
     term.reset_screen();
     term.eprintln("new key salt:");
@@ -355,10 +359,10 @@ fn create_new_master_key(
 
         term.reset_screen();
         match key::master::save_original_key(
-            Password::new(&key_password)?,
+            key_password.clone(),
             salt,
             hd_lang,
-            Password::new(&account_password)?,
+            account_password.clone(),
             &dirs,
         ) {
             Ok(v) => break v,
@@ -383,16 +387,16 @@ fn create_new_master_key(
         envs.delete()?; // delete envs.locked
     }
     // save envs.locked
-    let _ = envs.save(&account_password, new_config)?;
+    let _ = envs.save(account_password.clone(), new_config)?;
     // load envs.locked
-    if let Ok(v) = envs.load(&account_password) {
+    if let Ok(v) = envs.load(account_password.clone()) {
         // re-load master key
         let last_key_index = v.keys.len() - 1;
         let (keypair_reload, _) = key::master::read_original_key(
-            Password::new(key_password)?,
+            key_password,
             salt,
             hd_lang,
-            Password::new(account_password)?,
+            account_password,
             v.keys[last_key_index].dirs.as_slice(),
         )?;
         // last check

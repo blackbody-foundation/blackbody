@@ -103,18 +103,12 @@ impl Term {
             b.apply_to("✗")
         )));
     }
-    pub fn read_password(&self, encrypt: bool) -> String {
-        match self.stdout.read_secure_line() {
-            Ok(v) => {
-                let mut pass = v.nfkd().to_string();
-                if encrypt {
-                    pass = hex::encode(Vep(PasswordHasher).expand(pass.as_bytes()));
-                }
-                pass
-            }
-            Err(e) => {
-                eprintln!("{}", style(e).red());
-                String::new()
+    pub fn read_password<const MIN_LENGTH: usize>(&self) -> PasswordT<MIN_LENGTH> {
+        loop {
+            let pass = self.stdout.read_secure_line().unwrap_or_default();
+            match PasswordT::new(pass) {
+                Ok(v) => return v,
+                Err(e) => self.eprintln(cat!("{}", e)),
             }
         }
     }
@@ -132,7 +126,7 @@ impl Term {
 
         for _ in 0..max_opportunity {
             let mut password = loop {
-                let password = self.read_password(false); // get password
+                let password = self.stdout.read_secure_line().unwrap_or_default();
 
                 if let Err(e) = option.max_length.check(password.len() as u8) {
                     self.eprintln(cat!("{}", e));
@@ -142,10 +136,12 @@ impl Term {
                     self.eprintln(cat!("{}", e));
                     continue;
                 }
+
                 break password;
             };
+
             if encrypt {
-                password = hex::encode(Vep(PasswordHasher).expand(password.as_bytes()));
+                password = hex::encode(Vep(PasswordHasher::new()).expand(password.as_bytes()));
             }
 
             let (check, output) = f(password);

@@ -18,23 +18,35 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = [ "std" ]
+std = [
+    "blake3/default",
+    "sha3/default",
+    "aes-gcm/std",
+    "vep/default",
+    "rand/default",
+    "bs58/default",
+    "unicode-normalization/default",
+    "ed25519-dalek-xkeypair/default",
+    "utils-results/default",
+    "secwords/default",
+]
 security = []
 
 [dependencies]
 tiny-bip39 = "0.8.0"
-blake3 = "1.0.0"
-sha3 = "0.9.1"
-rand = "0.8.4"
+blake3 = { version = "1.0.0", default-features = false, features = ["traits-preview"] }
+sha3 = { version = "0.9.1", default-features = false }
+aes-gcm = { version = "0.9.3", default-features = true }
+vep = { version = "1.0.1", default-features = false }
+rand = { version = "0.8.4", default-features = false, features = ["getrandom"] }
+
+bs58 = { version = "0.4.0", default-features = false }
+unicode-normalization = { version = "0.1.19", default-features = false }
+
+ed25519-dalek-xkeypair = { version = "1.0.1", default-features = false }
+
+utils-results = { version = "5.2.1", default-features = false }
+secwords = { version = "1.0.0", default-features = false }
 hex = "0.4.3"
-aes-gcm = "0.9.3"
-vep = "0.1.0"
-
-bs58 = "0.4.0"
-unicode-normalization = "0.1.19"
-
-ed25519-dalek-xkeypair = "1.0.0"
-
-utils-results = "5.2.0"
 zeroize = "1.4.1"
-
-secwords = "0.1.1"

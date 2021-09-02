@@ -18,15 +18,12 @@
 
 */
 
-use super::{ed25519_dalek::Signature, errors::*, ExtendedKeypair, PublicKey, Version};
+use super::{ed25519_dalek::Signature, errors::*, ran::*, ExtendedKeypair, PublicKey, Version};
 
 use core::fmt;
 use std::str::FromStr;
 
 use sha3::{Digest, Sha3_512};
-
-#[cfg(feature = "security")]
-use rand::Rng;
 
 #[cfg(feature = "security")]
 pub struct WrappedKeypair {
@@ -56,7 +53,10 @@ pub struct Keypair(ExtendedKeypair);
 impl Keypair {
     #[inline]
     pub fn drive_random_child(&self) -> Result<Keypair> {
-        let pair = self.0.derive_child(rand::random::<u32>())?;
+        #[cfg(feature = "std")]
+        let pair = self.0.derive_child(random::<u32>())?;
+        #[cfg(not(feature = "std"))]
+        let pair = self.0.derive_child(OsRng.gen::<u32>())?;
         Ok(Self(pair))
     }
     #[inline]

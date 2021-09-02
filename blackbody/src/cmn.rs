@@ -34,7 +34,7 @@ pub use utils::system::*;
 // common in cli
 pub use crate::cli::*;
 
-pub use crate::key::Password;
+pub use crate::key::{Password, PasswordT, PASSWORD_MIN_LENGTH};
 
 #[derive(Debug, Clone)]
 pub struct Net {
