@@ -38,15 +38,15 @@ tiny-bip39 = "0.8.0"
 blake3 = { version = "1.0.0", default-features = false, features = ["traits-preview"] }
 sha3 = { version = "0.9.1", default-features = false }
 aes-gcm = { version = "0.9.3", default-features = true }
-vep = { version = "1.0.1", default-features = false }
+vep = { version = "2.1.0", default-features = false }
 rand = { version = "0.8.4", default-features = false, features = ["getrandom"] }
 
 bs58 = { version = "0.4.0", default-features = false }
 unicode-normalization = { version = "0.1.19", default-features = false }
 
-ed25519-dalek-xkeypair = { version = "1.0.1", default-features = false }
+ed25519-dalek-xkeypair = { version = "1.0.2", default-features = false }
 
 utils-results = { version = "5.2.1", default-features = false }
-secwords = { version = "1.0.0", default-features = false }
+secwords = { version = "2.1.1", default-features = false }
 hex = "0.4.3"
 zeroize = "1.4.1"

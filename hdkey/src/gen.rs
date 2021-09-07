@@ -40,7 +40,12 @@ use crate::{errors::*, Password};
 
 #[inline(always)]
 fn mix_passwords(words: &Password, salt: &usize, login_password: &Password) -> String {
-    format!("{}{}{}", words, salt, login_password)
+    format!(
+        "{}{}{}",
+        words.to_hex().unwrap(),
+        salt,
+        login_password.to_hex().unwrap()
+    )
 }
 
 pub fn new_master_key<T: AsRef<Path>>(
